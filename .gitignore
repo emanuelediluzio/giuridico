@@ -1,0 +1,3 @@
+# Dipendenze node
+node_modules/
+.next/ 
