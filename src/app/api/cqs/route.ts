@@ -50,9 +50,9 @@ export async function POST(request: Request) {
     console.log('CONTRACT:', contractText);
     console.log('STATEMENT:', statementText);
     console.log('TEMPLATE:', templateText);
-    if (!contractText && !file) {
+    if (!contractText) {
       return NextResponse.json(
-        { error: 'Devi fornire almeno testo o un file.' },
+        { error: 'Devi fornire almeno testo.' },
         { status: 400 }
       );
     }
@@ -69,14 +69,8 @@ export async function POST(request: Request) {
         }
       );
     }
-    // Chiamata a OpenRouter per suggerimento AI multimodale
-    const aiAdvice = await callOpenRouterAIMultimodal({
-      prompt: `Contratto: ${contractText}\nEstratto: ${statementText}\nCalcolo rimborso: ${result?.rimborso}\nGenera un breve suggerimento legale o verifica la correttezza del calcolo.`,
-      file
-    });
     return NextResponse.json({
-      ...(result ? { ...result, letter } : {}),
-      aiAdvice
+      ...(result ? { ...result, letter } : {})
     });
   } catch (error) {
     console.error('Errore:', error);
