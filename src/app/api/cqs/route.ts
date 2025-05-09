@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Errore:', error);
     return NextResponse.json(
-      { error: 'Errore durante il calcolo' },
+      { error: error instanceof Error ? error.message + (error.stack ? ('\n' + error.stack) : '') : String(error) },
       { status: 500 }
     );
   }

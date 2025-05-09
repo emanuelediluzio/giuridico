@@ -62,11 +62,14 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contractText, statementText, templateText }),
       });
-      if (!res.ok) throw new Error("Errore durante il calcolo. Riprova.");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Errore durante il calcolo. Riprova.");
+      }
       const data = await res.json();
       setResult(data);
     } catch (err) {
-      setError("Errore durante il calcolo. Riprova.");
+      setError(err instanceof Error ? err.message : String(err));
     }
     setLoading(false);
   };
