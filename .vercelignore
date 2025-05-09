@@ -1,5 +1,4 @@
-# Dipendenze node
 node_modules/
-.next/ 
+.next/
 test/
 *.test.* 
