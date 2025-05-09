@@ -1,16 +1,21 @@
-import extract from 'pdf-text-extract';
 import mammoth from 'mammoth';
 
 export async function extractTextFromFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   
   if (file.type === 'application/pdf') {
-    return new Promise((resolve, reject) => {
-      extract(Buffer.from(buffer), (err: any, pages: string[]) => {
-        if (err) return reject(err);
-        resolve(pages.join('\n'));
-      });
-    });
+    // Import dinamico solo lato server
+    const pdfjsLib = await import('pdfjs-dist/es5/build/pdf.js');
+    // Disabilita il worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = undefined;
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((item: any) => item.str).join(' ') + '\n';
+    }
+    return text;
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
     return result.value;
