@@ -33,11 +33,16 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     }
   }
 
-  // Regex ultra-flessibile per NUMERO RATE
-  const numeroRateMatch = testoContratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
+  // Regex ultra-flessibile per NUMERO RATE (cerca sia in contratto che in estratto)
+  const numeroRateMatch =
+    testoContratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
     || testoContratto.match(/NUMERO\s*RATE[^\d\n]*([\d]{2,3})/i)
     || testoContratto.match(/(\d{2,3})\s*RATE/i)
-    || testoContratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i);
+    || testoContratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i)
+    || testoEstratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
+    || testoEstratto.match(/NUMERO\s*RATE[^\d\n]*([\d]{2,3})/i)
+    || testoEstratto.match(/(\d{2,3})\s*RATE/i)
+    || testoEstratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i);
   const numeroRate = numeroRateMatch ? parseInt(numeroRateMatch[1]) : 1;
 
   // Regex ultra-flessibile per RATE SCADUTE
