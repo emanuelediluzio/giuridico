@@ -51,17 +51,36 @@ export default function Home() {
       // Parsing PDF lato client
       const contractText = await extractTextFromFile(contract);
       const statementText = await extractTextFromFile(statement);
-      const templateText = await extractTextFromFile(template);
+      let templateText: string | undefined = undefined;
+      let useBackendForTemplate = false;
+      if (template.type === 'application/msword') { // .doc
+        useBackendForTemplate = true;
+      } else {
+        templateText = await extractTextFromFile(template);
+      }
       // LOG dei testi estratti
       console.log('--- TESTO ESTRATTO ---');
       console.log('CONTRACT:', contractText);
       console.log('STATEMENT:', statementText);
       console.log('TEMPLATE:', templateText);
-      const res = await fetch('/api/cqs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractText, statementText, templateText }),
-      });
+      let res;
+      if (useBackendForTemplate) {
+        // Invio il file template come FormData
+        const formData = new FormData();
+        formData.append('contractText', contractText);
+        formData.append('statementText', statementText);
+        formData.append('templateFile', template);
+        res = await fetch('/api/cqs', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        res = await fetch('/api/cqs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contractText, statementText, templateText }),
+        });
+      }
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || "Errore durante il calcolo. Riprova.");

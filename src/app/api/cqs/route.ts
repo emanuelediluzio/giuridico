@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { calcolaRimborso, generaLettera } from '@/lib/parsing';
+import WordExtractor from 'word-extractor';
 
 export const runtime = 'nodejs';
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   try {
     // Supporto sia JSON (testo) che multipart/form-data (file)
     let contractText = '', statementText = '', templateText = '';
-    let file: File | undefined = undefined;
+    let templateFile: File | undefined = undefined;
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       const body = await request.json();
@@ -42,8 +43,15 @@ export async function POST(request: Request) {
       const formData = await request.formData();
       contractText = formData.get('contractText') as string;
       statementText = formData.get('statementText') as string;
-      templateText = formData.get('templateText') as string;
-      file = formData.get('file') as File;
+      templateFile = formData.get('templateFile') as File;
+      if (templateFile) {
+        // Estraggo testo dal file .doc
+        const arrayBuffer = await templateFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const extractor = new WordExtractor();
+        const doc = await extractor.extract(buffer);
+        templateText = doc.getBody();
+      }
     }
     // LOG dei dati ricevuti
     console.log('--- API /api/cqs ---');
