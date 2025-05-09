@@ -33,16 +33,16 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     }
   }
 
-  // Regex flessibile per NUMERO RATE
+  // Regex ultra-flessibile per NUMERO RATE
   const numeroRateMatch = testoContratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
-    || testoContratto.match(/N\.?\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
+    || testoContratto.match(/NUMERO\s*RATE[^\d\n]*([\d]{2,3})/i)
+    || testoContratto.match(/(\d{2,3})\s*RATE/i)
     || testoContratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i);
   const numeroRate = numeroRateMatch ? parseInt(numeroRateMatch[1]) : 1;
 
-  // Regex flessibile per RATE SCADUTE
-  const rateScaduteMatch = testoEstratto.match(/RATE\s*SCADUTE[^\d\n]*\(?([\d]{1,3})\s*MESI?/i)
-    || testoEstratto.match(/RATE\s*SCADUTE[^\d\n]*:?\s*([\d]{1,3})/i)
-    || testoEstratto.match(/([\d]{1,3})\s*rate\s*scadute/i)
+  // Regex ultra-flessibile per RATE SCADUTE
+  const rateScaduteMatch = testoEstratto.match(/RATE\s*SCADUTE[^\d\n]*:?\s*\(?([\d]{1,3})\s*MESI?/i)
+    || testoEstratto.match(/(\d{1,3})\s*rate\s*scadute/i)
     || testoEstratto.match(/SCADUTE[^\d\n]*([\d]{1,3})/i);
   const rateScadute = rateScaduteMatch ? parseInt(rateScaduteMatch[1]) : 0;
   const durataResidua = numeroRate - rateScadute;
