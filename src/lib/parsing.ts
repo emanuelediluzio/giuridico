@@ -1,27 +1,20 @@
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 
-export async function parseDocument(file: File): Promise<string> {
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  try {
-    if (ext === 'pdf') {
-      const data = await pdfParse(buffer);
-      return data.text;
-    } else if (ext === 'docx') {
-      const result = await mammoth.extractRawText({ buffer });
-      return result.value;
-    } else if (ext === 'txt') {
-      return buffer.toString('utf-8');
-    } else {
-      throw new Error('Formato file non supportato. Usa PDF, DOCX o TXT.');
-    }
-  } catch (error) {
-    console.error('Errore parsing file:', error);
-    throw new Error(`Errore durante il parsing del file ${file.name}`);
+export async function extractTextFromFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  
+  if (file.type === 'application/pdf') {
+    const data = await pdfParse(buffer);
+    return data.text;
+  } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  } else if (file.type === 'text/plain') {
+    return new TextDecoder().decode(buffer);
   }
+  
+  throw new Error('Formato file non supportato');
 }
 
 function estraiNumeriMultipli(text: string, regex: RegExp): number[] {

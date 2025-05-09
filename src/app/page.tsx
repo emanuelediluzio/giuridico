@@ -47,9 +47,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#0f2027] via-[#2c5364] to-[#232526] font-sans">
-      <style jsx global>{`
-        html { font-family: 'Poppins', 'Inter', Arial, sans-serif; }
-      `}</style>
       <div className="w-full max-w-lg bg-white/90 shadow-2xl rounded-3xl p-10 backdrop-blur-md border border-gray-200 animate-fade-in">
         <div className="flex flex-col items-center mb-8">
           <div className="bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-full p-3 mb-2 shadow-lg animate-bounce-slow">
