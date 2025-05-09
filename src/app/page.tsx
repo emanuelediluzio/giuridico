@@ -140,22 +140,11 @@ export default function Home() {
                 <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 Risultato
               </h2>
+              <p className="mb-2 text-base"><span className="font-semibold">Importo rimborsabile:</span> <span className="text-green-400 font-bold text-xl">{formatCurrency(result.rimborso)}</span></p>
               <div className="bg-[#23232a] p-4 rounded-lg border border-[#333] whitespace-pre-wrap text-gray-100 mt-2 shadow-inner">
                 <span className="font-semibold text-cyan-400">Lettera generata:</span>
                 <br />
                 {result.letter}
-              </div>
-              <div className="mt-6 p-4 bg-[#23232a] rounded-lg border border-[#333] text-sm text-gray-300">
-                <div className="font-bold text-cyan-400 mb-2">Dettaglio calcolo rimborso</div>
-                <ul className="mb-2">
-                  <li>Totale costi sommati: <b>{formatCurrency(result.totaleCosti)}</b></li>
-                  <li>Voci di costo trovate: {result.dettaglioCosti && result.dettaglioCosti.length > 0 ? result.dettaglioCosti.map((v: number, i: number) => <span key={i}>{formatCurrency(v)}{i < result.dettaglioCosti.length - 1 ? ', ' : ''}</span>) : 'Nessuna voce trovata'}</li>
-                  <li>Durata totale: <b>{result.durataTotale}</b> mesi</li>
-                  <li>Rate residue: <b>{result.durataResidua}</b></li>
-                  <li>Quota non goduta: <b>{formatCurrency(result.quotaNonGoduta)}</b></li>
-                  <li>Storno banca: <b className="text-red-400">{formatCurrency(result.storno)}</b></li>
-                </ul>
-                <div className="text-xs text-gray-500 mt-2">Formula: (Totale costi / Durata totale) x Rate residue - Storno banca</div>
               </div>
               <button onClick={() => window.print()} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">Scarica PDF</button>
             </div>
