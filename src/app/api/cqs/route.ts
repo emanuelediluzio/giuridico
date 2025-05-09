@@ -12,7 +12,8 @@ async function callOpenRouterAIMultimodal({ prompt, file }: { prompt: string, fi
     { role: 'system', content: 'Sei un assistente legale esperto di cessione del quinto.' },
     { role: 'user', content: prompt }
   ]));
-  if (file) {
+  // Allego solo immagini (jpg/png), MAI PDF
+  if (file && (file.type === 'image/jpeg' || file.type === 'image/png')) {
     formData.append('files', file);
   }
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
