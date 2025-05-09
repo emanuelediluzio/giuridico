@@ -20,23 +20,28 @@ function estraiNumero(text: string, regex: RegExp): number | null {
 }
 
 export function estraiDatiEconomici(testoContratto: string, testoEstratto: string) {
-  // Estrai COSTI TOTALI (CT)
-  const totaleCostiMatch = testoContratto.match(/COSTI TOTALI \(CT\)[^\d]*([\d\.]+,[\d]{2})/i);
+  // Regex flessibile per COSTI TOTALI (CT)
+  const totaleCostiMatch = testoContratto.match(/COSTI\s*TOTALI\s*\(?CT\)?[^\d\n]*([\d\.]+,[\d]{2})/i)
+    || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d\.]+,[\d]{2})/i)
+    || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d\.]+)/i);
   const totaleCosti = totaleCostiMatch ? parseFloat(totaleCostiMatch[1].replace(/\./g, '').replace(/,/g, '.')) : 0;
 
-  // Estrai NUMERO RATE
-  const numeroRateMatch = testoContratto.match(/NUMERO RATE ?[:=]? ?(\d+)/i);
+  // Regex flessibile per NUMERO RATE
+  const numeroRateMatch = testoContratto.match(/NUMERO\s*RATE[^\d\n]*([\d]+)/i)
+    || testoContratto.match(/N\.?\s*RATE[^\d\n]*([\d]+)/i)
+    || testoContratto.match(/RATE[^\d\n]*([\d]+)/i);
   const numeroRate = numeroRateMatch ? parseInt(numeroRateMatch[1]) : 1;
 
   // Estrai rate scadute dall'estratto
-  const rateScaduteMatch = testoEstratto.match(/([0-9]{1,3}) rate scadute/i);
+  const rateScaduteMatch = testoEstratto.match(/([0-9]{1,3})\s*rate\s*scadute/i)
+    || testoEstratto.match(/SCADUTE[^\d\n]*([\d]+)/i);
   const rateScadute = rateScaduteMatch ? parseInt(rateScaduteMatch[1]) : 0;
   const durataResidua = numeroRate - rateScadute;
 
   // Nome cliente
-  const nomeCliente = (testoContratto.match(/COGNOME: ([A-Z]+)/i)?.[1] || testoContratto.match(/cliente[:\s]*([A-Z a-z]+)/i)?.[1] || '').trim();
+  const nomeCliente = (testoContratto.match(/COGNOME:?\s*([A-Z]+)/i)?.[1] || testoContratto.match(/cliente[:\s]*([A-Z a-z]+)/i)?.[1] || '').trim();
   // Data chiusura (non sempre presente, fallback vuoto)
-  const dataChiusura = testoEstratto.match(/DATA STAMPA: ([\d\/]+)/i)?.[1] || '';
+  const dataChiusura = testoEstratto.match(/DATA\s*STAMPA:?\s*([\d\/]+)/i)?.[1] || '';
 
   return {
     totaleCosti,
