@@ -1,11 +1,18 @@
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 
+// Configurazione per pdf-parse
+const pdfOptions = {
+  pagerender: function(pageData: any) {
+    return pageData.getTextContent();
+  }
+};
+
 export async function extractTextFromFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   
   if (file.type === 'application/pdf') {
-    const data = await pdfParse(Buffer.from(buffer));
+    const data = await pdfParse(Buffer.from(buffer), pdfOptions);
     return data.text;
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });

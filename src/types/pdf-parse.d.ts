@@ -13,6 +13,12 @@ declare module 'pdf-parse' {
     version: string;
   }
 
-  function PDFParse(dataBuffer: Buffer | ArrayBuffer): Promise<PDFData>;
+  interface PDFOptions {
+    pagerender?: (pageData: any) => any;
+    max?: number;
+    version?: string;
+  }
+
+  function PDFParse(dataBuffer: Buffer | ArrayBuffer, options?: PDFOptions): Promise<PDFData>;
   export = PDFParse;
 } 
