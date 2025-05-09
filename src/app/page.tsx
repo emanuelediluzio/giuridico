@@ -71,9 +71,9 @@ export default function Home() {
         formData.append('statementText', statementText);
         formData.append('templateFile', template);
         res = await fetch('/api/cqs', {
-          method: 'POST',
-          body: formData,
-        });
+        method: 'POST',
+        body: formData,
+      });
       } else {
         res = await fetch('/api/cqs', {
           method: 'POST',
@@ -140,7 +140,6 @@ export default function Home() {
                 <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 Risultato
               </h2>
-              <p className="mb-2 text-base"><span className="font-semibold">Importo rimborsabile:</span> <span className="text-green-400 font-bold text-xl">{formatCurrency(result.rimborso)}</span></p>
               <div className="bg-[#23232a] p-4 rounded-lg border border-[#333] whitespace-pre-wrap text-gray-100 mt-2 shadow-inner">
                 <span className="font-semibold text-cyan-400">Lettera generata:</span>
                 <br />
@@ -158,6 +157,7 @@ export default function Home() {
                 </ul>
                 <div className="text-xs text-gray-500 mt-2">Formula: (Totale costi / Durata totale) x Rate residue - Storno banca</div>
               </div>
+              <button onClick={() => window.print()} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">Scarica PDF</button>
             </div>
           </>
         )}
