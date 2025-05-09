@@ -1,4 +1,4 @@
-declare module 'pdfjs-dist' {
+declare module 'pdfjs-dist/legacy/build/pdf.js' {
   interface PDFDocumentProxy {
     numPages: number;
     getPage(pageNumber: number): Promise<PDFPageProxy>;
@@ -27,7 +27,7 @@ declare module 'pdfjs-dist' {
   export function getDocument(params: GetDocumentParams): PDFDocumentLoadingTask;
 
   export const GlobalWorkerOptions: {
-    workerSrc: string;
+    workerSrc: string | undefined;
   };
 
   export const version: string;

@@ -1,13 +1,12 @@
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 import mammoth from 'mammoth';
-
-// Configurazione per pdf.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export async function extractTextFromFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   
   if (file.type === 'application/pdf') {
+    // Disabilita il worker (necessario su Vercel/Node)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = undefined;
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     let text = '';
     
