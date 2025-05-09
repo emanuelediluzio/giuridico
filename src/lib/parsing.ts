@@ -1,12 +1,16 @@
-import pdfParse from 'pdf-parse';
+import extract from 'pdf-text-extract';
 import mammoth from 'mammoth';
 
 export async function extractTextFromFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   
   if (file.type === 'application/pdf') {
-    const data = await pdfParse(Buffer.from(buffer));
-    return data.text;
+    return new Promise((resolve, reject) => {
+      extract(Buffer.from(buffer), (err: any, pages: string[]) => {
+        if (err) return reject(err);
+        resolve(pages.join('\n'));
+      });
+    });
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
     return result.value;
