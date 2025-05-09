@@ -129,12 +129,6 @@ export default function Home() {
         </form>
         {result && (
           <>
-            {/* DEBUG: Mostra testo estratto */}
-            <div className="mb-4 p-3 rounded bg-[#23232a] border border-[#444] text-xs text-gray-400 max-h-40 overflow-auto">
-              <div><b>Testo contratto:</b><br />{result.debugContractText || ''}</div>
-              <div className="mt-2"><b>Testo estratto:</b><br />{result.debugStatementText || ''}</div>
-              <div className="mt-2"><b>Testo modello lettera:</b><br />{result.debugTemplateText || ''}</div>
-            </div>
             <div className="mt-10 p-5 rounded-xl bg-[#18181b] border border-[#333] shadow-lg animate-fade-in max-h-[60vh] overflow-auto">
               <h2 className="text-lg font-bold text-cyan-400 mb-2 flex items-center gap-2">
                 <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
