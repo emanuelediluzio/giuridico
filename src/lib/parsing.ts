@@ -19,22 +19,31 @@ function estraiNumero(text: string, regex: RegExp): number | null {
   return null;
 }
 
-export function estraiDatiEconomici(testoContratto: string, testoEstratto: string) {
+export function estraiDatiEconomici(testoContratto: string, testoEstratto: string, testoLettera?: string) {
   // Regex flessibile per COSTI TOTALI (CT)
-  const totaleCostiMatch = testoContratto.match(/COSTI\s*TOTALI\s*\(?CT\)?[^\d\n]*([\d\.]+,[\d]{2})/i)
+  let totaleCostiMatch = testoContratto.match(/COSTI\s*TOTALI\s*\(?CT\)?[^\d\n]*([\d\.]+,[\d]{2})/i)
     || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d\.]+,[\d]{2})/i)
     || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d\.]+)/i);
-  const totaleCosti = totaleCostiMatch ? parseFloat(totaleCostiMatch[1].replace(/\./g, '').replace(/,/g, '.')) : 0;
+  let totaleCosti = totaleCostiMatch ? parseFloat(totaleCostiMatch[1].replace(/\./g, '').replace(/,/g, '.')) : 0;
+  // Se non trovato, cerca nella lettera (es. "ha corrisposto complessivi euro 2.593,25")
+  if (!totaleCosti && testoLettera) {
+    const letteraCostiMatch = testoLettera.match(/corrisposto complessivi euro ([\d\.]+,[\d]{2})/i);
+    if (letteraCostiMatch) {
+      totaleCosti = parseFloat(letteraCostiMatch[1].replace(/\./g, '').replace(/,/g, '.'));
+    }
+  }
 
   // Regex flessibile per NUMERO RATE
-  const numeroRateMatch = testoContratto.match(/NUMERO\s*RATE[^\d\n]*([\d]+)/i)
-    || testoContratto.match(/N\.?\s*RATE[^\d\n]*([\d]+)/i)
-    || testoContratto.match(/RATE[^\d\n]*([\d]+)/i);
+  const numeroRateMatch = testoContratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
+    || testoContratto.match(/N\.?\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
+    || testoContratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i);
   const numeroRate = numeroRateMatch ? parseInt(numeroRateMatch[1]) : 1;
 
-  // Estrai rate scadute dall'estratto
-  const rateScaduteMatch = testoEstratto.match(/([0-9]{1,3})\s*rate\s*scadute/i)
-    || testoEstratto.match(/SCADUTE[^\d\n]*([\d]+)/i);
+  // Regex flessibile per RATE SCADUTE
+  const rateScaduteMatch = testoEstratto.match(/RATE\s*SCADUTE[^\d\n]*\(?([\d]{1,3})\s*MESI?/i)
+    || testoEstratto.match(/RATE\s*SCADUTE[^\d\n]*:?\s*([\d]{1,3})/i)
+    || testoEstratto.match(/([\d]{1,3})\s*rate\s*scadute/i)
+    || testoEstratto.match(/SCADUTE[^\d\n]*([\d]{1,3})/i);
   const rateScadute = rateScaduteMatch ? parseInt(rateScaduteMatch[1]) : 0;
   const durataResidua = numeroRate - rateScadute;
 
@@ -42,6 +51,13 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   const nomeCliente = (testoContratto.match(/COGNOME:?\s*([A-Z]+)/i)?.[1] || testoContratto.match(/cliente[:\s]*([A-Z a-z]+)/i)?.[1] || '').trim();
   // Data chiusura (non sempre presente, fallback vuoto)
   const dataChiusura = testoEstratto.match(/DATA\s*STAMPA:?\s*([\d\/]+)/i)?.[1] || '';
+
+  // Log per debug
+  console.log('--- DEBUG ESTRAZIONE ---');
+  console.log('Totale costi:', totaleCosti);
+  console.log('Numero rate:', numeroRate);
+  console.log('Rate scadute:', rateScadute);
+  console.log('Durata residua:', durataResidua);
 
   return {
     totaleCosti,
@@ -54,8 +70,8 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   };
 }
 
-export function calcolaRimborso(testoContratto: string, testoEstratto: string) {
-  const dati = estraiDatiEconomici(testoContratto, testoEstratto);
+export function calcolaRimborso(testoContratto: string, testoEstratto: string, testoLettera?: string) {
+  const dati = estraiDatiEconomici(testoContratto, testoEstratto, testoLettera);
   const quotaNonGoduta = (dati.totaleCosti / dati.durataTotale) * dati.durataResidua;
   const rimborso = quotaNonGoduta - dati.storno;
   return {
