@@ -50,7 +50,15 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     || testoEstratto.match(/(\d{1,3})\s*rate\s*scadute/i)
     || testoEstratto.match(/SCADUTE[^\d\n]*([\d]{1,3})/i);
   const rateScadute = rateScaduteMatch ? parseInt(rateScaduteMatch[1]) : 0;
-  const durataResidua = numeroRate - rateScadute;
+  let durataResidua = numeroRate - rateScadute;
+  let durataTotale = numeroRate;
+
+  // Cerca frasi tipo "residuavano da versare 63 rate delle 120"
+  const residuanoMatch = testoLettera?.match(/residu[a-z]* da versare (\d{1,3}) rate (?:delle|su|di) (\d{1,3})/i);
+  if (residuanoMatch) {
+    durataResidua = parseInt(residuanoMatch[1]);
+    durataTotale = parseInt(residuanoMatch[2]);
+  }
 
   // Nome cliente
   const nomeCliente = (testoContratto.match(/COGNOME:?\s*([A-Z]+)/i)?.[1] || testoContratto.match(/cliente[:\s]*([A-Z a-z]+)/i)?.[1] || '').trim();
@@ -66,7 +74,7 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
 
   return {
     totaleCosti,
-    durataTotale: numeroRate,
+    durataTotale: durataTotale,
     durataResidua: durataResidua > 0 ? durataResidua : 0,
     storno: 0, // non presente nei tuoi file
     nomeCliente: nomeCliente || 'Cliente',
