@@ -1,19 +1,23 @@
-import pdfParse from 'pdf-parse';
+import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 
-// Configurazione per pdf-parse
-const pdfOptions = {
-  pagerender: function(pageData: any) {
-    return pageData.getTextContent();
-  }
-};
+// Configurazione per pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export async function extractTextFromFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   
   if (file.type === 'application/pdf') {
-    const data = await pdfParse(Buffer.from(buffer), pdfOptions);
-    return data.text;
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let text = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((item: any) => item.str).join(' ') + '\n';
+    }
+    
+    return text;
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
     return result.value;
