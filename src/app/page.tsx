@@ -52,6 +52,11 @@ export default function Home() {
       const contractText = await extractTextFromFile(contract);
       const statementText = await extractTextFromFile(statement);
       const templateText = await extractTextFromFile(template);
+      // LOG dei testi estratti
+      console.log('--- TESTO ESTRATTO ---');
+      console.log('CONTRACT:', contractText);
+      console.log('STATEMENT:', statementText);
+      console.log('TEMPLATE:', templateText);
       const res = await fetch('/api/cqs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
