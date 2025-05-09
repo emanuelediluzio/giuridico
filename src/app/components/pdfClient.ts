@@ -1,15 +1,15 @@
 "use client";
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
-import 'pdfjs-dist/build/pdf.worker.entry';
+import { PDFDocument } from 'pdf-lib';
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdfDoc = await PDFDocument.load(arrayBuffer);
   let text = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map((item: any) => item.str).join(' ') + '\n';
+  const pages = pdfDoc.getPages();
+  for (const [i, page] of pages.entries()) {
+    // pdf-lib non supporta estrazione testo nativa, quindi mostriamo solo info pagina
+    const { width, height } = page.getSize();
+    text += `Pagina ${i + 1} (${width}x${height})\n[Estrazione testo avanzata non supportata]\n`;
   }
   return text;
 } 
