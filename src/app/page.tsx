@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, ChangeEvent, FormEvent } from 'react';
-import { extractTextFromPDF } from './components/pdfClient';
+import { extractTextFromPDF } from './components/pdfTextExtractClient';
 
 async function extractTextFromFile(file: File): Promise<string> {
   if (file.type === 'application/pdf') {
