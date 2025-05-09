@@ -78,7 +78,10 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json({
-      ...(result ? { ...result, letter } : {})
+      ...(result ? { ...result, letter } : {}),
+      debugContractText: contractText,
+      debugStatementText: statementText,
+      debugTemplateText: templateText
     });
   } catch (error) {
     console.error('Errore:', error);

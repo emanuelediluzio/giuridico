@@ -128,30 +128,38 @@ export default function Home() {
           </button>
         </form>
         {result && (
-          <div className="mt-10 p-5 rounded-xl bg-[#18181b] border border-[#333] shadow-lg animate-fade-in">
-            <h2 className="text-lg font-bold text-cyan-400 mb-2 flex items-center gap-2">
-              <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-              Risultato
-            </h2>
-            <p className="mb-2 text-base"><span className="font-semibold">Importo rimborsabile:</span> <span className="text-green-400 font-bold text-xl">{formatCurrency(result.rimborso)}</span></p>
-            <div className="bg-[#23232a] p-4 rounded-lg border border-[#333] whitespace-pre-wrap text-gray-100 mt-2 shadow-inner">
-              <span className="font-semibold text-cyan-400">Lettera generata:</span>
-              <br />
-              {result.letter}
+          <>
+            {/* DEBUG: Mostra testo estratto */}
+            <div className="mb-4 p-3 rounded bg-[#23232a] border border-[#444] text-xs text-gray-400 max-h-40 overflow-auto">
+              <div><b>Testo contratto:</b><br />{result.debugContractText || ''}</div>
+              <div className="mt-2"><b>Testo estratto:</b><br />{result.debugStatementText || ''}</div>
+              <div className="mt-2"><b>Testo modello lettera:</b><br />{result.debugTemplateText || ''}</div>
             </div>
-            <div className="mt-6 p-4 bg-[#23232a] rounded-lg border border-[#333] text-sm text-gray-300">
-              <div className="font-bold text-cyan-400 mb-2">Dettaglio calcolo rimborso</div>
-              <ul className="mb-2">
-                <li>Totale costi sommati: <b>{formatCurrency(result.totaleCosti)}</b></li>
-                <li>Voci di costo trovate: {result.dettaglioCosti && result.dettaglioCosti.length > 0 ? result.dettaglioCosti.map((v: number, i: number) => <span key={i}>{formatCurrency(v)}{i < result.dettaglioCosti.length - 1 ? ', ' : ''}</span>) : 'Nessuna voce trovata'}</li>
-                <li>Durata totale: <b>{result.durataTotale}</b> mesi</li>
-                <li>Rate residue: <b>{result.durataResidua}</b></li>
-                <li>Quota non goduta: <b>{formatCurrency(result.quotaNonGoduta)}</b></li>
-                <li>Storno banca: <b className="text-red-400">{formatCurrency(result.storno)}</b></li>
-              </ul>
-              <div className="text-xs text-gray-500 mt-2">Formula: (Totale costi / Durata totale) x Rate residue - Storno banca</div>
+            <div className="mt-10 p-5 rounded-xl bg-[#18181b] border border-[#333] shadow-lg animate-fade-in max-h-[60vh] overflow-auto">
+              <h2 className="text-lg font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                Risultato
+              </h2>
+              <p className="mb-2 text-base"><span className="font-semibold">Importo rimborsabile:</span> <span className="text-green-400 font-bold text-xl">{formatCurrency(result.rimborso)}</span></p>
+              <div className="bg-[#23232a] p-4 rounded-lg border border-[#333] whitespace-pre-wrap text-gray-100 mt-2 shadow-inner">
+                <span className="font-semibold text-cyan-400">Lettera generata:</span>
+                <br />
+                {result.letter}
+              </div>
+              <div className="mt-6 p-4 bg-[#23232a] rounded-lg border border-[#333] text-sm text-gray-300">
+                <div className="font-bold text-cyan-400 mb-2">Dettaglio calcolo rimborso</div>
+                <ul className="mb-2">
+                  <li>Totale costi sommati: <b>{formatCurrency(result.totaleCosti)}</b></li>
+                  <li>Voci di costo trovate: {result.dettaglioCosti && result.dettaglioCosti.length > 0 ? result.dettaglioCosti.map((v: number, i: number) => <span key={i}>{formatCurrency(v)}{i < result.dettaglioCosti.length - 1 ? ', ' : ''}</span>) : 'Nessuna voce trovata'}</li>
+                  <li>Durata totale: <b>{result.durataTotale}</b> mesi</li>
+                  <li>Rate residue: <b>{result.durataResidua}</b></li>
+                  <li>Quota non goduta: <b>{formatCurrency(result.quotaNonGoduta)}</b></li>
+                  <li>Storno banca: <b className="text-red-400">{formatCurrency(result.storno)}</b></li>
+                </ul>
+                <div className="text-xs text-gray-500 mt-2">Formula: (Totale costi / Durata totale) x Rate residue - Storno banca</div>
+              </div>
             </div>
-          </div>
+          </>
         )}
         <footer className="mt-8 text-center text-xs">
           &copy; {new Date().getFullYear()} CQS Refund Calc. Design <span style={{color:'#38bdf8'}}>AI 2025</span>.
