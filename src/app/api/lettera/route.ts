@@ -1,38 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseDocument, calcolaRimborso, generaLettera } from '@/lib/parsing';
+import { extractTextFromFile, calcolaRimborso, generaLettera } from '@/lib/parsing';
 
 export const runtime = 'nodejs';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData();
+    const formData = await request.formData();
     const contract = formData.get('contract') as File;
     const statement = formData.get('statement') as File;
     const template = formData.get('template') as File;
 
     if (!contract || !statement || !template) {
-      return NextResponse.json({ error: 'Tutti i file sono obbligatori.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Tutti i file sono obbligatori' },
+        { status: 400 }
+      );
     }
 
-    // Parsing dei file
-    const testoContratto = await parseDocument(contract);
-    const testoEstratto = await parseDocument(statement);
-    const testoTemplate = await parseDocument(template);
+    // Converti i file in testo
+    const contractText = await extractTextFromFile(contract);
+    const statementText = await extractTextFromFile(statement);
+    const templateText = await extractTextFromFile(template);
 
-    // Calcolo rimborso
-    const rimborsoDettaglio = calcolaRimborso(testoContratto, testoEstratto);
-    const importoRimborso = rimborsoDettaglio.rimborso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+    // Calcola il rimborso
+    const result = calcolaRimborso(contractText, statementText);
 
-    // Generazione lettera
-    const lettera = generaLettera(testoTemplate, importoRimborso, rimborsoDettaglio);
+    // Genera la lettera
+    const letter = generaLettera(
+      templateText,
+      result.rimborso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }),
+      {
+        nomeCliente: result.nomeCliente,
+        dataChiusura: result.dataChiusura
+      }
+    );
 
     return NextResponse.json({
-      ...rimborsoDettaglio,
-      refund_amount: importoRimborso,
-      letter: lettera,
+      ...result,
+      letter
     });
-  } catch (error: any) {
-    console.error('Errore API /api/cqs:', error);
-    return NextResponse.json({ error: error?.message || String(error) }, { status: 500 });
+  } catch (error) {
+    console.error('Errore:', error);
+    return NextResponse.json(
+      { error: 'Errore durante il calcolo' },
+      { status: 500 }
+    );
   }
 }
