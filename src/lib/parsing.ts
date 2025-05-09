@@ -5,16 +5,16 @@ export async function extractTextFromFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   
   if (file.type === 'application/pdf') {
-    const data = await pdfParse(buffer);
+    const data = await pdfParse(Buffer.from(buffer));
     return data.text;
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    const result = await mammoth.extractRawText({ buffer });
+    const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
     return result.value;
   } else if (file.type === 'text/plain') {
     return new TextDecoder().decode(buffer);
+  } else {
+    throw new Error('Formato file non supportato');
   }
-  
-  throw new Error('Formato file non supportato');
 }
 
 function estraiNumeriMultipli(text: string, regex: RegExp): number[] {
@@ -89,19 +89,9 @@ export function calcolaRimborso(testoContratto: string, testoEstratto: string) {
   };
 }
 
-export function generaLettera(template: string, importo: string, extra?: any): string {
-  let lettera = template;
-  if (template.includes('{{IMPORTO}}')) {
-    lettera = lettera.replace(/{{IMPORTO}}/g, importo);
-  }
-  if (extra?.nomeCliente && template.includes('{{NOME_CLIENTE}}')) {
-    lettera = lettera.replace(/{{NOME_CLIENTE}}/g, extra.nomeCliente);
-  }
-  if (extra?.dataChiusura && template.includes('{{DATA}}')) {
-    lettera = lettera.replace(/{{DATA}}/g, extra.dataChiusura);
-  }
-  if (!template.includes('{{IMPORTO}}')) {
-    lettera += `\n\nCon la presente si richiede il rimborso di ${importo}, calcolati ai sensi dell'Art. 125 sexies T.U.B., per la chiusura anticipata del contratto.`;
-  }
-  return lettera;
+export function generaLettera(template: string, importoRimborso: string, dettagli: { nomeCliente: string, dataChiusura: string }) {
+  return template
+    .replace('{{importo_rimborso}}', importoRimborso)
+    .replace('{{nome_cliente}}', dettagli.nomeCliente)
+    .replace('{{data_chiusura}}', dettagli.dataChiusura);
 } 
