@@ -5,8 +5,8 @@ export async function extractTextFromFile(file: File): Promise<string> {
   
   if (file.type === 'application/pdf') {
     // Import dinamico solo lato server
-    const pdfjsLib = await import('pdfjs-dist/es5/build/pdf.js');
-    // Disabilita il worker
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+    // Disabilita il worker (necessario su Vercel/Node)
     pdfjsLib.GlobalWorkerOptions.workerSrc = undefined;
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     let text = '';
