@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { extractTextFromPDF } from './components/pdfTextExtractClient';
-import jsPDF from 'jspdf';
 
 async function extractTextFromFile(file: File): Promise<string> {
   if (file.type === 'application/pdf') {
@@ -99,8 +98,9 @@ export default function Home() {
   }
 
   // Funzione per generare PDF professionale
-  function handleDownloadPDF() {
+  async function handleDownloadPDF() {
     if (!result) return;
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     doc.setFont('helvetica', '');
     doc.setFontSize(14);
