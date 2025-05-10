@@ -139,7 +139,7 @@ export default function ChatAI() {
       {!user ? (
         <div className="text-center text-gray-400">Effettua il login per usare la chat e caricare file.</div>
       ) : (
-        <div className="flex flex-row h-[70vh] bg-[#18181b] border border-[#23232a] rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex flex-row h-[70vh] bg-[#18181b] border border-[#23232a] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
           {/* Sidebar file */}
           <div className="w-56 bg-[#23232a] border-r border-[#23232a] p-4 flex flex-col gap-2">
             <div className="font-bold text-cyan-400 mb-2">File caricati</div>
@@ -179,9 +179,6 @@ export default function ChatAI() {
             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-[#23232a] to-[#18181b]">
               {messages.filter(m => m.role !== "system").map((msg, i) => (
                 <div key={i} className={msg.role === "user" ? "text-right" : "text-left flex items-start gap-2"}>
-                  {msg.role === "assistant" && (
-                    <img src="/lexa-avatar.png" alt="Lexa" className="w-8 h-8 rounded-full border-2 border-cyan-400 mt-1" />
-                  )}
                   <div className={
                     "inline-block px-4 py-2 rounded-lg max-w-[80%] " +
                     (msg.role === "user"

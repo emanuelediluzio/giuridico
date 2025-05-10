@@ -26,7 +26,7 @@ export default function DownloadPDFButton({ result, formatCurrency }: { result: 
   }
 
   return (
-    <button onClick={handleDownloadPDF} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+    <button onClick={handleDownloadPDF} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-2 rounded-lg transition shadow">
       Scarica PDF
     </button>
   );

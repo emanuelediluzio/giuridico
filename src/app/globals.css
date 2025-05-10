@@ -23,19 +23,20 @@ body {
 
 .main-card {
   background: #23232a;
-  border-radius: 18px;
-  box-shadow: 0 4px 32px 0 rgba(0,0,0,0.25);
-  padding: 2.5rem 2rem 2rem 2rem;
+  border-radius: 22px;
+  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.18);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
   max-width: 420px;
   width: 100%;
   margin: 2rem auto;
 }
 
 h1 {
-  font-size: 2.2rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 0.5rem;
   color: #fff;
+  letter-spacing: -1px;
 }
 
 h2, h3, h4 {
@@ -47,37 +48,40 @@ label, p, li {
   font-size: 1rem;
 }
 
-input[type="file"] {
+input[type="file"], input, textarea, select {
   background: #18181b;
   color: #f4f4f5;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 0.5rem;
+  border: 1.5px solid #333;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
   margin-bottom: 1rem;
   width: 100%;
-  transition: border 0.2s;
+  transition: border 0.2s, box-shadow 0.2s;
+  font-size: 1rem;
 }
-input[type="file"]:focus {
-  border: 1.5px solid #6366f1;
+input[type="file"]:focus, input:focus, textarea:focus, select:focus {
+  border: 1.5px solid #38bdf8;
   outline: none;
+  box-shadow: 0 0 0 2px #38bdf8aa;
 }
 
 button {
   background: linear-gradient(90deg, #6366f1 0%, #0ea5e9 100%);
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-top: 1.2rem;
+  border-radius: 10px;
+  padding: 0.7rem 1.4rem;
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin-top: 1.1rem;
   cursor: pointer;
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.18s, transform 0.09s, box-shadow 0.18s;
 }
 button:hover {
   background: linear-gradient(90deg, #818cf8 0%, #38bdf8 100%);
-  transform: translateY(-2px) scale(1.03);
+  transform: translateY(-1.5px) scale(1.025);
+  box-shadow: 0 4px 16px 0 rgba(56,189,248,0.10);
 }
 
 footer {
@@ -89,11 +93,15 @@ footer {
 
 @media (max-width: 600px) {
   .main-card {
-    padding: 1.2rem 0.5rem;
-    max-width: 98vw;
+    padding: 1rem 0.3rem;
+    max-width: 99vw;
   }
   h1 {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
+  }
+  button {
+    font-size: 1rem;
+    padding: 0.6rem 1rem;
   }
 }
 
@@ -118,7 +126,7 @@ footer {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.5s ease-out;
+  animation: fade-in 0.5s cubic-bezier(.4,0,.2,1);
 }
 
 .animate-bounce-slow {
