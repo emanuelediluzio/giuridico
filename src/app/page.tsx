@@ -3,6 +3,7 @@ import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { extractTextFromPDF } from './components/pdfTextExtractClient';
 import dynamic from 'next/dynamic';
 import ChatAI from './components/ChatAI';
+import "@fontsource/inter/variable.css";
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
@@ -103,37 +104,26 @@ export default function Home() {
   }
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center justify-center bg-[#111]">
-      {/* Logo/avatar Lexa */}
-      <div className="flex flex-col items-center mt-12 mb-6">
-        <img src="/lexa-avatar.png" alt="Lexa" className="w-12 h-12 rounded-full border-2 border-cyan-400 shadow bg-white/80" onError={e => (e.currentTarget.src = 'https://ui-avatars.com/api/?name=Lexa&background=38bdf8&color=fff&rounded=true')} />
-      </div>
-      {/* Hero section */}
-      <div className="w-full max-w-2xl mx-auto flex flex-col items-center px-4">
-        <h1 className="text-5xl md:text-6xl font-extrabold text-white text-center mb-4 tracking-tight leading-tight">AI invisibile per avvocati</h1>
-        <p className="text-lg text-gray-300 text-center mb-10 max-w-xl">Tutto quello che ti serve per calcolare rimborsi, generare lettere e chattare con Lexa sui tuoi documenti.</p>
-        <div className="flex flex-col md:flex-row gap-6 w-full justify-center mb-12">
-          <button
-            onClick={() => setMainScreen('rimborso')}
-            className="flex items-center gap-3 px-7 py-3 rounded-lg border border-white/20 bg-[#18181b] text-white font-semibold text-lg shadow hover:border-cyan-400 hover:text-cyan-300 hover:shadow-cyan-800/30 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
-            style={{ minWidth: 220 }}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
-            Calcolo Rimborso
-          </button>
-          <button
-            onClick={() => setMainScreen('chat')}
-            className="flex items-center gap-3 px-7 py-3 rounded-lg border border-white/20 bg-[#18181b] text-white font-semibold text-lg shadow hover:border-cyan-400 hover:text-cyan-300 hover:shadow-cyan-800/30 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
-            style={{ minWidth: 220 }}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M7 8h10M7 12h6m-6 4h8"/><path stroke="#38bdf8" strokeWidth="2" d="M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-3.5-.6L3 21l1.6-4.8A7.5 7.5 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-            Chatta con Lexa
-          </button>
-        </div>
-      </div>
-      <footer className="mt-auto mb-4 text-center text-xs text-gray-500">
-        &copy; {new Date().getFullYear()} LegalAI Suite. <span className="text-cyan-400">Privacy</span> · <span className="text-cyan-400">Credits</span>
-      </footer>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans">
+      <header className="w-full flex justify-center mt-10 mb-8">
+        <span className="font-extrabold text-2xl text-white tracking-tight">Lexa</span>
+      </header>
+      {mainScreen === 'home' && (
+        <main className="w-full max-w-md flex flex-col items-center">
+          <h1 className="text-5xl font-extrabold text-white mb-4 text-center leading-tight">AI invisibile per avvocati</h1>
+          <p className="text-lg text-gray-400 mb-10 text-center">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti.</p>
+          <div className="flex gap-4 w-full justify-center">
+            <button onClick={() => setMainScreen('rimborso')} className="group flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-700 bg-black text-white font-semibold text-base hover:border-cyan-400 hover:bg-gray-900 transition">
+              <svg className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
+              Calcolo Rimborso
+            </button>
+            <button onClick={() => setMainScreen('chat')} className="group flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-700 bg-black text-white font-semibold text-base hover:border-fuchsia-400 hover:bg-gray-900 transition">
+              <svg className="w-5 h-5 text-fuchsia-400 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24"><path stroke="#f472b6" strokeWidth="2" d="M7 8h10M7 12h6m-6 4h8"/><path stroke="#f472b6" strokeWidth="2" d="M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-3.5-.6L3 21l1.6-4.8A7.5 7.5 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              Chatta con Lexa
+            </button>
+          </div>
+        </main>
+      )}
       {mainScreen === 'rimborso' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="bg-[#18181b] p-8 rounded-2xl shadow-2xl max-w-lg w-full relative">
@@ -195,6 +185,9 @@ export default function Home() {
           </div>
         </div>
       )}
+      <footer className="mt-auto mb-6 text-xs text-gray-600 text-center">
+        © {new Date().getFullYear()} LegalAI Suite. <a className="text-cyan-400 hover:underline" href="#">Privacy</a> · <a className="text-cyan-400 hover:underline" href="#">Credits</a>
+      </footer>
     </div>
   );
 }
