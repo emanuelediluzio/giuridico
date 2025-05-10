@@ -141,9 +141,9 @@ export default function ChatAI() {
       ) : (
         <div className="flex flex-row h-[70vh] bg-[#18181b] border border-[#23232a] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
           {/* Sidebar file */}
-          <div className="w-56 bg-[#23232a] border-r border-[#23232a] p-4 flex flex-col gap-2">
-            <div className="font-bold text-cyan-400 mb-2">File caricati</div>
-            <label className="block cursor-pointer mb-2">
+          <div className="w-56 bg-[#23232a] border-r border-[#23232a] p-3 flex flex-col gap-2">
+            <div className="font-bold text-cyan-400 mb-1">File caricati</div>
+            <label className="block cursor-pointer mb-1">
               <span className="text-xs text-gray-400">Aggiungi file</span>
               <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploading} />
               <div className="mt-1 px-2 py-1 bg-cyan-700 text-white rounded text-xs text-center hover:bg-cyan-600 transition cursor-pointer">{uploading ? "Caricamento..." : "Upload"}</div>
@@ -151,20 +151,20 @@ export default function ChatAI() {
             <div className="flex-1 overflow-y-auto">
               {files.length === 0 && <div className="text-xs text-gray-500">Nessun file</div>}
               {files.map(f => (
-                <div key={f.id} className="mb-2">
+                <div key={f.id} className="mb-1">
                   <label className="flex items-center gap-2 cursor-pointer text-xs">
                     <input type="checkbox" checked={f.selected} onChange={() => toggleFile(f.id)} />
                     <span className="truncate" title={f.name}>{f.name}</span>
                     <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline ml-1">Scarica</a>
                   </label>
-                  <div className="bg-[#18181b] border border-[#333] rounded p-2 mt-1 text-xs text-gray-300 max-h-24 overflow-auto">
+                  <div className="bg-[#18181b] border border-[#333] rounded p-2 mt-1 text-xs text-gray-300 max-h-16 overflow-auto">
                     {/* Preview file */}
                     {f.name.endsWith('.txt') || f.name.endsWith('.md') || f.name.endsWith('.csv') || f.name.endsWith('.json') ? (
-                      <FilePreview url={f.url} max={300} />
+                      <FilePreview url={f.url} max={200} />
                     ) : f.name.endsWith('.pdf') ? (
                       <span className="italic text-gray-500">Preview non disponibile (PDF)</span>
                     ) : f.name.endsWith('.docx') ? (
-                      <FilePreview url={f.url} max={300} />
+                      <FilePreview url={f.url} max={200} />
                     ) : (
                       <span className="italic text-gray-500">Preview non disponibile</span>
                     )}
@@ -172,7 +172,7 @@ export default function ChatAI() {
                 </div>
               ))}
             </div>
-            {uploadError && <div className="text-xs text-red-400 mt-2">{uploadError}</div>}
+            {uploadError && <div className="text-xs text-red-400 mt-1 text-center animate-pulse">{uploadError}</div>}
           </div>
           {/* Chat area */}
           <div className="flex-1 flex flex-col">
