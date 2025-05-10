@@ -106,19 +106,27 @@ export default function Home() {
     <div className="w-full min-h-screen flex flex-col items-center justify-center bg-[#111]">
       {/* Logo/avatar Lexa */}
       <div className="flex flex-col items-center mt-12 mb-6">
-        <img src="/lexa-avatar.png" alt="Lexa" className="w-12 h-12 rounded-full border-2 border-cyan-400 shadow bg-white/80" />
+        <img src="/lexa-avatar.png" alt="Lexa" className="w-12 h-12 rounded-full border-2 border-cyan-400 shadow bg-white/80" onError={e => (e.currentTarget.src = 'https://ui-avatars.com/api/?name=Lexa&background=38bdf8&color=fff&rounded=true')} />
       </div>
       {/* Hero section */}
       <div className="w-full max-w-2xl mx-auto flex flex-col items-center px-4">
         <h1 className="text-5xl md:text-6xl font-extrabold text-white text-center mb-4 tracking-tight leading-tight">AI invisibile per avvocati</h1>
         <p className="text-lg text-gray-300 text-center mb-10 max-w-xl">Tutto quello che ti serve per calcolare rimborsi, generare lettere e chattare con Lexa sui tuoi documenti.</p>
         <div className="flex flex-col md:flex-row gap-6 w-full justify-center mb-12">
-          <button onClick={() => setMainScreen('rimborso')} className="flex items-center gap-3 px-8 py-4 rounded-xl border border-white/20 bg-[#18181b] text-white font-semibold text-xl shadow hover:border-cyan-400 hover:text-cyan-300 transition-all">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
+          <button
+            onClick={() => setMainScreen('rimborso')}
+            className="flex items-center gap-3 px-7 py-3 rounded-lg border border-white/20 bg-[#18181b] text-white font-semibold text-lg shadow hover:border-cyan-400 hover:text-cyan-300 hover:shadow-cyan-800/30 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            style={{ minWidth: 220 }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
             Calcolo Rimborso
           </button>
-          <button onClick={() => setMainScreen('chat')} className="flex items-center gap-3 px-8 py-4 rounded-xl border border-white/20 bg-[#18181b] text-white font-semibold text-xl shadow hover:border-cyan-400 hover:text-cyan-300 transition-all">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M7 8h10M7 12h6m-6 4h8"/><path stroke="#38bdf8" strokeWidth="2" d="M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-3.5-.6L3 21l1.6-4.8A7.5 7.5 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          <button
+            onClick={() => setMainScreen('chat')}
+            className="flex items-center gap-3 px-7 py-3 rounded-lg border border-white/20 bg-[#18181b] text-white font-semibold text-lg shadow hover:border-cyan-400 hover:text-cyan-300 hover:shadow-cyan-800/30 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            style={{ minWidth: 220 }}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M7 8h10M7 12h6m-6 4h8"/><path stroke="#38bdf8" strokeWidth="2" d="M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-3.5-.6L3 21l1.6-4.8A7.5 7.5 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             Chatta con Lexa
           </button>
         </div>
@@ -126,6 +134,67 @@ export default function Home() {
       <footer className="mt-auto mb-4 text-center text-xs text-gray-500">
         &copy; {new Date().getFullYear()} LegalAI Suite. <span className="text-cyan-400">Privacy</span> · <span className="text-cyan-400">Credits</span>
       </footer>
+      {mainScreen === 'rimborso' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-[#18181b] p-8 rounded-2xl shadow-2xl max-w-lg w-full relative">
+            <button onClick={() => setMainScreen('home')} className="absolute top-4 right-4 text-cyan-400 hover:underline text-sm">&larr; Torna alla Home</button>
+            <h1 style={{letterSpacing: '-1px'}} className="text-2xl md:text-3xl font-bold text-center mb-2">Cessione del Quinto <span style={{background: 'linear-gradient(90deg,#6366f1,#0ea5e9)', WebkitBackgroundClip: 'text', color: 'transparent'}}>Refund 2025</span></h1>
+            <p className="text-center mb-6 text-base text-gray-300">Carica i documenti per calcolare il rimborso secondo l'<b>Art. 125 sexies T.U.B.</b> e genera la lettera personalizzata.</p>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="contract">1. Contratto di prestito <span style={{color:'#38bdf8'}}>(PDF o DOCX)</span></label>
+                <input id="contract" type="file" accept=".pdf,.docx" onChange={handleFileChange(setContract)} required />
+              </div>
+              <div>
+                <label htmlFor="statement">2. Estratto di chiusura/risoluzione <span style={{color:'#38bdf8'}}>(PDF o DOCX)</span></label>
+                <input id="statement" type="file" accept=".pdf,.docx" onChange={handleFileChange(setStatement)} required />
+              </div>
+              <div>
+                <label htmlFor="template">3. Modello di lettera <span style={{color:'#38bdf8'}}>(DOC, DOCX o TXT)</span></label>
+                <input id="template" type="file" accept=".doc,.docx,.txt" onChange={handleFileChange(setTemplate)} required />
+              </div>
+              {error && <div className="text-red-400 text-center font-semibold animate-pulse">{error}</div>}
+              <button type="submit" disabled={loading} className="w-full py-3 rounded-lg bg-cyan-600 text-white font-bold hover:bg-cyan-500 transition">
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                    Calcolo in corso...
+                  </span>
+                ) : (
+                  'Calcola e genera lettera'
+                )}
+              </button>
+            </form>
+            {result && (
+              <div className="mt-10 p-5 rounded-xl bg-[#18181b] border border-[#333] shadow-lg animate-fade-in max-h-[60vh] overflow-auto">
+                <h2 className="text-lg font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                  Risultato
+                </h2>
+                <p className="mb-2 text-base"><span className="font-semibold">Importo rimborsabile:</span> <span className="text-green-400 font-bold text-xl">{formatCurrency(result.rimborso)}</span></p>
+                <div className="bg-[#23232a] p-4 rounded-lg border border-[#333] whitespace-pre-wrap text-gray-100 mt-2 shadow-inner">
+                  <span className="font-semibold text-cyan-400">Lettera generata:</span>
+                  <br />
+                  {result.letter}
+                </div>
+                <DownloadPDFButton result={result} formatCurrency={formatCurrency} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {mainScreen === 'chat' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-[#18181b] p-8 rounded-2xl shadow-2xl max-w-2xl w-full relative">
+            <button onClick={() => setMainScreen('home')} className="absolute top-4 right-4 text-fuchsia-400 hover:underline text-sm">&larr; Torna alla Home</button>
+            <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 bg-gradient-to-r from-fuchsia-400 to-pink-500 text-transparent bg-clip-text">Chat Avanzata con DeepHermes 3</h1>
+            <ChatAI />
+            <footer className="mt-8 text-center text-xs text-gray-400">
+              &copy; {new Date().getFullYear()} LegalAI Suite. Design <span style={{color:'#f472b6'}}>UX 2025</span>.
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
