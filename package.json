@@ -13,6 +13,7 @@
     "postinstall": "rm -rf node_modules/pdf-parse/test"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.5",
     "@genkit-ai/googleai": "1.6.1",
     "@genkit-ai/next": "1.6.1",
     "@hookform/resolvers": "^4.1.3",
