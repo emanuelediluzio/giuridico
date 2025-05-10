@@ -3,7 +3,8 @@ import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { extractTextFromPDF } from './components/pdfTextExtractClient';
 import dynamic from 'next/dynamic';
 import ChatAI from './components/ChatAI';
-import "@fontsource/inter/variable.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/700.css";
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 

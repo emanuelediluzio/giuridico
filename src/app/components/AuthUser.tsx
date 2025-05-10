@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { auth, googleProvider } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import "@fontsource/inter/variable.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/700.css";
 
 export default function AuthUser({ onAuth }: { onAuth: (user: User|null) => void }) {
   const [user, setUser] = useState<User|null>(null);
