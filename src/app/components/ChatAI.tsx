@@ -23,7 +23,8 @@ const MOCK_USER_ID = "user-demo-1";
 export default function ChatAI() {
   const [user, setUser] = useState<User|null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "system", content: "Sei un assistente legale AI. Rispondi in modo chiaro e professionale." }
+    { role: "system", content: "Sei Lexa, assistente legale AI professionale e amichevole. Presentati sempre come Lexa e rispondi in modo chiaro, rassicurante e professionale." },
+    { role: "assistant", content: "Ciao! Sono Lexa, la tua assistente legale AI. Carica un documento o scrivimi la tua domanda, ti aiuterò subito!" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -177,13 +178,17 @@ export default function ChatAI() {
           <div className="flex-1 flex flex-col">
             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-[#23232a] to-[#18181b]">
               {messages.filter(m => m.role !== "system").map((msg, i) => (
-                <div key={i} className={msg.role === "user" ? "text-right" : "text-left"}>
+                <div key={i} className={msg.role === "user" ? "text-right" : "text-left flex items-start gap-2"}>
+                  {msg.role === "assistant" && (
+                    <img src="/lexa-avatar.png" alt="Lexa" className="w-8 h-8 rounded-full border-2 border-cyan-400 mt-1" />
+                  )}
                   <div className={
                     "inline-block px-4 py-2 rounded-lg max-w-[80%] " +
                     (msg.role === "user"
                       ? "bg-cyan-600 text-white ml-auto"
                       : "bg-[#23232a] text-gray-100 border border-cyan-700")
                   }>
+                    {msg.role === "assistant" && <div className="font-bold text-cyan-300 mb-1">Lexa</div>}
                     {msg.content}
                   </div>
                 </div>
