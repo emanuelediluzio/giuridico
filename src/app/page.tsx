@@ -103,29 +103,50 @@ export default function Home() {
   }
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1e2156] via-[#2a2e7a] to-[#3b1e5a] relative overflow-hidden">
-      {/* Effetto curtain/strisce */}
+    <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1e2156] via-[#2a2e7a] to-[#3b1e5a] relative overflow-hidden">
+      {/* Overlay pattern */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {[...Array(12)].map((_, i) => (
-          <div key={i} className={`absolute top-0 left-[${i*8.33}%] w-[8.33%] h-full bg-white/5 ${i%2===0?'':'bg-white/10'} backdrop-blur-[2px]`} />
-        ))}
+        <svg width="100%" height="100%" className="absolute inset-0" style={{opacity:0.08}}>
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+              <stop stopColor="#38bdf8" />
+              <stop offset="1" stopColor="#f472b6" />
+            </linearGradient>
+          </defs>
+          <circle cx="30%" cy="20%" r="180" fill="url(#g1)" />
+          <circle cx="80%" cy="80%" r="120" fill="#fff" />
+        </svg>
       </div>
+      {/* Logo/avatar Lexa */}
+      <div className="relative z-10 flex flex-col items-center mt-10 mb-4">
+        <img src="/lexa-avatar.png" alt="Lexa" className="w-16 h-16 rounded-full border-4 border-cyan-400 shadow-xl bg-white/80" />
+        <div className="mt-2 text-cyan-200 font-bold text-lg tracking-wide drop-shadow">Lexa, la tua AI legale</div>
+      </div>
+      {/* Hero section */}
       <div className="relative z-10 w-full max-w-2xl mx-auto p-12 rounded-3xl shadow-2xl bg-white/10 backdrop-blur-md border border-white/20 animate-fade-in flex flex-col items-center">
         {mainScreen === 'home' && (
           <>
-            <div className="mb-6 text-center">
-              <div className="mb-2 text-xs text-blue-200/80 tracking-wide font-semibold">AI Legal Suite 2025</div>
-              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-white drop-shadow-xl mb-3">
+            <div className="mb-8 text-center animate-fade-in-up">
+              <h1 className="text-5xl md:text-6xl font-extrabold leading-tight text-white drop-shadow-xl mb-4 tracking-tight">
                 <span className="bg-gradient-to-r from-cyan-300 to-blue-500 text-transparent bg-clip-text">AI invisibile</span> per <span className="bg-gradient-to-r from-fuchsia-400 to-pink-500 text-transparent bg-clip-text">avvocati</span>
               </h1>
-              <p className="text-lg text-blue-100/90 font-medium max-w-xl mx-auto mt-2">Tutto quello che ti serve per calcolare rimborsi, generare lettere e chattare con l'AI sui tuoi documenti. Scegli una funzione per iniziare.</p>
+              <p className="text-2xl text-blue-100/90 font-medium max-w-2xl mx-auto mt-2">Tutto quello che ti serve per calcolare rimborsi, generare lettere e chattare con Lexa sui tuoi documenti.</p>
             </div>
-            <div className="flex flex-col gap-6 w-full max-w-md mx-auto mt-8">
-              <button onClick={() => setMainScreen('rimborso')} className="w-full py-5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold text-xl shadow-xl hover:scale-105 transition-all border-2 border-cyan-300/30">Calcolo Rimborso Cessione del Quinto</button>
-              <button onClick={() => setMainScreen('chat')} className="w-full py-5 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white font-bold text-xl shadow-xl hover:scale-105 transition-all border-2 border-pink-300/30">Chat Avanzata con Memoria File (DeepHermes 3)</button>
+            <div className="flex flex-col gap-8 w-full max-w-md mx-auto mt-8">
+              <button onClick={() => setMainScreen('rimborso')} className="w-full py-6 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold text-2xl shadow-xl hover:scale-105 transition-all border-2 border-cyan-300/30 flex items-center gap-4 justify-center group">
+                <svg className="w-8 h-8 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24"><path stroke="#fff" strokeWidth="2" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
+                Calcolo Rimborso
+                <span className="ml-2 text-base font-normal text-cyan-100">Scopri quanto puoi recuperare</span>
+              </button>
+              <button onClick={() => setMainScreen('chat')} className="w-full py-6 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white font-bold text-2xl shadow-xl hover:scale-105 transition-all border-2 border-pink-300/30 flex items-center gap-4 justify-center group">
+                <svg className="w-8 h-8 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24"><path stroke="#fff" strokeWidth="2" d="M7 8h10M7 12h6m-6 4h8"/><path stroke="#fff" strokeWidth="2" d="M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-3.5-.6L3 21l1.6-4.8A7.5 7.5 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                Chatta con Lexa
+                <span className="ml-2 text-base font-normal text-pink-100">AI legale + memoria documenti</span>
+              </button>
             </div>
-            <footer className="mt-12 text-center text-xs text-blue-200/70">
-              &copy; {new Date().getFullYear()} LegalAI Suite. Design <span className="text-cyan-300">UX 2025</span>.
+            <footer className="mt-14 text-center text-xs text-blue-200/70 animate-fade-in-up">
+              &copy; {new Date().getFullYear()} LegalAI Suite. Design <span className="text-cyan-300">UX 2025</span>.<br/>
+              <a href="#" className="underline text-cyan-200 hover:text-cyan-100">Privacy</a> · <a href="#" className="underline text-cyan-200 hover:text-cyan-100">Credits</a>
             </footer>
           </>
         )}
