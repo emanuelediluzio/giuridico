@@ -103,18 +103,29 @@ export default function Home() {
   }
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#18181b] via-[#23232a] to-[#0f172a]">
-      <div className="main-card w-full max-w-xl mx-auto p-8 rounded-2xl shadow-2xl bg-[#18181b] border border-[#23232a] animate-fade-in">
+    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1e2156] via-[#2a2e7a] to-[#3b1e5a] relative overflow-hidden">
+      {/* Effetto curtain/strisce */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className={`absolute top-0 left-[${i*8.33}%] w-[8.33%] h-full bg-white/5 ${i%2===0?'':'bg-white/10'} backdrop-blur-[2px]`} />
+        ))}
+      </div>
+      <div className="relative z-10 w-full max-w-2xl mx-auto p-12 rounded-3xl shadow-2xl bg-white/10 backdrop-blur-md border border-white/20 animate-fade-in flex flex-col items-center">
         {mainScreen === 'home' && (
           <>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-center mb-4 tracking-tight bg-gradient-to-r from-cyan-400 to-blue-600 text-transparent bg-clip-text drop-shadow-lg">Benvenuto in <span className="text-white">LegalAI Suite 2025</span></h1>
-            <p className="text-center mb-8 text-lg text-gray-300">Scegli la funzione che vuoi utilizzare:</p>
-            <div className="flex flex-col gap-6">
-              <button onClick={() => setMainScreen('rimborso')} className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg shadow-lg hover:scale-105 transition">Calcolo Rimborso Cessione del Quinto</button>
-              <button onClick={() => setMainScreen('chat')} className="w-full py-4 rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white font-bold text-lg shadow-lg hover:scale-105 transition">Chat Avanzata con Memoria File (DeepHermes 3)</button>
+            <div className="mb-6 text-center">
+              <div className="mb-2 text-xs text-blue-200/80 tracking-wide font-semibold">AI Legal Suite 2025</div>
+              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-white drop-shadow-xl mb-3">
+                <span className="bg-gradient-to-r from-cyan-300 to-blue-500 text-transparent bg-clip-text">AI invisibile</span> per <span className="bg-gradient-to-r from-fuchsia-400 to-pink-500 text-transparent bg-clip-text">avvocati</span>
+              </h1>
+              <p className="text-lg text-blue-100/90 font-medium max-w-xl mx-auto mt-2">Tutto quello che ti serve per calcolare rimborsi, generare lettere e chattare con l'AI sui tuoi documenti. Scegli una funzione per iniziare.</p>
             </div>
-            <footer className="mt-10 text-center text-xs text-gray-400">
-              &copy; {new Date().getFullYear()} LegalAI Suite. Design <span style={{color:'#38bdf8'}}>UX 2025</span>.
+            <div className="flex flex-col gap-6 w-full max-w-md mx-auto mt-8">
+              <button onClick={() => setMainScreen('rimborso')} className="w-full py-5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-600 text-white font-bold text-xl shadow-xl hover:scale-105 transition-all border-2 border-cyan-300/30">Calcolo Rimborso Cessione del Quinto</button>
+              <button onClick={() => setMainScreen('chat')} className="w-full py-5 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white font-bold text-xl shadow-xl hover:scale-105 transition-all border-2 border-pink-300/30">Chat Avanzata con Memoria File (DeepHermes 3)</button>
+            </div>
+            <footer className="mt-12 text-center text-xs text-blue-200/70">
+              &copy; {new Date().getFullYear()} LegalAI Suite. Design <span className="text-cyan-300">UX 2025</span>.
             </footer>
           </>
         )}
