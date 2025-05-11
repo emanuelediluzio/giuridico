@@ -106,16 +106,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans">
-      <header className="w-full flex justify-center mt-12 mb-16">
+      <header className="w-full flex justify-center mt-16 mb-12">
         <span className="font-extrabold text-3xl text-white tracking-tight">Lexa</span>
       </header>
       {mainScreen === 'home' && (
-        <main className="w-full max-w-2xl flex flex-col items-center">
-          <h1 className="text-6xl md:text-7xl font-extrabold text-white mb-6 text-center leading-tight" style={{letterSpacing: '-2px'}}>AI invisibile per avvocati</h1>
-          <p className="text-lg text-gray-400 mb-14 text-center max-w-xl">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.</p>
+        <main className="w-full max-w-xl flex flex-col items-center">
+          <h1 className="text-6xl font-extrabold text-white mb-6 text-center leading-tight" style={{letterSpacing: '-2px'}}>AI invisibile per avvocati</h1>
+          <p className="text-base text-gray-400 mb-14 text-center max-w-md">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.</p>
           <div className="flex gap-4 w-full justify-center">
-            <button onClick={() => setMainScreen('rimborso')} className="px-8 py-4 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition shadow-none border-none">Calcolo Rimborso</button>
-            <button onClick={() => setMainScreen('chat')} className="px-8 py-4 rounded-full bg-black text-white font-semibold text-lg border border-white/10 hover:bg-[#18181b] transition shadow-none">Chatta con Lexa</button>
+            <button onClick={() => setMainScreen('rimborso')} className="px-8 py-3 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition shadow-none border-none">Calcolo Rimborso</button>
+            <button onClick={() => setMainScreen('chat')} className="px-8 py-3 rounded-full bg-black text-white font-semibold text-lg border border-white/10 hover:bg-[#18181b] hover:border-cyan-400 transition shadow-none">Chatta con Lexa</button>
           </div>
         </main>
       )}
