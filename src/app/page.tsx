@@ -106,22 +106,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans">
-      <header className="w-full flex justify-center mt-10 mb-8">
-        <span className="font-extrabold text-2xl text-white tracking-tight">Lexa</span>
+      <header className="w-full flex justify-center mt-12 mb-16">
+        <span className="font-extrabold text-3xl text-white tracking-tight">Lexa</span>
       </header>
       {mainScreen === 'home' && (
-        <main className="w-full max-w-md flex flex-col items-center">
-          <h1 className="text-5xl font-extrabold text-white mb-4 text-center leading-tight">AI invisibile per avvocati</h1>
-          <p className="text-lg text-gray-400 mb-10 text-center">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti.</p>
+        <main className="w-full max-w-2xl flex flex-col items-center">
+          <h1 className="text-6xl md:text-7xl font-extrabold text-white mb-6 text-center leading-tight" style={{letterSpacing: '-2px'}}>AI invisibile per avvocati</h1>
+          <p className="text-lg text-gray-400 mb-14 text-center max-w-xl">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.</p>
           <div className="flex gap-4 w-full justify-center">
-            <button onClick={() => setMainScreen('rimborso')} className="group flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-700 bg-black text-white font-semibold text-base hover:border-cyan-400 hover:bg-gray-900 transition">
-              <svg className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24"><path stroke="#38bdf8" strokeWidth="2" d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5-5 5 5M12 6v12"/></svg>
-              Calcolo Rimborso
-            </button>
-            <button onClick={() => setMainScreen('chat')} className="group flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-700 bg-black text-white font-semibold text-base hover:border-fuchsia-400 hover:bg-gray-900 transition">
-              <svg className="w-5 h-5 text-fuchsia-400 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24"><path stroke="#f472b6" strokeWidth="2" d="M7 8h10M7 12h6m-6 4h8"/><path stroke="#f472b6" strokeWidth="2" d="M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-3.5-.6L3 21l1.6-4.8A7.5 7.5 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-              Chatta con Lexa
-            </button>
+            <button onClick={() => setMainScreen('rimborso')} className="px-8 py-4 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition shadow-none border-none">Calcolo Rimborso</button>
+            <button onClick={() => setMainScreen('chat')} className="px-8 py-4 rounded-full bg-black text-white font-semibold text-lg border border-white/10 hover:bg-[#18181b] transition shadow-none">Chatta con Lexa</button>
           </div>
         </main>
       )}
@@ -186,7 +180,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      <footer className="mt-auto mb-6 text-xs text-gray-600 text-center">
+      <footer className="mt-auto mb-8 text-xs text-gray-600 text-center">
         © {new Date().getFullYear()} LegalAI Suite. <a className="text-cyan-400 hover:underline" href="#">Privacy</a> · <a className="text-cyan-400 hover:underline" href="#">Credits</a>
       </footer>
     </div>
