@@ -105,21 +105,54 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans">
-      <header className="w-full flex justify-center mt-16 mb-12">
-        <span className="font-extrabold text-3xl text-white tracking-tight">Lexa</span>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans relative">
+      {/* Elemento grafico minimal */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-30 z-0">
+        <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-cyan-900 blur-[120px]"></div>
+        <div className="absolute bottom-[15%] left-[5%] w-[250px] h-[250px] rounded-full bg-cyan-800 blur-[150px]"></div>
+      </div>
+      
+      <header className="w-full flex justify-center mt-16 mb-16 relative z-10">
+        <span className="font-extrabold text-4xl text-white tracking-tight">Lexa</span>
       </header>
+      
       {mainScreen === 'home' && (
-        <main className="w-full max-w-xl flex flex-col items-center">
-          <p className="text-base text-gray-400 mb-14 text-center max-w-md">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.</p>
-          <div className="flex gap-4 w-full justify-center">
-            <button onClick={() => setMainScreen('rimborso')} className="px-8 py-3 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition shadow-none border-none">Calcolo Rimborso</button>
-            <button onClick={() => setMainScreen('chat')} className="px-8 py-3 rounded-full bg-black text-white font-semibold text-lg border border-white/10 hover:bg-[#18181b] hover:border-cyan-400 transition shadow-none">Chatta con Lexa</button>
+        <main className="w-full max-w-xl flex flex-col items-center relative z-10">
+          <p className="text-lg text-gray-300 mb-16 text-center max-w-md leading-relaxed">
+            <span className="text-white font-semibold">Calcola rimborsi</span>, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.
+          </p>
+          
+          <div className="flex flex-col md:flex-row gap-6 w-full justify-center">
+            <button 
+              onClick={() => setMainScreen('rimborso')} 
+              className="px-10 py-4 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition-all duration-300 shadow-none border-none transform hover:scale-105"
+            >
+              Calcolo Rimborso
+            </button>
+            <button 
+              onClick={() => setMainScreen('chat')} 
+              className="px-10 py-4 rounded-full bg-black text-white font-semibold text-lg border border-white/10 hover:bg-[#18181b] hover:border-cyan-400 transition-all duration-300 shadow-none transform hover:scale-105"
+            >
+              Chatta con Lexa
+            </button>
+          </div>
+          
+          {/* Badge trust minimal */}
+          <div className="mt-24 flex flex-col items-center">
+            <div className="text-gray-500 text-xs uppercase tracking-wider mb-2">Utilizzato da</div>
+            <div className="flex gap-6 items-center">
+              <div className="text-gray-400 text-sm">Studio Rossi</div>
+              <div className="h-[12px] w-[1px] bg-gray-800"></div>
+              <div className="text-gray-400 text-sm">Avv. Bianchi</div>
+              <div className="h-[12px] w-[1px] bg-gray-800"></div>
+              <div className="text-gray-400 text-sm">Legal Pro</div>
+            </div>
           </div>
         </main>
       )}
+      
       {mainScreen === 'rimborso' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-300">
           <div className="bg-[#18181b] p-8 rounded-2xl shadow-2xl max-w-lg w-full relative">
             <button onClick={() => setMainScreen('home')} className="absolute top-4 right-4 text-cyan-400 hover:underline text-sm">&larr; Torna alla Home</button>
             <h1 style={{letterSpacing: '-1px'}} className="text-2xl md:text-3xl font-bold text-center mb-2">Cessione del Quinto <span style={{background: 'linear-gradient(90deg,#6366f1,#0ea5e9)', WebkitBackgroundClip: 'text', color: 'transparent'}}>Refund 2025</span></h1>
@@ -168,7 +201,7 @@ export default function Home() {
         </div>
       )}
       {mainScreen === 'chat' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-300">
           <div className="bg-[#18181b] p-8 rounded-2xl shadow-2xl max-w-2xl w-full relative">
             <button onClick={() => setMainScreen('home')} className="absolute top-4 right-4 text-fuchsia-400 hover:underline text-sm">&larr; Torna alla Home</button>
             <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 bg-gradient-to-r from-fuchsia-400 to-pink-500 text-transparent bg-clip-text">Chat Avanzata con DeepHermes 3</h1>
@@ -179,7 +212,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      <footer className="mt-auto mb-8 text-xs text-gray-600 text-center">
+      <footer className="mt-auto mb-8 text-xs text-gray-600 text-center relative z-10">
         © {new Date().getFullYear()} LegalAI Suite. <a className="text-cyan-400 hover:underline" href="#">Privacy</a> · <a className="text-cyan-400 hover:underline" href="#">Credits</a>
       </footer>
     </div>
