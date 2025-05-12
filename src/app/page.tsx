@@ -111,7 +111,6 @@ export default function Home() {
       </header>
       {mainScreen === 'home' && (
         <main className="w-full max-w-xl flex flex-col items-center">
-          <h1 className="text-6xl font-extrabold text-white mb-6 text-center leading-tight" style={{letterSpacing: '-2px'}}>AI invisibile per avvocati</h1>
           <p className="text-base text-gray-400 mb-14 text-center max-w-md">Calcola rimborsi, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.</p>
           <div className="flex gap-4 w-full justify-center">
             <button onClick={() => setMainScreen('rimborso')} className="px-8 py-3 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition shadow-none border-none">Calcolo Rimborso</button>
