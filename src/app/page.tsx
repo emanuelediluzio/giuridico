@@ -105,51 +105,40 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-[#050715] flex flex-col items-center justify-center px-4 font-sans relative overflow-hidden">
-      {/* Background elements */}
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans relative overflow-hidden">
+      {/* Elementi grafici avanzati */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[10%] right-[5%] w-[600px] h-[600px] rounded-full bg-blue-900/20 blur-[180px] animate-pulse-slow"></div>
-        <div className="absolute bottom-[5%] left-[5%] w-[500px] h-[500px] rounded-full bg-indigo-800/20 blur-[200px] animate-pulse-slow" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] rounded-full bg-cyan-800/10 blur-[150px] animate-pulse-slow" style={{animationDelay: '3.5s'}}></div>
-        
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-center opacity-[0.15]"></div>
-        
-        {/* Decorative lines */}
-        <div className="absolute top-0 left-[15%] w-px h-[35vh] bg-gradient-to-b from-transparent via-blue-500/30 to-transparent"></div>
-        <div className="absolute top-[20%] right-[25%] w-[20vw] h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
-        <div className="absolute bottom-[15%] left-[40%] w-[15vw] h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+        <div className="absolute top-[15%] right-[5%] w-[500px] h-[500px] rounded-full bg-cyan-900/30 blur-[150px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-cyan-800/20 blur-[180px] animate-pulse-slow" style={{animationDelay: '2s'}}></div>
+        {/* Linee minimaliste */}
+        <div className="absolute top-0 left-[15%] w-px h-[25vh] bg-gradient-to-b from-transparent via-cyan-800/40 to-transparent"></div>
+        <div className="absolute top-[30%] right-[20%] w-[15vw] h-px bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent"></div>
       </div>
       
       {mainScreen === 'home' && (
         <>
-          <header className="w-full flex justify-center mt-16 mb-16 relative z-10">
+          <header className="w-full flex justify-center mt-16 mb-24 relative z-10">
             <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/30 via-indigo-500/20 to-cyan-500/30 blur-lg opacity-70 rounded-full"></div>
-              <span className="font-extrabold text-6xl text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-white to-blue-100 tracking-tight relative z-10">Lexa</span>
-              <div className="absolute -bottom-4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/70 to-transparent"></div>
+              <span className="font-extrabold text-5xl text-white tracking-tight">Lexa</span>
+              <div className="absolute -bottom-3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
             </div>
           </header>
           
-          <main className="w-full max-w-2xl flex flex-col items-center relative z-10">
-            <div className="relative mb-20">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 blur rounded-2xl"></div>
-              <p className="text-xl text-gray-300 text-center max-w-lg leading-relaxed p-6 backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 relative z-10">
-                <span className="text-white font-semibold">Calcola rimborsi</span>, genera lettere e chatta con Lexa sui tuoi documenti. 
-                <span className="text-blue-400/90 ml-1">L'assistente legale per avvocati esigenti.</span>
-              </p>
-            </div>
+          <main className="w-full max-w-xl flex flex-col items-center relative z-10">
+            <p className="text-xl text-gray-300 mb-24 text-center max-w-md leading-relaxed">
+              <span className="text-white font-semibold">Calcola rimborsi</span>, genera lettere e chatta con Lexa sui tuoi documenti. 
+              <span className="text-cyan-400/90">L'assistente legale per avvocati esigenti.</span>
+            </p>
             
-            <div className="flex flex-col md:flex-row gap-8 w-full justify-center mb-24">
+            <div className="flex flex-col md:flex-row gap-8 w-full justify-center mb-32">
               <button 
                 onClick={() => setMainScreen('rimborso')} 
-                className="group relative px-12 py-6 rounded-xl bg-gradient-to-br from-blue-900/40 to-blue-800/20 backdrop-blur-md border border-blue-500/20 hover:border-blue-400/50 text-white overflow-hidden transition-all duration-500 shadow-lg shadow-blue-900/20"
+                className="group relative px-12 py-5 rounded-full bg-transparent backdrop-blur-md border border-white/10 hover:border-cyan-400/50 text-white overflow-hidden transition-all duration-500"
               >
-                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 group-hover:opacity-100 opacity-0 transition-opacity duration-500"></span>
-                <span className="absolute -inset-px bg-gradient-to-r from-blue-500/80 to-cyan-500/80 blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-700"></span>
-                <span className="relative z-10 font-medium text-lg group-hover:text-blue-200 transition-colors duration-500 flex items-center gap-3">
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 group-hover:opacity-100 opacity-0 transition-opacity duration-500"></span>
+                <span className="relative z-10 font-medium text-lg group-hover:text-cyan-300 transition-colors duration-500 flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                   Calcolo Rimborso
                 </span>
@@ -157,13 +146,12 @@ export default function Home() {
               
               <button 
                 onClick={() => setMainScreen('chat')} 
-                className="group relative px-12 py-6 rounded-xl bg-gradient-to-br from-indigo-900/40 to-purple-800/20 backdrop-blur-md border border-indigo-500/20 hover:border-indigo-400/50 text-white overflow-hidden transition-all duration-500 shadow-lg shadow-indigo-900/20"
+                className="group relative px-12 py-5 rounded-full bg-transparent text-white backdrop-blur-md border border-white/10 hover:border-fuchsia-400/50 overflow-hidden transition-all duration-500"
               >
-                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 group-hover:opacity-100 opacity-0 transition-opacity duration-500"></span>
-                <span className="absolute -inset-px bg-gradient-to-r from-indigo-500/80 to-purple-500/80 blur-md opacity-0 group-hover:opacity-30 transition-opacity duration-700"></span>
-                <span className="relative z-10 font-medium text-lg group-hover:text-indigo-200 transition-colors duration-500 flex items-center gap-3">
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-fuchsia-500/10 to-pink-500/10 group-hover:opacity-100 opacity-0 transition-opacity duration-500"></span>
+                <span className="relative z-10 font-medium text-lg group-hover:text-fuchsia-300 transition-colors duration-500 flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                   </svg>
                   Chatta con Lexa
                 </span>
@@ -171,68 +159,28 @@ export default function Home() {
             </div>
             
             {/* Elemento decorativo */}
-            <div className="flex items-center gap-4 opacity-80 mb-10">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
-              <div className="text-blue-400 text-xs uppercase tracking-widest font-medium px-4 py-2 rounded-full bg-blue-900/20 border border-blue-800/30 backdrop-blur-sm">AI Powered</div>
-              <div className="h-px w-16 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
+            <div className="flex items-center gap-3 opacity-70">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent via-gray-500 to-transparent"></div>
+              <div className="text-gray-500 text-xs uppercase tracking-widest">AI Powered</div>
+              <div className="h-px w-12 bg-gradient-to-r from-transparent via-gray-500 to-transparent"></div>
             </div>
             
-            {/* Badges professionali */}
-            <div className="mt-6 flex flex-wrap justify-center gap-12 items-center max-w-2xl">
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/30 to-indigo-500/30 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                <div className="relative px-6 py-4 bg-black/30 border border-white/10 rounded-lg backdrop-blur-sm flex items-center gap-3 transition-all duration-300 group-hover:border-blue-500/30">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="text-gray-300 text-sm font-medium">Studio Rossi</div>
-                </div>
+            {/* Badges minimalisti */}
+            <div className="mt-8 flex flex-wrap justify-center gap-10 items-center opacity-60 max-w-lg">
+              <div className="h-16 flex items-center">
+                <div className="text-gray-400 text-sm font-thin">Studio Rossi</div>
               </div>
-              
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                <div className="relative px-6 py-4 bg-black/30 border border-white/10 rounded-lg backdrop-blur-sm flex items-center gap-3 transition-all duration-300 group-hover:border-indigo-500/30">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="text-gray-300 text-sm font-medium">Avv. Bianchi</div>
-                </div>
+              <div className="h-16 flex items-center">
+                <div className="text-gray-400 text-sm font-thin">Avv. Bianchi</div>
               </div>
-              
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                <div className="relative px-6 py-4 bg-black/30 border border-white/10 rounded-lg backdrop-blur-sm flex items-center gap-3 transition-all duration-300 group-hover:border-cyan-500/30">
-                  <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-                      <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
-                    </svg>
-                  </div>
-                  <div className="text-gray-300 text-sm font-medium">Legal Pro</div>
-                </div>
+              <div className="h-16 flex items-center">
+                <div className="text-gray-400 text-sm font-thin">Legal Pro</div>
               </div>
             </div>
           </main>
           
-          <footer className="mt-auto py-6 w-full border-t border-white/5 bg-black/30 backdrop-blur-sm text-center relative z-10">
-            <div className="container mx-auto px-4">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="text-sm text-gray-500">
-                  © {new Date().getFullYear()} <span className="text-blue-500">LegalAI Suite</span>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  <a className="text-gray-400 hover:text-blue-400 transition-colors text-sm" href="#">Privacy</a>
-                  <a className="text-gray-400 hover:text-blue-400 transition-colors text-sm" href="#">Termini</a>
-                  <a className="text-gray-400 hover:text-blue-400 transition-colors text-sm" href="#">Supporto</a>
-                  <a className="text-gray-400 hover:text-blue-400 transition-colors text-sm" href="#">Credits</a>
-                </div>
-              </div>
-            </div>
+          <footer className="mt-auto mb-8 text-xs text-gray-600 text-center relative z-10">
+            © {new Date().getFullYear()} <span className="text-gray-500">LegalAI Suite</span> <span className="mx-2">•</span> <a className="text-cyan-800 hover:text-cyan-400 transition-colors" href="#">Privacy</a> <span className="mx-2">•</span> <a className="text-cyan-800 hover:text-cyan-400 transition-colors" href="#">Credits</a>
           </footer>
         </>
       )}
