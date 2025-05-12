@@ -105,156 +105,201 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans relative">
-      {/* Elemento grafico minimal */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-30 z-0">
-        <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-cyan-900 blur-[120px]"></div>
-        <div className="absolute bottom-[15%] left-[5%] w-[250px] h-[250px] rounded-full bg-cyan-800 blur-[150px]"></div>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 font-sans relative overflow-hidden">
+      {/* Elementi grafici avanzati */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[15%] right-[5%] w-[500px] h-[500px] rounded-full bg-cyan-900/30 blur-[150px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-cyan-800/20 blur-[180px] animate-pulse-slow" style={{animationDelay: '2s'}}></div>
+        {/* Linee minimaliste */}
+        <div className="absolute top-0 left-[15%] w-px h-[25vh] bg-gradient-to-b from-transparent via-cyan-800/40 to-transparent"></div>
+        <div className="absolute top-[30%] right-[20%] w-[15vw] h-px bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent"></div>
       </div>
       
-      <header className="w-full flex justify-center mt-16 mb-16 relative z-10">
-        <span className="font-extrabold text-4xl text-white tracking-tight">Lexa</span>
-      </header>
-      
       {mainScreen === 'home' && (
-        <main className="w-full max-w-xl flex flex-col items-center relative z-10">
-          <p className="text-lg text-gray-300 mb-16 text-center max-w-md leading-relaxed">
-            <span className="text-white font-semibold">Calcola rimborsi</span>, genera lettere e chatta con Lexa sui tuoi documenti. Tutto in un'unica piattaforma, senza fronzoli.
-          </p>
-          
-          <div className="flex flex-col md:flex-row gap-6 w-full justify-center">
-            <button 
-              onClick={() => setMainScreen('rimborso')} 
-              className="px-10 py-4 rounded-full bg-white text-black font-semibold text-lg hover:bg-cyan-50 transition-all duration-300 shadow-none border-none transform hover:scale-105"
-            >
-              Calcolo Rimborso
-            </button>
-            <button 
-              onClick={() => setMainScreen('chat')} 
-              className="px-10 py-4 rounded-full bg-black text-white font-semibold text-lg border border-white/10 hover:bg-[#18181b] hover:border-cyan-400 transition-all duration-300 shadow-none transform hover:scale-105"
-            >
-              Chatta con Lexa
-            </button>
-          </div>
-          
-          {/* Badge trust minimal */}
-          <div className="mt-24 flex flex-col items-center">
-            <div className="text-gray-500 text-xs uppercase tracking-wider mb-2">Utilizzato da</div>
-            <div className="flex gap-6 items-center">
-              <div className="text-gray-400 text-sm">Studio Rossi</div>
-              <div className="h-[12px] w-[1px] bg-gray-800"></div>
-              <div className="text-gray-400 text-sm">Avv. Bianchi</div>
-              <div className="h-[12px] w-[1px] bg-gray-800"></div>
-              <div className="text-gray-400 text-sm">Legal Pro</div>
+        <>
+          <header className="w-full flex justify-center mt-16 mb-24 relative z-10">
+            <div className="relative">
+              <span className="font-extrabold text-5xl text-white tracking-tight">Lexa</span>
+              <div className="absolute -bottom-3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
             </div>
-          </div>
-        </main>
+          </header>
+          
+          <main className="w-full max-w-xl flex flex-col items-center relative z-10">
+            <p className="text-xl text-gray-300 mb-24 text-center max-w-md leading-relaxed">
+              <span className="text-white font-semibold">Calcola rimborsi</span>, genera lettere e chatta con Lexa sui tuoi documenti. 
+              <span className="text-cyan-400/90">L'assistente legale per avvocati esigenti.</span>
+            </p>
+            
+            <div className="flex flex-col md:flex-row gap-8 w-full justify-center mb-32">
+              <button 
+                onClick={() => setMainScreen('rimborso')} 
+                className="group relative px-12 py-5 rounded-full bg-transparent backdrop-blur-md border border-white/10 hover:border-cyan-400/50 text-white overflow-hidden transition-all duration-500"
+              >
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 group-hover:opacity-100 opacity-0 transition-opacity duration-500"></span>
+                <span className="relative z-10 font-medium text-lg group-hover:text-cyan-300 transition-colors duration-500">Calcolo Rimborso</span>
+              </button>
+              
+              <button 
+                onClick={() => setMainScreen('chat')} 
+                className="group relative px-12 py-5 rounded-full bg-transparent text-white backdrop-blur-md border border-white/10 hover:border-fuchsia-400/50 overflow-hidden transition-all duration-500"
+              >
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-fuchsia-500/10 to-pink-500/10 group-hover:opacity-100 opacity-0 transition-opacity duration-500"></span>
+                <span className="relative z-10 font-medium text-lg group-hover:text-fuchsia-300 transition-colors duration-500">Chatta con Lexa</span>
+              </button>
+            </div>
+            
+            {/* Elemento decorativo */}
+            <div className="flex items-center gap-3 opacity-70">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent via-gray-500 to-transparent"></div>
+              <div className="text-gray-500 text-xs uppercase tracking-widest">AI Powered</div>
+              <div className="h-px w-12 bg-gradient-to-r from-transparent via-gray-500 to-transparent"></div>
+            </div>
+            
+            {/* Badges minimalisti */}
+            <div className="mt-8 flex flex-wrap justify-center gap-10 items-center opacity-60 max-w-lg">
+              <div className="h-16 flex items-center">
+                <div className="text-gray-400 text-sm font-thin">Studio Rossi</div>
+              </div>
+              <div className="h-16 flex items-center">
+                <div className="text-gray-400 text-sm font-thin">Avv. Bianchi</div>
+              </div>
+              <div className="h-16 flex items-center">
+                <div className="text-gray-400 text-sm font-thin">Legal Pro</div>
+              </div>
+            </div>
+          </main>
+          
+          <footer className="mt-auto mb-8 text-xs text-gray-600 text-center relative z-10">
+            © {new Date().getFullYear()} <span className="text-gray-500">LegalAI Suite</span> <span className="mx-2">•</span> <a className="text-cyan-800 hover:text-cyan-400 transition-colors" href="#">Privacy</a> <span className="mx-2">•</span> <a className="text-cyan-800 hover:text-cyan-400 transition-colors" href="#">Credits</a>
+          </footer>
+        </>
       )}
       
       {mainScreen === 'rimborso' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-300 animate-fade-in">
-          <div className="bg-[#18181b] p-10 rounded-3xl w-full max-w-xl relative border border-gray-800/30">
-            <button onClick={() => setMainScreen('home')} className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors" aria-label="Chiudi">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl transition-all duration-500 animate-fade-in">
+          <div className="relative bg-gradient-to-b from-[#121214] to-[#18181c] p-10 rounded-3xl w-full max-w-xl border border-white/5 shadow-2xl backdrop-blur" style={{boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 0 40px 0 rgba(6, 182, 212, 0.05)'}}>
+            <button onClick={() => setMainScreen('home')} className="absolute top-7 right-7 text-gray-500 hover:text-white transition-colors duration-300 z-10" aria-label="Chiudi">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Rimborso CQS</h2>
-            <p className="text-gray-300 mb-8">Carica i documenti per calcolare il rimborso Art. 125 sexies T.U.B.</p>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="absolute top-0 left-0 w-full h-12 bg-gradient-to-r from-cyan-800/10 via-cyan-500/5 to-transparent rounded-t-3xl"></div>
+            
+            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight mt-4">Rimborso CQS</h2>
+            <p className="text-gray-400 mb-12 text-sm">Calcolo rimborso Art. 125 sexies T.U.B.</p>
+            
+            <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-1">
-                <label htmlFor="contract" className="block text-sm font-medium text-gray-200">Contratto di prestito</label>
-                <div className="relative mt-1 flex items-center">
+                <label htmlFor="contract" className="block text-sm font-medium text-white/70">Contratto di prestito</label>
+                <div className="mt-1 relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-cyan-700/20 opacity-0 group-hover:opacity-100 rounded-xl blur transition duration-300"></div>
                   <input
                     id="contract"
                     type="file"
                     accept=".pdf,.docx"
                     onChange={handleFileChange(setContract)}
                     required
-                    className="block w-full px-4 py-3 rounded-xl bg-black border border-gray-800 text-white focus:border-cyan-400 outline-none transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-cyan-900/30 file:text-cyan-300 hover:file:bg-cyan-900/40"
+                    className="relative block w-full px-4 py-4 bg-black/40 border border-gray-800/60 text-white rounded-xl outline-none transition-all duration-300 focus:ring-1 focus:ring-cyan-400/50 focus:border-cyan-400/50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-medium file:bg-cyan-900/20 file:text-cyan-300 hover:file:bg-cyan-900/40 backdrop-blur-sm"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-400">PDF o DOCX (max 5MB)</p>
+                <p className="mt-1.5 text-xs text-gray-500">PDF o DOCX (max 5MB)</p>
               </div>
               
               <div className="space-y-1">
-                <label htmlFor="statement" className="block text-sm font-medium text-gray-200">Estratto di chiusura/risoluzione</label>
-                <div className="relative mt-1 flex items-center">
+                <label htmlFor="statement" className="block text-sm font-medium text-white/70">Estratto di chiusura/risoluzione</label>
+                <div className="mt-1 relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-cyan-700/20 opacity-0 group-hover:opacity-100 rounded-xl blur transition duration-300"></div>
                   <input
                     id="statement"
                     type="file"
                     accept=".pdf,.docx"
                     onChange={handleFileChange(setStatement)}
                     required
-                    className="block w-full px-4 py-3 rounded-xl bg-black border border-gray-800 text-white focus:border-cyan-400 outline-none transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-cyan-900/30 file:text-cyan-300 hover:file:bg-cyan-900/40"
+                    className="relative block w-full px-4 py-4 bg-black/40 border border-gray-800/60 text-white rounded-xl outline-none transition-all duration-300 focus:ring-1 focus:ring-cyan-400/50 focus:border-cyan-400/50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-medium file:bg-cyan-900/20 file:text-cyan-300 hover:file:bg-cyan-900/40 backdrop-blur-sm"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-400">PDF o DOCX (max 5MB)</p>
+                <p className="mt-1.5 text-xs text-gray-500">PDF o DOCX (max 5MB)</p>
               </div>
               
               <div className="space-y-1">
-                <label htmlFor="template" className="block text-sm font-medium text-gray-200">Modello di lettera</label>
-                <div className="relative mt-1 flex items-center">
+                <label htmlFor="template" className="block text-sm font-medium text-white/70">Modello di lettera</label>
+                <div className="mt-1 relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-cyan-700/20 opacity-0 group-hover:opacity-100 rounded-xl blur transition duration-300"></div>
                   <input
                     id="template"
                     type="file"
                     accept=".doc,.docx,.txt"
                     onChange={handleFileChange(setTemplate)}
                     required
-                    className="block w-full px-4 py-3 rounded-xl bg-black border border-gray-800 text-white focus:border-cyan-400 outline-none transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-cyan-900/30 file:text-cyan-300 hover:file:bg-cyan-900/40"
+                    className="relative block w-full px-4 py-4 bg-black/40 border border-gray-800/60 text-white rounded-xl outline-none transition-all duration-300 focus:ring-1 focus:ring-cyan-400/50 focus:border-cyan-400/50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-medium file:bg-cyan-900/20 file:text-cyan-300 hover:file:bg-cyan-900/40 backdrop-blur-sm"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-400">DOC, DOCX o TXT (max 5MB)</p>
+                <p className="mt-1.5 text-xs text-gray-500">DOC, DOCX o TXT (max 5MB)</p>
               </div>
               
               {error && (
-                <div className="px-4 py-3 rounded-xl bg-red-900/20 border border-red-800/30 text-center">
+                <div className="px-5 py-4 rounded-xl bg-red-900/10 border border-red-900/20 text-center backdrop-blur-sm animate-pulse">
                   <p className="text-sm text-red-300">{error}</p>
                 </div>
               )}
               
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 px-6 rounded-xl bg-cyan-600 text-white font-semibold text-base hover:bg-cyan-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-50"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    Calcolo in corso...
-                  </span>
-                ) : (
-                  'Calcola e genera lettera'
-                )}
-              </button>
+              <div className="relative group inline-block w-full mt-4">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl blur opacity-30 group-hover:opacity-80 transition duration-500"></div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="relative w-full py-4 px-8 bg-black text-white rounded-xl font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group-hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-50"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white opacity-70" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Calcolo in corso...
+                    </span>
+                  ) : (
+                    'Calcola e genera lettera'
+                  )}
+                </button>
+              </div>
             </form>
             
             {result && (
-              <div className="mt-10 rounded-2xl bg-[#23232a] border border-gray-700/30 overflow-hidden animate-fade-in">
-                <div className="bg-gradient-to-r from-cyan-900/40 to-[#23232a] px-6 py-5 border-b border-gray-700/30">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                      <path fill="#38bdf8" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              <div className="mt-12 rounded-2xl overflow-hidden backdrop-blur-sm animate-fade-in">
+                <div className="bg-gradient-to-r from-cyan-900/20 via-cyan-600/10 to-transparent backdrop-blur-lg px-6 py-5 border-b border-cyan-800/20">
+                  <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                    <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     Risultato
                   </h3>
                 </div>
-                <div className="p-6">
-                  <div className="mb-6">
-                    <p className="text-gray-400 text-sm mb-1">Importo rimborsabile:</p>
-                    <p className="text-green-400 font-bold text-3xl">{formatCurrency(result.rimborso)}</p>
+                
+                <div className="p-6 bg-black/40 border border-gray-800/40 rounded-b-2xl">
+                  <div className="mb-8">
+                    <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Importo rimborsabile:</p>
+                    <p className="text-green-400 font-bold text-4xl">{formatCurrency(result.rimborso)}</p>
                   </div>
                   
-                  <div className="bg-black/30 rounded-xl p-6 whitespace-pre-wrap text-gray-300 text-sm border border-gray-800/50">
-                    <p className="text-cyan-300 font-medium mb-2">Lettera generata:</p>
-                    {result.letter}
+                  <div className="bg-black/60 rounded-xl p-6 whitespace-pre-wrap text-gray-300 text-sm border border-gray-800/50 backdrop-blur-sm">
+                    <p className="text-cyan-300 font-medium mb-3 text-xs uppercase tracking-wider">Lettera generata:</p>
+                    <div className="font-light opacity-90 leading-relaxed">
+                      {result.letter}
+                    </div>
                   </div>
                   
-                  <div className="mt-6 flex justify-end">
-                    <DownloadPDFButton result={result} formatCurrency={formatCurrency} />
+                  <div className="mt-8 flex justify-end">
+                    <button onClick={() => {}} className="group relative overflow-hidden rounded-xl bg-cyan-500/5 px-6 py-2 transition-all duration-300 hover:bg-cyan-500/10 border border-cyan-700/20 text-cyan-300 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:ring-opacity-50">
+                      <span className="relative z-10 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Scarica PDF
+                      </span>
+                      <span className="absolute inset-0 translate-y-[100%] bg-gradient-to-r from-cyan-600/10 to-cyan-400/5 transition-transform duration-300 group-hover:translate-y-[0%]"></span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -264,25 +309,29 @@ export default function Home() {
       )}
       
       {mainScreen === 'chat' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-300 animate-fade-in">
-          <div className="bg-[#18181b] p-8 rounded-3xl max-w-4xl w-full h-[85vh] relative border border-gray-800/30">
-            <button onClick={() => setMainScreen('home')} className="absolute top-6 right-6 text-gray-400 hover:text-white transition-colors" aria-label="Chiudi">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl transition-all duration-500 animate-fade-in">
+          <div className="relative bg-gradient-to-b from-[#121214] to-[#18181c] p-8 rounded-3xl w-full max-w-5xl h-[85vh] border border-white/5 shadow-2xl backdrop-blur" style={{boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 0 40px 0 rgba(236, 72, 153, 0.05)'}}>
+            <button onClick={() => setMainScreen('home')} className="absolute top-7 right-7 text-gray-500 hover:text-white transition-colors duration-300" aria-label="Chiudi">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="flex items-center justify-center mb-8">
-              <div className="px-4 py-2 bg-gradient-to-r from-fuchsia-500/10 via-purple-500/10 to-pink-500/10 rounded-full border border-fuchsia-500/20">
-                <span className="bg-gradient-to-r from-fuchsia-400 to-pink-500 text-transparent bg-clip-text font-semibold">Chat con Lexa AI</span>
+            
+            <div className="absolute top-0 left-0 w-full h-12 bg-gradient-to-r from-fuchsia-800/10 via-pink-500/5 to-transparent rounded-t-3xl"></div>
+            
+            <div className="flex items-center justify-center mb-8 mt-2">
+              <div className="relative">
+                <div className="px-5 py-2 bg-gradient-to-r from-fuchsia-500/5 to-pink-500/5 rounded-full border border-fuchsia-500/10 backdrop-blur-sm">
+                  <span className="bg-gradient-to-r from-fuchsia-300 via-pink-300 to-rose-300 text-transparent bg-clip-text font-medium">Chat con Lexa AI</span>
+                </div>
+                <div className="absolute -bottom-2 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent"></div>
               </div>
             </div>
+            
             <ChatAI />
           </div>
         </div>
       )}
-      <footer className="mt-auto mb-8 text-xs text-gray-600 text-center relative z-10">
-        © {new Date().getFullYear()} LegalAI Suite. <a className="text-cyan-400 hover:underline" href="#">Privacy</a> · <a className="text-cyan-400 hover:underline" href="#">Credits</a>
-      </footer>
     </div>
   );
 }
