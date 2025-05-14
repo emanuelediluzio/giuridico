@@ -277,7 +277,7 @@ export default function Home() {
                       <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
                         <div>
                           <p className="text-slate-500 text-sm">Data stipula:</p>
-                          <p className="text-lg font-medium text-slate-800">{result.contractData.stipulationDate}</p>
+                          <p className="text-lg font-medium text-slate-800">{result?.contractData?.stipulationDate}</p>
                         </div>
                         <div>
                           <p className="text-slate-500 text-sm">Importo finanziato:</p>
