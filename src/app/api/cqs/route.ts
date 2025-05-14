@@ -5,40 +5,126 @@ import mammoth from 'mammoth';
 
 export const runtime = 'nodejs';
 
+// Funzione helper per ritardare l'esecuzione
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function extractTextFromApiFile(file: File): Promise<string> {
   console.log(`API - extractTextFromApiFile: Inizio estrazione per ${file.name}, tipo ${file.type}, size ${file.size}`);
   const arrayBuffer = await file.arrayBuffer();
 
   if (file.type === 'application/pdf') {
-    try {
-      console.log("API - extractTextFromApiFile: Tentativo di estrazione testo da PDF tramite API Python...");
-      
-      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.NODE_ENV === 'development' ? 'http://localhost:9003' : '/'); 
-      const pythonApiUrl = `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}/api/python_parser`;
-      console.log(`API - extractTextFromApiFile: Chiamata a ${pythonApiUrl}`);
+    // IMPORTANTE: Spostare questa API key in una variabile d'ambiente (es. DOCUPIPE_API_KEY)
+    const apiKey = process.env.DOCUPIPE_API_KEY;
 
-      const response = await fetch(pythonApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/pdf',
+    if (!apiKey) {
+      console.error("API - extractTextFromApiFile: DOCUPIPE_API_KEY non configurata.");
+      return "";
+    }
+
+    console.log("API - extractTextFromApiFile: Tentativo di estrazione testo da PDF tramite API DocuPipe...");
+
+    try {
+      // 1. Converti ArrayBuffer in base64
+      const buffer = Buffer.from(arrayBuffer);
+      const base64Content = buffer.toString('base64');
+      console.log("API - extractTextFromApiFile: Contenuto PDF convertito in base64.");
+
+      // 2. POST del documento a DocuPipe
+      const postUrl = "https://app.docupipe.ai/document";
+      const postPayload = {
+        document: {
+          file: {
+            contents: base64Content,
+            filename: file.name,
+          },
         },
-        body: arrayBuffer,
+      };
+      const postHeaders = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "X-API-Key": apiKey,
+      };
+
+      console.log(`API - extractTextFromApiFile: Invio POST a DocuPipe: ${postUrl}`);
+      const postResponse = await fetch(postUrl, {
+        method: 'POST',
+        headers: postHeaders,
+        body: JSON.stringify(postPayload),
       });
 
-      console.log(`API - extractTextFromApiFile: Risposta da API Python ricevuta, status: ${response.status}`);
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`API - extractTextFromApiFile: Errore dall'API Python (${response.status}): ${errorBody}`);
-        throw new Error(`Python API error (${response.status}): ${errorBody}`);
+      if (!postResponse.ok) {
+        const errorBody = await postResponse.text();
+        console.error(`API - extractTextFromApiFile: Errore DocuPipe POST (${postResponse.status}): ${errorBody}`);
+        throw new Error(`DocuPipe POST error (${postResponse.status}): ${errorBody}`);
       }
 
-      const result = await response.json();
-      console.log("API - extractTextFromApiFile: Testo estratto da PDF (via Python) lunghezza:", result.text?.length);
-      console.log("API - extractTextFromApiFile: Testo PDF (primi 300 char via Python):", result.text?.substring(0, 300));
-      return result.text || "";
-    } catch (pythonApiError) {
-      console.error("API - extractTextFromApiFile: ERRORE durante chiamata a API Python per PDF:", pythonApiError);
+      const postResult = await postResponse.json();
+      const documentId = postResult.documentId;
+      console.log(`API - extractTextFromApiFile: DocuPipe documentId ricevuto: ${documentId}`);
+
+      if (!documentId) {
+        console.error("API - extractTextFromApiFile: DocuPipe non ha restituito un documentId.");
+        throw new Error("DocuPipe non ha restituito un documentId.");
+      }
+
+      // 3. Polling per il risultato del documento
+      const getUrl = `https://app.docupipe.ai/document/${documentId}`;
+      const getHeaders = {
+        "accept": "application/json",
+        "X-API-Key": apiKey,
+      };
+      let attempts = 0;
+      const maxAttempts = 10; // Prova per max 50 secondi (10 tentativi * 5 sec)
+      const pollInterval = 5000; // 5 secondi
+
+      while (attempts < maxAttempts) {
+        attempts++;
+        console.log(`API - extractTextFromApiFile: Tentativo GET ${attempts}/${maxAttempts} per ${documentId} a ${getUrl}`);
+        await delay(pollInterval); // Attendi prima di ogni tentativo (tranne il primo se delay è dopo)
+
+        const getResponse = await fetch(getUrl, { headers: getHeaders });
+
+        if (!getResponse.ok) {
+          const errorBody = await getResponse.text();
+          // Non interrompere per errori 5xx durante il polling, potrebbe essere transitorio
+          if (getResponse.status >= 400 && getResponse.status < 500) {
+             console.error(`API - extractTextFromApiFile: Errore DocuPipe GET (${getResponse.status}): ${errorBody}`);
+             throw new Error(`DocuPipe GET error (${getResponse.status}): ${errorBody}`);
+          } else {
+            console.warn(`API - extractTextFromApiFile: Avviso DocuPipe GET (${getResponse.status}): ${errorBody}. Riprovo...`);
+            continue; // Riprova se è un errore server o non fatale
+          }
+        }
+
+        const getResult = await getResponse.json();
+
+        if (getResult.status === "completed") {
+          console.log("API - extractTextFromApiFile: DocuPipe elaborazione completata.");
+          const pagesText = getResult.result?.pagesText;
+          if (pagesText && Array.isArray(pagesText)) {
+            const extractedText = pagesText.join("\\n\\n"); // Unisci il testo di tutte le pagine
+            console.log("API - extractTextFromApiFile: Testo estratto da DocuPipe lunghezza:", extractedText.length);
+            console.log("API - extractTextFromApiFile: Testo DocuPipe (primi 300 char):", extractedText.substring(0, 300));
+            return extractedText;
+          } else {
+            console.warn("API - extractTextFromApiFile: DocuPipe ha completato ma pagesText è mancante o non è un array.");
+            return "";
+          }
+        } else if (getResult.status === "processing") {
+          console.log(`API - extractTextFromApiFile: DocuPipe ancora in elaborazione per ${documentId} (tentativo ${attempts})...`);
+        } else if (getResult.status === "failed") {
+            console.error(`API - extractTextFromApiFile: DocuPipe elaborazione fallita per ${documentId}. Dettagli:`, getResult.result || "Nessun dettaglio fornito");
+            return ""; // Elaborazione fallita
+        } else {
+          console.warn(`API - extractTextFromApiFile: Stato DocuPipe sconosciuto o inatteso: ${getResult.status}. Riprovo...`);
+        }
+      }
+
+      console.error(`API - extractTextFromApiFile: DocuPipe timeout dopo ${maxAttempts} tentativi per ${documentId}.`);
+      return ""; // Timeout
+
+    } catch (docuPipeError) {
+      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API DocuPipe per PDF:", docuPipeError);
       return ""; 
     }
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
