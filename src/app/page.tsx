@@ -9,6 +9,9 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 // Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
 
+import CalculatorIcon from '@/assets/icons/calculator.svg';
+import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg';
+
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
 async function extractTextFromFile(file: File): Promise<string> {
@@ -77,9 +80,9 @@ export default function Home() {
         formData.append('statementText', statementText);
         formData.append('templateFile', template);
         res = await fetch('/api/cqs', {
-          method: 'POST',
-          body: formData,
-        });
+        method: 'POST',
+        body: formData,
+      });
       } else {
         res = await fetch('/api/cqs', {
           method: 'POST',
@@ -140,9 +143,7 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <div className="feature-card">
                   <div className="feature-icon">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
+                    <CalculatorIcon className="w-6 h-6" fill="none" stroke="currentColor" />
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-slate-800">Calcolo Rimborso</h3>
                   <p className="text-slate-600 mb-4">Determina l'importo da restituire in base all'Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
@@ -156,9 +157,7 @@ export default function Home() {
                 
                 <div className="feature-card">
                   <div className="feature-icon">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
+                    <ChatBubbleIcon className="w-6 h-6" fill="none" stroke="currentColor" />
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-slate-800">Assistente AI</h3>
                   <p className="text-slate-600 mb-4">Interagisci con l'intelligenza artificiale legale per domande specifiche e assistenza immediata.</p>
@@ -287,12 +286,12 @@ export default function Home() {
                         <div>
                           <p className="text-slate-500 text-sm">Durata (mesi):</p>
                           <p className="text-lg font-medium text-slate-800">{result.contractData.durationMonths}</p>
-                        </div>
-                        <div>
+        </div>
+          <div>
                           <p className="text-slate-500 text-sm">Data estinzione:</p>
                           <p className="text-lg font-medium text-slate-800">{result.statementData.terminationDate}</p>
-                        </div>
-                        <div>
+          </div>
+          <div>
                           <p className="text-slate-500 text-sm">Rate pagate:</p>
                           <p className="text-lg font-medium text-slate-800">{result.statementData.installmentsPaid}</p>
                         </div>
@@ -305,8 +304,8 @@ export default function Home() {
                         <div>
                           <p className="text-slate-600 text-sm">Commissioni bancarie:</p>
                           <p className="text-lg font-medium text-slate-800">{formatCurrency(result.refund.bankFees || 0)}</p>
-                        </div>
-                        <div>
+          </div>
+          <div>
                           <p className="text-slate-600 text-sm">Commissioni intermediazione:</p>
                           <p className="text-lg font-medium text-slate-800">{formatCurrency(result.refund.intermediationFees || 0)}</p>
                         </div>
@@ -318,7 +317,7 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                  </div>
+          </div>
                   
                   <div className="flex justify-center space-x-4 mt-8">
                     <button 
@@ -326,7 +325,7 @@ export default function Home() {
                       onClick={() => setResult(null)}
                     >
                       Nuovo Calcolo
-                    </button>
+          </button>
                     {result.letterContent && (
                       <DownloadPDFButton 
                         content={result.letterContent}
@@ -340,7 +339,7 @@ export default function Home() {
                       />
                     )}
                   </div>
-                </div>
+            </div>
               )}
             </div>
           </div>
@@ -349,7 +348,7 @@ export default function Home() {
         {mainScreen === 'chat' && (
           <div className="container-lexa animate-fade-in mt-4">
             <ChatAI />
-          </div>
+      </div>
         )}
       </main>
       

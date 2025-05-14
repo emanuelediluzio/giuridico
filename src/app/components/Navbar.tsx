@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import MenuIcon from '@/assets/icons/menu.svg';
+import XIcon from '@/assets/icons/x.svg';
 
 interface NavbarProps {
   currentScreen?: 'home' | 'rimborso' | 'chat';
@@ -74,13 +76,9 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
+              <XIcon className="w-6 h-6" fill="none" stroke="currentColor" />
             ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-              </svg>
+              <MenuIcon className="w-6 h-6" fill="none" stroke="currentColor" />
             )}
           </button>
         </div>
