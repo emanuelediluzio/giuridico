@@ -9,8 +9,8 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 // Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
 
-import CalculatorIcon from '@/assets/icons/calculator.svg?react';
-import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg?react';
+// import CalculatorIcon from '@/assets/icons/calculator.svg?react';
+// import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg?react';
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
@@ -143,7 +143,7 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <div className="feature-card">
                   <div className="feature-icon">
-                    <CalculatorIcon className="w-6 h-6" fill="none" stroke="currentColor" />
+                    {/* <CalculatorIcon className="w-6 h-6" fill="none" stroke="currentColor" /> */}
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-slate-800">Calcolo Rimborso</h3>
                   <p className="text-slate-600 mb-4">Determina l'importo da restituire in base all'Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
@@ -157,7 +157,7 @@ export default function Home() {
                 
                 <div className="feature-card">
                   <div className="feature-icon">
-                    <ChatBubbleIcon className="w-6 h-6" fill="none" stroke="currentColor" />
+                    {/* <ChatBubbleIcon className="w-6 h-6" fill="none" stroke="currentColor" /> */}
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-slate-800">Assistente AI</h3>
                   <p className="text-slate-600 mb-4">Interagisci con l'intelligenza artificiale legale per domande specifiche e assistenza immediata.</p>
