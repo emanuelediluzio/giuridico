@@ -277,23 +277,27 @@ export default function Home() {
                       <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
                         <div>
                           <p className="text-slate-500 text-sm">Data stipula:</p>
-                          <p className="text-lg font-medium text-slate-800">{result?.contractData?.stipulationDate}</p>
+                          <p className="text-lg font-medium text-slate-800">{'N/D'}</p>
                         </div>
                         <div>
                           <p className="text-slate-500 text-sm">Importo finanziato:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.contractData?.financedAmount || 0)}</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.totaleCosti || 0)}</p>
                         </div>
                         <div>
                           <p className="text-slate-500 text-sm">Durata (mesi):</p>
-                          <p className="text-lg font-medium text-slate-800">{result?.contractData?.durationMonths || 'N/D'}</p>
-        </div>
-          <div>
+                          <p className="text-lg font-medium text-slate-800">{result?.durataTotale || 'N/D'}</p>
+                        </div>
+                        <div>
                           <p className="text-slate-500 text-sm">Data estinzione:</p>
-                          <p className="text-lg font-medium text-slate-800">{result?.statementData?.terminationDate}</p>
-          </div>
-          <div>
+                          <p className="text-lg font-medium text-slate-800">{result?.dataChiusura || 'N/D'}</p>
+                        </div>
+                        <div>
                           <p className="text-slate-500 text-sm">Rate pagate:</p>
-                          <p className="text-lg font-medium text-slate-800">{result?.statementData?.installmentsPaid || 0}</p>
+                          <p className="text-lg font-medium text-slate-800">
+                            {(typeof result?.durataTotale === 'number' && typeof result?.durataResidua === 'number')
+                              ? (result.durataTotale - result.durataResidua)
+                              : 'N/D'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -304,8 +308,8 @@ export default function Home() {
                         <div>
                           <p className="text-slate-600 text-sm">Commissioni bancarie:</p>
                           <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.refund?.bankFees || 0)}</p>
-          </div>
-          <div>
+                        </div>
+                        <div>
                           <p className="text-slate-600 text-sm">Commissioni intermediazione:</p>
                           <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.refund?.intermediationFees || 0)}</p>
                         </div>
@@ -317,7 +321,7 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-          </div>
+                  </div>
                   
                   <div className="flex justify-center space-x-4 mt-8">
                     <button 
@@ -325,7 +329,7 @@ export default function Home() {
                       onClick={() => setResult(null)}
                     >
                       Nuovo Calcolo
-          </button>
+                    </button>
                     {result?.letterContent && (
                       <DownloadPDFButton 
                         content={result.letterContent}
@@ -339,7 +343,7 @@ export default function Home() {
                       />
                     )}
                   </div>
-            </div>
+                </div>
               )}
             </div>
           </div>
@@ -348,7 +352,7 @@ export default function Home() {
         {mainScreen === 'chat' && (
           <div className="container-lexa animate-fade-in mt-4">
             <ChatAI />
-      </div>
+          </div>
         )}
       </main>
       
