@@ -20,6 +20,10 @@ function estraiNumero(text: string, regex: RegExp): number | null {
 }
 
 export function estraiDatiEconomici(testoContratto: string, testoEstratto: string) {
+  console.log("--- estraiDatiEconomici INIZIO (v3.1) ---");
+  console.log("Testo Contratto (primi 200 char):", testoContratto ? testoContratto.substring(0, 200) + "..." : "VUOTO O NON FORNITO");
+  console.log("Testo Estratto (primi 200 char):", testoEstratto ? testoEstratto.substring(0, 200) + "..." : "VUOTO O NON FORNITO");
+
   let totaleCosti = 0;
   // Nuova Regex specifica per "CT € [valore] COSTI TOTALI (A) + (B)"
   const ctMatch = testoContratto.match(/CT\s+€\s*([\d.,]+)\s+COSTI TOTALI\s*\(A\)\s*\+\s*\(B\)/i);
@@ -131,7 +135,7 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   const dataChiusura = dataChiusuraMatch && dataChiusuraMatch[1] ? dataChiusuraMatch[1] : '';
 
   // Log per debug
-  console.log('--- DEBUG ESTRAZIONE FINALE ---src/lib/parsing.ts (v3)---');
+  console.log('--- DEBUG ESTRAZIONE FINALE ---src/lib/parsing.ts (v3.1)---');
   console.log('Totale costi estratto (CT A+B):', totaleCosti);
   console.log('Numero Rate Totali Estratto:', numeroRate);
   console.log('Rate Scadute Estratte:', rateScadute);
