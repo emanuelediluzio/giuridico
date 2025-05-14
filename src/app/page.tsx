@@ -77,9 +77,16 @@ export default function Home() {
         // Invio il file template come FormData, e anche contract e statement come file
         const formData = new FormData();
         // Modifica: Invia i file originali invece del testo estratto
-        if (contract) formData.append('contractFile', contract);
-        if (statement) formData.append('statementFile', statement);
+        if (contract) {
+          console.log("PAGE.TSX - Contratto prima di append:", { name: contract.name, size: contract.size, type: contract.type });
+          formData.append('contractFile', contract);
+        }
+        if (statement) {
+          console.log("PAGE.TSX - Statement prima di append:", { name: statement.name, size: statement.size, type: statement.type });
+          formData.append('statementFile', statement);
+        }
         formData.append('templateFile', template); // template è sempre un File qui
+        console.log("PAGE.TSX - FormData pronto per invio (solo template .doc):", formData.has('contractFile'), formData.has('statementFile'), formData.has('templateFile'));
         
         res = await fetch('/api/cqs', {
         method: 'POST',
@@ -87,9 +94,11 @@ export default function Home() {
       });
       } else {
         // Estrai testo da contratto e statement se non si usa il backend per il template
-        // (il templateText è già stato estratto se non è .doc)
-        contractText = await extractTextFromFile(contract);
-        statementText = await extractTextFromFile(statement);
+        // (il templateText è già stato estratto sopra se non è .doc)
+        const contractText = contract ? await extractTextFromFile(contract) : '';
+        const statementText = statement ? await extractTextFromFile(statement) : '';
+        console.log("PAGE.TSX - Testo contratto (non .doc template):", contractText?.substring(0,100));
+        console.log("PAGE.TSX - Testo statement (non .doc template):", statementText?.substring(0,100));
 
         res = await fetch('/api/cqs', {
           method: 'POST',

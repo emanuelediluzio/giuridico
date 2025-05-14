@@ -58,23 +58,25 @@ async function callOpenRouterAIMultimodal({ prompt, file }: { prompt: string, fi
 }
 
 export async function POST(request: Request) {
+  console.log("--- API POST INIZIO (v3) ---");
   try {
-    // Supporto sia JSON (testo) che multipart/form-data (file)
-    let contractText = '', statementText = '', templateText = '';
-    
-    const contentType = request.headers.get('content-type') || '';
+    const contentType = request.headers.get("content-type") || "";
+    let contractText = "";
+    let statementText = "";
+    let templateText = ""; // Usato solo se NON è .doc
+    let originalTemplateFileName = "template.txt"; // Default
 
-    if (contentType.includes('application/json')) {
-      const body = await request.json();
-      contractText = body.contractText || '';
-      statementText = body.statementText || '';
-      templateText = body.templateText || '';
-    } else if (contentType.includes('multipart/form-data')) {
+    if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
-      
-      const contractFile = formData.get('contractFile') as File | null;
-      const statementFile = formData.get('statementFile') as File | null;
-      const templateFile = formData.get('templateFile') as File | null;
+      console.log("API - FormData ricevuto:", Array.from(formData.keys())); // Logga tutte le chiavi
+
+      const contractFile = formData.get("contractFile") as File | null;
+      const statementFile = formData.get("statementFile") as File | null;
+      const templateFile = formData.get("templateFile") as File | null;
+
+      console.log("API - Contract File:", contractFile ? { name: contractFile.name, size: contractFile.size, type: contractFile.type } : "NON TROVATO");
+      console.log("API - Statement File:", statementFile ? { name: statementFile.name, size: statementFile.size, type: statementFile.type } : "NON TROVATO");
+      console.log("API - Template File:", templateFile ? { name: templateFile.name, size: templateFile.size, type: templateFile.type } : "NON TROVATO");
 
       if (contractFile) {
         contractText = await extractTextFromApiFile(contractFile);
@@ -93,6 +95,11 @@ export async function POST(request: Request) {
       } else {
         templateText = formData.get('templateText') as string || '';
       }
+    } else if (contentType.includes('application/json')) {
+      const body = await request.json();
+      contractText = body.contractText || '';
+      statementText = body.statementText || '';
+      templateText = body.templateText || '';
     }
     // LOG dei dati ricevuti
     console.log('--- API /api/cqs ---');
