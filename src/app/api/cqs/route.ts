@@ -2,36 +2,54 @@ import { NextResponse } from 'next/server';
 import { calcolaRimborso, generaLettera } from '@/lib/parsing';
 import WordExtractor from 'word-extractor';
 import mammoth from 'mammoth';
-import pdf from 'pdf-parse';
 
 export const runtime = 'nodejs';
 
 async function extractTextFromApiFile(file: File): Promise<string> {
   console.log(`API - extractTextFromApiFile: Inizio estrazione per ${file.name}, tipo ${file.type}, size ${file.size}`);
   const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  console.log(`API - extractTextFromApiFile: Buffer creato, lunghezza ${buffer.length}`);
 
   if (file.type === 'application/pdf') {
     try {
-      console.log("API - extractTextFromApiFile: Tentativo parsing PDF...");
-      const data = await pdf(buffer);
-      console.log("API - extractTextFromApiFile: Parsing PDF completato.");
-      console.log("API - extractTextFromApiFile: Info da pdf-parse:", { numpages: data.numpages, numrender: data.numrender, info: data.info, metadata: data.metadata, version: data.version });
-      console.log("API - extractTextFromApiFile: Lunghezza testo estratto da PDF:", data.text?.length);
-      console.log("API - extractTextFromApiFile: Testo PDF (primi 300 char):", data.text?.substring(0, 300));
-      return data.text || ""; // Assicurati di restituire stringa vuota se data.text è null/undefined
-    } catch (pdfError) {
-      console.error("API - extractTextFromApiFile: ERRORE durante parsing PDF:", pdfError);
-      return ""; // Restituisci stringa vuota in caso di errore
+      console.log("API - extractTextFromApiFile: Tentativo di estrazione testo da PDF tramite API Python...");
+      
+      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.NODE_ENV === 'development' ? 'http://localhost:9003' : '/'); 
+      const pythonApiUrl = `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}/api/python_parser`;
+      console.log(`API - extractTextFromApiFile: Chiamata a ${pythonApiUrl}`);
+
+      const response = await fetch(pythonApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+        body: arrayBuffer,
+      });
+
+      console.log(`API - extractTextFromApiFile: Risposta da API Python ricevuta, status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`API - extractTextFromApiFile: Errore dall'API Python (${response.status}): ${errorBody}`);
+        throw new Error(`Python API error (${response.status}): ${errorBody}`);
+      }
+
+      const result = await response.json();
+      console.log("API - extractTextFromApiFile: Testo estratto da PDF (via Python) lunghezza:", result.text?.length);
+      console.log("API - extractTextFromApiFile: Testo PDF (primi 300 char via Python):", result.text?.substring(0, 300));
+      return result.text || "";
+    } catch (pythonApiError) {
+      console.error("API - extractTextFromApiFile: ERRORE durante chiamata a API Python per PDF:", pythonApiError);
+      return ""; 
     }
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     console.log("API - extractTextFromApiFile: Tentativo parsing DOCX...");
+    const buffer = Buffer.from(arrayBuffer); 
     const result = await mammoth.extractRawText({ buffer });
     console.log("API - extractTextFromApiFile: Lunghezza testo estratto da DOCX:", result.value?.length);
     return result.value;
   } else if (file.type === 'application/msword') {
     console.log("API - extractTextFromApiFile: Tentativo parsing DOC...");
+    const buffer = Buffer.from(arrayBuffer); 
     const extractor = new WordExtractor();
     const doc = await extractor.extract(buffer);
     const body = doc.getBody();
@@ -39,13 +57,17 @@ async function extractTextFromApiFile(file: File): Promise<string> {
     return body;
   } else if (file.type === 'text/plain') {
     console.log("API - extractTextFromApiFile: Tentativo parsing TXT...");
+    const buffer = Buffer.from(arrayBuffer);
     const text = buffer.toString('utf-8');
     console.log("API - extractTextFromApiFile: Lunghezza testo estratto da TXT:", text?.length);
     return text;
   } else {
     console.warn(`API - extractTextFromApiFile: Formato file non supportato direttamente: ${file.type}. Tentativo come testo generico.`);
     try {
-      return buffer.toString('utf-8');
+      // Per tipi di file non gestiti esplicitamente, proviamo a decodificarli come UTF-8
+      const text = new TextDecoder('utf-8').decode(arrayBuffer);
+      console.log("API - extractTextFromApiFile: Lunghezza testo estratto da tipo non supportato (come TXT):", text?.length);
+      return text;
     } catch (e) {
       console.error(`Errore leggendo file di tipo ${file.type} come testo:`, e)
       return '';
