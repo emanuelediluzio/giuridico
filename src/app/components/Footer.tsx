@@ -1,12 +1,12 @@
 import React from 'react';
-import FacebookIcon from '@/assets/icons/facebook.svg';
-import InstagramIcon from '@/assets/icons/instagram.svg';
-import TwitterIcon from '@/assets/icons/twitter.svg';
-import LinkedinIcon from '@/assets/icons/linkedin.svg';
-import ChevronRightIcon from '@/assets/icons/chevron-right.svg';
-import MailIcon from '@/assets/icons/mail.svg';
-import PhoneIcon from '@/assets/icons/phone.svg';
-import LocationMarkerIcon from '@/assets/icons/location-marker.svg';
+// import FacebookIcon from '@/assets/icons/facebook.svg';
+// import InstagramIcon from '@/assets/icons/instagram.svg';
+// import TwitterIcon from '@/assets/icons/twitter.svg';
+// import LinkedinIcon from '@/assets/icons/linkedin.svg';
+// import ChevronRightIcon from '@/assets/icons/chevron-right.svg';
+// import MailIcon from '@/assets/icons/mail.svg';
+// import PhoneIcon from '@/assets/icons/phone.svg';
+// import LocationMarkerIcon from '@/assets/icons/location-marker.svg';
 
 export default function Footer() {
   return (
@@ -30,16 +30,16 @@ export default function Footer() {
             </p>
             <div className="flex space-x-4 mt-4">
               <a href="#" className="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center text-white transition-colors duration-200">
-                <FacebookIcon className="w-5 h-5" fill="currentColor" />
+                {/* <FacebookIcon className="w-5 h-5" fill="currentColor" /> */} F
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center text-white transition-colors duration-200">
-                <InstagramIcon className="w-5 h-5" fill="currentColor" />
+                {/* <InstagramIcon className="w-5 h-5" fill="currentColor" /> */} I
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center text-white transition-colors duration-200">
-                <TwitterIcon className="w-5 h-5" fill="currentColor" />
+                {/* <TwitterIcon className="w-5 h-5" fill="currentColor" /> */} T
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center text-white transition-colors duration-200">
-                <LinkedinIcon className="w-5 h-5" fill="currentColor" />
+                {/* <LinkedinIcon className="w-5 h-5" fill="currentColor" /> */} L
               </a>
             </div>
           </div>
@@ -53,25 +53,25 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <a href="#" className="text-slate-300 hover:text-blue-400 transition-colors flex items-center">
-                  <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/>
+                  {/* <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/> */} {'>'}
                   Privacy Policy
                 </a>
               </li>
               <li>
                 <a href="#" className="text-slate-300 hover:text-blue-400 transition-colors flex items-center">
-                  <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/>
+                  {/* <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/> */} {'>'}
                   Termini di Servizio
                 </a>
               </li>
               <li>
                 <a href="#" className="text-slate-300 hover:text-blue-400 transition-colors flex items-center">
-                  <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/>
+                  {/* <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/> */} {'>'}
                   FAQ
                 </a>
               </li>
               <li>
                 <a href="#" className="text-slate-300 hover:text-blue-400 transition-colors flex items-center">
-                  <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/>
+                  {/* <ChevronRightIcon className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor"/> */} {'>'}
                   Blog
                 </a>
               </li>
@@ -84,19 +84,19 @@ export default function Footer() {
             <ul className="space-y-4">
               <li className="flex items-center text-slate-300">
                 <div className="bg-slate-800 rounded-lg p-2 mr-3">
-                  <MailIcon className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor"/>
+                  {/* <MailIcon className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor"/> */} M
                 </div>
                 info@lexalegal.it
               </li>
               <li className="flex items-center text-slate-300">
                 <div className="bg-slate-800 rounded-lg p-2 mr-3">
-                  <PhoneIcon className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor"/>
+                  {/* <PhoneIcon className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor"/> */} P
                 </div>
                 +39 02 123 456
               </li>
               <li className="flex items-center text-slate-300">
                 <div className="bg-slate-800 rounded-lg p-2 mr-3">
-                  <LocationMarkerIcon className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor"/>
+                  {/* <LocationMarkerIcon className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor"/> */} L
                 </div>
                 Milano, Italia
               </li>
