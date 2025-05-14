@@ -7,8 +7,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
-import "@fontsource/montserrat/500.css";
-import "@fontsource/montserrat/700.css";
+// Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
