@@ -12,7 +12,7 @@ const nextConfig = {
       use: [{
         loader: '@svgr/webpack',
         options: {
-          // Opzionale: configurazioni per SVGR
+          icon: true, // Rende l'SVG più flessibile per lo styling (es. usa currentColor)
           // Ad esempio, per preservare il colore originale degli SVG e poterlo modificare con CSS/Tailwind:
           // icon: true, // Rende l'SVG più flessibile per lo styling (es. usa currentColor)
           // svgoConfig: {
