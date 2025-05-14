@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap'); */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
 :root {
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #f8fafc;
@@ -19,6 +20,7 @@
   --color-warning: #d97706;
   --color-error: #dc2626;
 }
+*/
 
 * {
   box-sizing: border-box;
@@ -28,17 +30,21 @@
 
 html, body {
   height: 100%;
-  font-family: 'Inter', sans-serif;
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
+  /* font-family: 'Inter', sans-serif; */
+  /* background: var(--color-bg-primary); */
+  /* color: var(--color-text-primary); */
   min-height: 100vh;
+  background-color: red !important; /* TEST PER VEDERE SE QUESTO VIENE APPLICATO */
 }
 
+/*
 body {
   min-height: 100vh;
 }
+*/
 
 /* Layout Components */
+/*
 .container-lexa {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
@@ -46,8 +52,10 @@ body {
 .card-lexa {
   @apply bg-white border border-slate-200 rounded-2xl shadow-lg p-8 backdrop-blur-md bg-white/95;
 }
+*/
 
 /* Typography */
+/*
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
@@ -66,8 +74,10 @@ h2 {
 h3 {
   @apply text-xl md:text-2xl lg:text-3xl mb-3 font-semibold;
 }
+*/
 
 /* Form Elements */
+/*
 .input-lexa {
   @apply bg-white/90 text-slate-800 border border-slate-300 rounded-xl px-4 py-3.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 shadow-sm;
 }
@@ -83,8 +93,10 @@ h3 {
 .file-input-lexa {
   @apply bg-white/90 text-slate-800 border border-slate-300 rounded-xl px-4 py-3.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 shadow-sm;
 }
+*/
 
 /* Buttons */
+/*
 .btn-primary {
   @apply bg-blue-600 text-white font-medium rounded-xl px-6 py-3.5 hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2;
 }
@@ -104,8 +116,10 @@ h3 {
 .btn-large {
   @apply px-8 py-4 text-lg;
 }
+*/
 
 /* Feature Cards */
+/*
 .feature-card {
   @apply bg-white/95 border border-slate-200 rounded-2xl p-8 transition-all duration-300 hover:shadow-lg hover:border-slate-300 backdrop-blur-md transform hover:-translate-y-1;
 }
@@ -113,8 +127,10 @@ h3 {
 .feature-icon {
   @apply w-14 h-14 flex items-center justify-center rounded-xl mb-5 bg-blue-100 text-blue-600;
 }
+*/
 
 /* Home cards */
+/*
 .home-section {
   @apply max-w-6xl mx-auto my-16;
 }
@@ -126,8 +142,10 @@ h3 {
 .home-card-icon {
   @apply absolute right-6 bottom-6 w-20 h-20 text-blue-400 opacity-20;
 }
+*/
 
 /* Background elements */
+/*
 .bg-blur-gradient {
   @apply absolute pointer-events-none z-0 opacity-40 blur-[120px] rounded-full;
 }
@@ -138,8 +156,10 @@ h3 {
     linear-gradient(to right, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
 }
+*/
 
 /* Animations */
+/*
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -167,8 +187,10 @@ h3 {
 .animate-pulse-glow {
   animation: pulse-glow 4s infinite;
 }
+*/
 
 /* Custom scrollbar */
+/*
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -186,10 +208,13 @@ h3 {
 ::-webkit-scrollbar-thumb:hover {
   background: #1d4ed8;
 }
+*/
 
 /* Media queries */
+/*
 @media (max-width: 640px) {
   .card-lexa {
     @apply p-5;
   }
-} 
+}
+*/ 
