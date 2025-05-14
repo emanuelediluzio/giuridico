@@ -101,8 +101,27 @@ export function calcolaRimborso(testoContratto: string, testoEstratto: string, t
 }
 
 export function generaLettera(template: string, importoRimborso: string, dettagli: { nomeCliente: string, dataChiusura: string }) {
-  return template
-    .replace('{{importo_rimborso}}', importoRimborso)
-    .replace('{{nome_cliente}}', dettagli.nomeCliente)
-    .replace('{{data_chiusura}}', dettagli.dataChiusura);
+  let result = template
+    .replace(/{{importo_rimborso}}/g, importoRimborso)
+    .replace(/{{nome_cliente}}/g, dettagli.nomeCliente)
+    .replace(/{{data_chiusura}}/g, dettagli.dataChiusura);
+  
+  // Gestione dei placeholder XXX
+  result = result
+    .replace(/XXX_IMPORTO_RIMBORSO/g, importoRimborso)
+    .replace(/XXX_NOME_CLIENTE/g, dettagli.nomeCliente)
+    .replace(/XXX_DATA_CHIUSURA/g, dettagli.dataChiusura);
+    
+  // Gestione case insensitive per i placeholder XXX
+  result = result
+    .replace(/xxx_importo_rimborso/gi, importoRimborso)
+    .replace(/xxx_nome_cliente/gi, dettagli.nomeCliente)
+    .replace(/xxx_data_chiusura/gi, dettagli.dataChiusura);
+    
+  // Gestione semplice di XXX generico
+  if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
+    result = result.replace(/XXX/g, dettagli.nomeCliente);
+  }
+  
+  return result;
 } 

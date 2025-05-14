@@ -1,0 +1,16 @@
+{
+  "name": "Lexa - Assistente Legale AI",
+  "short_name": "Lexa",
+  "description": "Assistente legale avanzato basato su intelligenza artificiale per professionisti del diritto",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#0f0f11",
+  "background_color": "#0f0f11",
+  "display": "standalone",
+  "start_url": "/"
+} 

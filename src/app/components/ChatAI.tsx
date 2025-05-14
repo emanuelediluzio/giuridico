@@ -134,92 +134,175 @@ export default function ChatAI() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col">
-      <AuthUser onAuth={setUser} />
-      {!user ? (
-        <div className="text-center text-gray-400">Effettua il login per usare la chat e caricare file.</div>
-      ) : (
-        <div className="flex flex-row h-[70vh] bg-[#18181b] border border-[#23232a] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-          {/* Sidebar file */}
-          <div className="w-56 bg-[#23232a] border-r border-[#23232a] p-3 flex flex-col gap-2">
-            <div className="font-bold text-cyan-400 mb-1">File caricati</div>
-            <label className="block cursor-pointer mb-1">
-              <span className="text-xs text-gray-400">Aggiungi file</span>
-              <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploading} />
-              <div className="mt-1 px-2 py-1 bg-cyan-700 text-white rounded text-xs text-center hover:bg-cyan-600 transition cursor-pointer">{uploading ? "Caricamento..." : "Upload"}</div>
-            </label>
-            <div className="flex-1 overflow-y-auto">
-              {files.length === 0 && <div className="text-xs text-gray-500">Nessun file</div>}
-              {files.map(f => (
-                <div key={f.id} className="mb-1">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs">
-                    <input type="checkbox" checked={f.selected} onChange={() => toggleFile(f.id)} />
-                    <span className="truncate" title={f.name}>{f.name}</span>
-                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline ml-1">Scarica</a>
-                  </label>
-                  <div className="bg-[#18181b] border border-[#333] rounded p-2 mt-1 text-xs text-gray-300 max-h-16 overflow-auto">
-                    {/* Preview file */}
-                    {f.name.endsWith('.txt') || f.name.endsWith('.md') || f.name.endsWith('.csv') || f.name.endsWith('.json') ? (
-                      <FilePreview url={f.url} max={200} />
-                    ) : f.name.endsWith('.pdf') ? (
-                      <span className="italic text-gray-500">Preview non disponibile (PDF)</span>
-                    ) : f.name.endsWith('.docx') ? (
-                      <FilePreview url={f.url} max={200} />
-                    ) : (
-                      <span className="italic text-gray-500">Preview non disponibile</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {uploadError && <div className="text-xs text-red-400 mt-1 text-center animate-pulse">{uploadError}</div>}
-          </div>
-          {/* Chat area */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-[#23232a] to-[#18181b]">
-              {messages.filter(m => m.role !== "system").map((msg, i) => (
-                <div key={i} className={msg.role === "user" ? "text-right" : "text-left flex items-start gap-2"}>
-                  <div className={
-                    "inline-block px-4 py-2 rounded-lg max-w-[80%] " +
-                    (msg.role === "user"
-                      ? "bg-cyan-600 text-white ml-auto"
-                      : "bg-[#23232a] text-gray-100 border border-cyan-700")
-                  }>
-                    {msg.role === "assistant" && <div className="font-bold text-cyan-300 mb-1">Lexa</div>}
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-            <form onSubmit={inviaMessaggio} className="flex gap-2 p-4 bg-[#23232a] border-t border-[#23232a]">
-              <input
-                className="flex-1 rounded-lg px-4 py-2 bg-[#18181b] text-white border border-[#333] focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                placeholder="Scrivi un messaggio..."
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                disabled={loading}
-              />
-              <button
-                type="submit"
-                className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold px-6 py-2 rounded-lg transition"
-                disabled={loading || !input.trim()}
-              >
-                {loading ? "..." : "Invia"}
-              </button>
-            </form>
+    <div className="card-lexa h-[75vh]">
+      <div className="flex flex-col h-full">
+        <div className="mb-6">
+          <h2 className="text-center mb-2">Chat con Lexa</h2>
+          <p className="text-center text-gray-400 text-sm mb-4">Consulta l'AI su questioni legali o carica documenti per analisi</p>
+          
+          <div className="w-full flex justify-center mb-2">
+            <AuthUser onAuth={setUser} />
           </div>
         </div>
-      )}
+        
+        {!user ? (
+          <div className="flex-grow flex items-center justify-center text-center text-gray-400 p-6 border border-dashed border-white/10 rounded-lg">
+            Effettua il login per accedere alla chat e caricare documenti per l'analisi
+          </div>
+        ) : (
+          <div className="flex flex-row h-full gap-4">
+            {/* Sidebar file */}
+            <div className="w-64 shrink-0 flex flex-col bg-[#18181b]/70 rounded-lg border border-white/5 overflow-hidden">
+              <div className="p-3 border-b border-white/10 bg-[#23232a]">
+                <h3 className="text-sm font-medium text-cyan-400 mb-1">File caricati</h3>
+                <label className="block cursor-pointer">
+                  <div className={`px-3 py-2 rounded text-sm text-center ${uploading 
+                    ? "bg-gray-700 text-gray-300 cursor-not-allowed" 
+                    : "bg-gradient-to-r from-cyan-600 to-cyan-700 text-white hover:from-cyan-500 hover:to-cyan-600 transition-all"
+                  }`}>
+                    {uploading ? "Caricamento..." : "Carica file"}
+                  </div>
+                  <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploading} />
+                </label>
+                {uploadError && (
+                  <div className="mt-2 text-xs text-red-400 bg-red-900/20 rounded p-2 border border-red-800/40">
+                    {uploadError}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-grow p-2 overflow-y-auto">
+                {files.length === 0 && (
+                  <div className="text-center text-gray-500 text-sm p-4">
+                    Nessun file caricato
+                  </div>
+                )}
+                
+                {files.map(file => (
+                  <div key={file.id} className="mb-2">
+                    <div className="flex items-center justify-between p-2 bg-[#23232a]/50 rounded">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input 
+                          type="checkbox" 
+                          checked={file.selected} 
+                          onChange={() => toggleFile(file.id)}
+                          className="rounded border-gray-600 bg-gray-700 text-cyan-500 focus:ring-cyan-500"
+                        />
+                        <span className="truncate max-w-[120px]" title={file.name}>
+                          {file.name}
+                        </span>
+                      </label>
+                      <a 
+                        href={file.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
+                    </div>
+                    
+                    {/* Preview */}
+                    <div className="text-xs bg-[#18181b] border border-white/5 rounded mt-1 p-2 text-gray-400 max-h-20 overflow-auto">
+                      {file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.csv') || file.name.endsWith('.json') ? (
+                        <FilePreview url={file.url} max={200} />
+                      ) : file.name.endsWith('.pdf') ? (
+                        <span className="italic text-gray-500">Preview PDF non disponibile</span>
+                      ) : (
+                        <span className="italic text-gray-500">Preview non disponibile</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Chat area */}
+            <div className="flex-grow flex flex-col border border-white/10 rounded-lg overflow-hidden bg-gradient-to-b from-[#23232a]/70 to-[#18181b]">
+              <div className="flex-grow overflow-y-auto p-5 space-y-4">
+                {messages.filter(m => m.role !== "system").map((msg, i) => (
+                  <div key={i} className={`${msg.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
+                    <div className={`max-w-[75%] rounded-xl p-3 ${
+                      msg.role === "user"
+                        ? "bg-gradient-to-br from-cyan-800/70 to-cyan-700/50 text-white border border-cyan-600/30"
+                        : "bg-[#23232a] text-gray-100 border border-white/5"
+                    }`}>
+                      {msg.role === "assistant" && (
+                        <div className="flex items-center gap-2 mb-1 pb-1 border-b border-white/10">
+                          <div className="w-6 h-6 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
+                            L
+                          </div>
+                          <span className="font-medium text-cyan-400 text-sm">Lexa</span>
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              
+              <form onSubmit={inviaMessaggio} className="p-2 border-t border-white/10 bg-[#23232a]">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    placeholder="Scrivi un messaggio..."
+                    className="input-lexa pr-24"
+                    disabled={loading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!input.trim() || loading}
+                    className={`absolute right-1 top-1 bottom-1 px-4 rounded-lg transition-all ${
+                      !input.trim() || loading
+                        ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-cyan-600 to-cyan-700 text-white hover:from-cyan-500 hover:to-cyan-600"
+                    }`}
+                  >
+                    {loading ? (
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <span>Invia</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function FilePreview({ url, max }: { url: string, max: number }) {
-  const [text, setText] = React.useState<string | null>(null);
-  React.useEffect(() => {
-    fetch(url).then(r => r.text()).then(t => setText(t.slice(0, max))).catch(() => setText(null));
+  const [text, setText] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchText() {
+      try {
+        const res = await fetch(url);
+        const fullText = await res.text();
+        setText(fullText.slice(0, max));
+        setLoading(false);
+      } catch (err) {
+        setError("Errore nel caricamento");
+        setLoading(false);
+      }
+    }
+    fetchText();
   }, [url, max]);
-  if (text === null) return <span className="italic text-gray-500">Caricamento preview...</span>;
-  return <span>{text}{text.length === max ? '…' : ''}</span>;
+
+  if (loading) return <span>Caricamento...</span>;
+  if (error) return <span className="text-red-400">{error}</span>;
+  return <span>{text}{text.length >= max && "..."}</span>;
 } 

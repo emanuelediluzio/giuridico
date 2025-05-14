@@ -1,32 +1,35 @@
 "use client";
 import React from "react";
 
-export default function DownloadPDFButton({ result, formatCurrency }: { result: any, formatCurrency: (val: number) => string }) {
+interface DownloadPDFButtonProps {
+  content: string;
+  fileName: string;
+}
+
+export default function DownloadPDFButton({ content, fileName }: DownloadPDFButtonProps) {
   async function handleDownloadPDF() {
-    if (!result) return;
+    if (!content) return;
     const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     doc.setFont("helvetica", "");
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, 210, 297, "F");
-    let y = 20;
-    doc.text("Risultato rimborso cessione del quinto", 15, y);
-    y += 12;
-    doc.setFontSize(12);
-    doc.text(`Importo rimborsabile: ${formatCurrency(result.rimborso)}`, 15, y);
-    y += 16;
-    doc.setFontSize(12);
-    doc.text("Lettera generata:", 15, y);
-    y += 10;
-    const lines = doc.splitTextToSize(result.letter, 180);
-    doc.text(lines, 15, y);
-    doc.save("rimborso_cqs.pdf");
+    
+    const lines = doc.splitTextToSize(content, 180);
+    doc.text(lines, 15, 20);
+    doc.save(fileName);
   }
 
   return (
-    <button onClick={handleDownloadPDF} className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-2 rounded-lg transition shadow">
+    <button 
+      onClick={handleDownloadPDF} 
+      className="btn-primary flex items-center gap-2"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
       Scarica PDF
     </button>
   );
