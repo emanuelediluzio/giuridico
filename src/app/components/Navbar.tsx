@@ -16,49 +16,50 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
   };
 
   return (
-    <nav className="w-full bg-white border-b border-slate-200 py-3 fixed top-0 left-0 z-50 shadow-sm">
+    <nav className="w-full bg-white/90 backdrop-blur-md border-b border-slate-200/70 py-4 fixed top-0 left-0 z-50 shadow-lg">
       <div className="container-lexa flex flex-wrap justify-between items-center">
         {/* Logo */}
         <div className="flex items-center">
           <button 
             onClick={() => handleNavigate('home')}
-            className="relative flex items-center"
+            className="relative flex items-center group"
           >
-            <div className="px-2 py-1">
-              <span className="font-['Montserrat'] font-bold text-2xl text-blue-600">LEXA</span>
-              <span className="text-slate-700 font-['Montserrat'] font-medium ml-1">legal</span>
+            <div className="px-2 py-1 flex items-center">
+              <span className="font-['Montserrat'] font-extrabold text-3xl text-blue-600 tracking-tight group-hover:text-blue-700 transition-colors">LEXA</span>
+              <span className="text-slate-700 font-['Montserrat'] font-semibold ml-1 group-hover:text-slate-800 transition-colors">legal</span>
+              <div className="ml-1.5 w-2 h-2 rounded-full bg-blue-600 group-hover:bg-blue-700 transition-colors"></div>
             </div>
           </button>
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-1">
+        <div className="hidden md:flex items-center space-x-2">
           <button
             onClick={() => handleNavigate('home')}
-            className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${
+            className={`px-5 py-2.5 rounded-xl transition-all duration-200 font-medium ${
               currentScreen === 'home' 
-                ? 'bg-blue-50 text-blue-700' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             Home
           </button>
           <button
             onClick={() => handleNavigate('rimborso')}
-            className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${
+            className={`px-5 py-2.5 rounded-xl transition-all duration-200 font-medium ${
               currentScreen === 'rimborso' 
-                ? 'bg-blue-50 text-blue-700' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             Calcolo Rimborso
           </button>
           <button
             onClick={() => handleNavigate('chat')}
-            className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${
+            className={`px-5 py-2.5 rounded-xl transition-all duration-200 font-medium ${
               currentScreen === 'chat' 
-                ? 'bg-blue-50 text-blue-700' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             Chat con Lexa
@@ -69,7 +70,8 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
         <div className="md:hidden">
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+            className="p-2.5 text-slate-700 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-all duration-200"
+            aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -86,34 +88,34 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-slate-200 animate-fade-in">
-          <div className="container-lexa py-3 space-y-1">
+        <div className="md:hidden bg-white/90 backdrop-blur-md border-t border-slate-200/70 shadow-lg animate-fade-in">
+          <div className="container-lexa py-4 space-y-2">
             <button
               onClick={() => handleNavigate('home')}
-              className={`block w-full text-left px-4 py-2 rounded-lg ${
+              className={`block w-full text-left px-5 py-3 rounded-xl transition-all duration-200 font-medium ${
                 currentScreen === 'home' 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               Home
             </button>
             <button
               onClick={() => handleNavigate('rimborso')}
-              className={`block w-full text-left px-4 py-2 rounded-lg ${
+              className={`block w-full text-left px-5 py-3 rounded-xl transition-all duration-200 font-medium ${
                 currentScreen === 'rimborso' 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               Calcolo Rimborso
             </button>
             <button
               onClick={() => handleNavigate('chat')}
-              className={`block w-full text-left px-4 py-2 rounded-lg ${
+              className={`block w-full text-left px-5 py-3 rounded-xl transition-all duration-200 font-medium ${
                 currentScreen === 'chat' 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               Chat con Lexa
