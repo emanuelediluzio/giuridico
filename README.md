@@ -1,5 +1,3 @@
-# Firebase Studio
-
 Questo progetto ora include una funzionalità di calcolo rimborso Cessione del Quinto (CQS) secondo Art. 125 sexies T.U.B.
 
 La struttura dei file sarà:
