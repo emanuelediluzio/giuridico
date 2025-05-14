@@ -312,7 +312,7 @@ export default function Home() {
                         <div className="border-t border-blue-200 pt-3 mt-4">
                           <p className="text-blue-800 font-bold text-sm">Totale da rimborsare:</p>
                           <p className="text-2xl font-bold text-blue-700">
-                            {formatCurrency(result?.refund?.totalRefund || 0)}
+                            {formatCurrency(result?.rimborso || 0)}
                           </p>
                         </div>
                       </div>

@@ -66,11 +66,14 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   const dataChiusura = testoEstratto.match(/DATA\s*STAMPA:?\s*([\d\/]+)/i)?.[1] || '';
 
   // Log per debug
-  console.log('--- DEBUG ESTRAZIONE ---');
-  console.log('Totale costi:', totaleCosti);
-  console.log('Numero rate:', numeroRate);
-  console.log('Rate scadute:', rateScadute);
-  console.log('Durata residua:', durataResidua);
+  console.log('--- DEBUG ESTRAZIONE FINALE ---src/lib/parsing.ts ---');
+  console.log('Testo Lettera per residuanoMatch:', testoLettera ? 'PRESENTE' : 'ASSENTE');
+  console.log('Residuano Match Eseguito:', residuanoMatch ? 'Sì' : 'No');
+  console.log('Totale costi estratto:', totaleCosti);
+  console.log('Durata Totale FINALE (usata per calcolo):', durataTotale);
+  console.log('Durata Residua FINALE (usata per calcolo):', durataResidua);
+  console.log('Nome Cliente Estratto:', nomeCliente);
+  console.log('Data Chiusura Estratta (da statement):', dataChiusura);
 
   return {
     totaleCosti,
