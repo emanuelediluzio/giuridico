@@ -281,19 +281,19 @@ export default function Home() {
                         </div>
                         <div>
                           <p className="text-slate-500 text-sm">Importo finanziato:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result.contractData.financedAmount)}</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.contractData?.financedAmount || 0)}</p>
                         </div>
                         <div>
                           <p className="text-slate-500 text-sm">Durata (mesi):</p>
-                          <p className="text-lg font-medium text-slate-800">{result.contractData.durationMonths}</p>
+                          <p className="text-lg font-medium text-slate-800">{result?.contractData?.durationMonths || 'N/D'}</p>
         </div>
           <div>
                           <p className="text-slate-500 text-sm">Data estinzione:</p>
-                          <p className="text-lg font-medium text-slate-800">{result.statementData.terminationDate}</p>
+                          <p className="text-lg font-medium text-slate-800">{result?.statementData?.terminationDate}</p>
           </div>
           <div>
                           <p className="text-slate-500 text-sm">Rate pagate:</p>
-                          <p className="text-lg font-medium text-slate-800">{result.statementData.installmentsPaid}</p>
+                          <p className="text-lg font-medium text-slate-800">{result?.statementData?.installmentsPaid || 0}</p>
                         </div>
                       </div>
                     </div>
@@ -303,16 +303,16 @@ export default function Home() {
                       <div className="space-y-3 bg-blue-50 p-4 rounded-lg">
                         <div>
                           <p className="text-slate-600 text-sm">Commissioni bancarie:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result.refund.bankFees || 0)}</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.refund?.bankFees || 0)}</p>
           </div>
           <div>
                           <p className="text-slate-600 text-sm">Commissioni intermediazione:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result.refund.intermediationFees || 0)}</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.refund?.intermediationFees || 0)}</p>
                         </div>
                         <div className="border-t border-blue-200 pt-3 mt-4">
                           <p className="text-blue-800 font-bold text-sm">Totale da rimborsare:</p>
                           <p className="text-2xl font-bold text-blue-700">
-                            {formatCurrency(result.refund.totalRefund || 0)}
+                            {formatCurrency(result?.refund?.totalRefund || 0)}
                           </p>
                         </div>
                       </div>
@@ -326,13 +326,13 @@ export default function Home() {
                     >
                       Nuovo Calcolo
           </button>
-                    {result.letterContent && (
+                    {result?.letterContent && (
                       <DownloadPDFButton 
                         content={result.letterContent}
                         fileName={`Lettera_rimborso_${new Date().toISOString().split('T')[0]}.pdf`}
                       />
                     )}
-                    {result.letter && !result.letterContent && (
+                    {result?.letter && !result?.letterContent && (
                       <DownloadPDFButton 
                         content={result.letter}
                         fileName={`Lettera_rimborso_${new Date().toISOString().split('T')[0]}.pdf`}
