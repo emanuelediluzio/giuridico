@@ -104,26 +104,46 @@ export function calcolaRimborso(testoContratto: string, testoEstratto: string, t
 }
 
 export function generaLettera(template: string, importoRimborso: string, dettagli: { nomeCliente: string, dataChiusura: string }) {
-  let result = template
+  let result = template; // Inizializza result con il template originale
+
+  // Sostituzioni standard esistenti
+  result = result
     .replace(/{{importo_rimborso}}/g, importoRimborso)
     .replace(/{{nome_cliente}}/g, dettagli.nomeCliente)
     .replace(/{{data_chiusura}}/g, dettagli.dataChiusura);
   
-  // Gestione dei placeholder XXX
   result = result
     .replace(/XXX_IMPORTO_RIMBORSO/g, importoRimborso)
     .replace(/XXX_NOME_CLIENTE/g, dettagli.nomeCliente)
     .replace(/XXX_DATA_CHIUSURA/g, dettagli.dataChiusura);
     
-  // Gestione case insensitive per i placeholder XXX
   result = result
     .replace(/xxx_importo_rimborso/gi, importoRimborso)
     .replace(/xxx_nome_cliente/gi, dettagli.nomeCliente)
     .replace(/xxx_data_chiusura/gi, dettagli.dataChiusura);
     
-  // Gestione semplice di XXX generico
+  // Nuove sostituzioni per i placeholder del template .doc specifico
+  // Nome Cliente (es. "Sig. XXXXXX")
+  // Usiamo \b per assicurarci che XXXXXX sia una parola intera e non parte di una più lunga.
+  // Il flag 'g' è per global (sostituisci tutte le occorrenze), 'i' per case-insensitive.
   if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
-    result = result.replace(/XXX/g, dettagli.nomeCliente);
+    result = result.replace(/Sig\. XXXXXX\b/gi, `Sig. ${dettagli.nomeCliente}`);
+  }
+
+  // Importo Rimborso
+  // Sostituisce "complessivi euro xxxxx" ma non "euro xxxxxxxx" o "euro xxxxxxx"
+  // importoRimborso contiene già il simbolo € (es. "1.234,56 €")
+  result = result.replace(/complessivi euro xxxxx(?![xX\w€])/g, `complessivi ${importoRimborso}`);
+  
+  // Sostituisce "somma di euro xxxxxxx (xxxxxx/xx)" con "somma di [importoRimborso]"
+  // ATTENZIONE: la parte testuale "(xxxxxx/xx)" viene persa.
+  result = result.replace(/somma di euro xxxxxxx\s*\([xX]+\/[xX]+\)/gi, `somma di ${importoRimborso}`);
+
+  // Gestione semplice di XXX generico (spostata alla fine per dare priorità a sostituzioni più specifiche)
+  if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
+    // Questa regex è molto generica, potrebbe sostituire 'XXX' in posti non voluti se le precedenti non matchano.
+    // Valuta se mantenerla o renderla più specifica se causa problemi.
+    result = result.replace(/\bXXX\b/g, dettagli.nomeCliente); 
   }
   
   return result;
