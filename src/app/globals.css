@@ -1,4 +1,4 @@
-/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap'); */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -30,11 +30,10 @@
 
 html, body {
   height: 100%;
-  /* font-family: 'Inter', sans-serif; */
-  /* background: var(--color-bg-primary); */
-  /* color: var(--color-text-primary); */
+  font-family: 'Inter', sans-serif;
+  background: #ffffff;
+  color: #111827;
   min-height: 100vh;
-  background-color: red !important; /* TEST PER VEDERE SE QUESTO VIENE APPLICATO */
 }
 
 /*
@@ -55,18 +54,16 @@ body {
 */
 
 /* Typography */
-/*
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--color-text-primary);
 }
 
 h1 {
-  @apply text-4xl md:text-5xl lg:text-6xl mb-4 font-extrabold;
+  @apply text-4xl font-bold text-blue-700 mb-4;
 }
 
+/*
 h2 {
   @apply text-2xl md:text-3xl lg:text-4xl mb-3 font-bold;
 }
