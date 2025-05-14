@@ -106,6 +106,9 @@ export default function Home() {
     return val.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
   }
 
+  // Calcola le rate pagate se i dati sono disponibili
+  const installmentsPaid = result?.durataTotale && result?.durataResidua != null ? result.durataTotale - result.durataResidua : 'N/D';
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar currentScreen={mainScreen} onScreenChange={setMainScreen} />
@@ -252,95 +255,56 @@ export default function Home() {
                   <div className="flex justify-center pt-4">
                     <button 
                       type="submit" 
-                      className="btn-primary" 
-                      disabled={loading}
+                      disabled={loading} 
+                      className="btn-primary w-full"
                     >
                       {loading ? (
-                        <div className="flex items-center">
+                        <div className="flex items-center justify-center">
                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Elaborazione in corso...
+                          Calcolo in corso...
                         </div>
-                      ) : (
-                        'Calcola Rimborso'
-                      )}
+                      ) : 'Calcola Rimborso'}
                     </button>
                   </div>
                 </form>
               ) : (
-                <div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-blue-600 mb-4">Dati estratti</h3>
-                      <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
-                        <div>
-                          <p className="text-slate-500 text-sm">Data stipula:</p>
-                          <p className="text-lg font-medium text-slate-800">{'N/D'}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500 text-sm">Importo finanziato:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.totaleCosti || 0)}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500 text-sm">Durata (mesi):</p>
-                          <p className="text-lg font-medium text-slate-800">{result?.durataTotale || 'N/D'}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500 text-sm">Data estinzione:</p>
-                          <p className="text-lg font-medium text-slate-800">{result?.dataChiusura || 'N/D'}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500 text-sm">Rate pagate:</p>
-                          <p className="text-lg font-medium text-slate-800">
-                            {(typeof result?.durataTotale === 'number' && typeof result?.durataResidua === 'number')
-                              ? (result.durataTotale - result.durataResidua)
-                              : 'N/D'}
-                          </p>
-                        </div>
+                <div className="animate-fade-in">
+                  <div className="grid md:grid-cols-2 gap-8 mb-8">
+                    <div className="card-lexa-neutral p-6">
+                      <h3 className="text-lg font-semibold mb-4 text-slate-700">Dati estratti</h3>
+                      <div className="space-y-2 text-sm text-slate-600">
+                        <div className="flex justify-between"><span>Data stipula:</span> <span className="font-medium text-slate-800">N/D</span></div>
+                        <div className="flex justify-between"><span>Importo finanziato:</span> <span className="font-medium text-slate-800">{result?.totaleCosti ? formatCurrency(result.totaleCosti) : 'N/D'}</span></div>
+                        <div className="flex justify-between"><span>Durata (mesi):</span> <span className="font-medium text-slate-800">{result?.durataTotale || 'N/D'}</span></div>
+                        <div className="flex justify-between"><span>Data estinzione:</span> <span className="font-medium text-slate-800">{result?.dataChiusura || 'N/D'}</span></div>
+                        <div className="flex justify-between"><span>Rate pagate:</span> <span className="font-medium text-slate-800">{installmentsPaid}</span></div>
                       </div>
                     </div>
-                    
-                    <div>
-                      <h3 className="text-xl font-bold text-blue-600 mb-4">Risultato Calcolo</h3>
-                      <div className="space-y-3 bg-blue-50 p-4 rounded-lg">
-                        <div>
-                          <p className="text-slate-600 text-sm">Commissioni bancarie:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.refund?.bankFees || 0)}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-600 text-sm">Commissioni intermediazione:</p>
-                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result?.refund?.intermediationFees || 0)}</p>
-                        </div>
-                        <div className="border-t border-blue-200 pt-3 mt-4">
-                          <p className="text-blue-800 font-bold text-sm">Totale da rimborsare:</p>
-                          <p className="text-2xl font-bold text-blue-700">
-                            {formatCurrency(result?.rimborso || 0)}
-                          </p>
+                    <div className="card-lexa-highlight p-6">
+                      <h3 className="text-lg font-semibold mb-4 text-blue-700">Risultato Calcolo</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between text-base">
+                          <span className="font-semibold text-blue-600">Totale da rimborsare:</span> 
+                          <span className="font-bold text-xl text-blue-600">{result?.rimborso ? formatCurrency(result.rimborso) : 'N/D'}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-center space-x-4 mt-8">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     <button 
-                      className="btn-secondary"
-                      onClick={() => setResult(null)}
+                      onClick={() => setResult(null)} 
+                      className="btn-outline w-full sm:w-auto"
                     >
                       Nuovo Calcolo
                     </button>
-                    {result?.letterContent && (
-                      <DownloadPDFButton 
-                        content={result.letterContent}
-                        fileName={`Lettera_rimborso_${new Date().toISOString().split('T')[0]}.pdf`}
-                      />
-                    )}
-                    {result?.letter && !result?.letterContent && (
-                      <DownloadPDFButton 
-                        content={result.letter}
-                        fileName={`Lettera_rimborso_${new Date().toISOString().split('T')[0]}.pdf`}
-                      />
+                    {result?.letter && template && ( // Mostra il bottone solo se c'è una lettera generata e un file template originale
+                       <DownloadPDFButton
+                          content={result.letter} // Passa il contenuto della lettera processata dall'API
+                          fileName={`Lettera_Rimborso_${result?.nomeCliente?.replace(/\s+/g, '_') || 'Cliente'}.pdf`}
+                        />
                     )}
                   </div>
                 </div>

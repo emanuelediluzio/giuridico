@@ -19,59 +19,124 @@ function estraiNumero(text: string, regex: RegExp): number | null {
   return null;
 }
 
-export function estraiDatiEconomici(testoContratto: string, testoEstratto: string, testoLettera?: string) {
-  // Regex flessibile per COSTI TOTALI (CT)
-  let totaleCostiMatch = testoContratto.match(/COSTI\s*TOTALI\s*\(?CT\)?[^\d\n]*([\d\.]+,[\d]{2})/i)
-    || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d\.]+,[\d]{2})/i)
-    || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d\.]+)/i);
-  let totaleCosti = totaleCostiMatch ? parseFloat(totaleCostiMatch[1].replace(/\./g, '').replace(/,/g, '.')) : 0;
-  // Se non trovato, cerca nella lettera (es. "ha corrisposto complessivi euro 2.593,25")
-  if (!totaleCosti && testoLettera) {
-    const letteraCostiMatch = testoLettera.match(/corrisposto complessivi euro ([\d\.]+,[\d]{2})/i);
-    if (letteraCostiMatch) {
-      totaleCosti = parseFloat(letteraCostiMatch[1].replace(/\./g, '').replace(/,/g, '.'));
+export function estraiDatiEconomici(testoContratto: string, testoEstratto: string) {
+  let totaleCosti = 0;
+  // Nuova Regex specifica per "CT € [valore] COSTI TOTALI (A) + (B)"
+  const ctMatch = testoContratto.match(/CT\s+€\s*([\d.,]+)\s+COSTI TOTALI\s*\(A\)\s*\+\s*\(B\)/i);
+  if (ctMatch && ctMatch[1]) {
+    totaleCosti = parseFloat(ctMatch[1].replace(/\./g, '').replace(/,/g, '.'));
+  } else {
+    // Fallback alle regex precedenti se la nuova non trova corrispondenze
+    const fallbackCostiMatch = testoContratto.match(/COSTI\s*TOTALI\s*\(?CT\)?[^\d\n]*([\d.]+,[\d]{2})/i)
+      || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d.]+,[\d]{2})/i)
+      || testoContratto.match(/COSTI\s*TOTALI[^\d\n]*([\d.]+)/i);
+    if (fallbackCostiMatch && fallbackCostiMatch[1]) {
+      totaleCosti = parseFloat(fallbackCostiMatch[1].replace(/\./g, '').replace(/,/g, '.'));
     }
   }
 
-  // Regex ultra-flessibile per NUMERO RATE (cerca sia in contratto che in estratto)
-  const numeroRateMatch =
-    testoContratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
-    || testoContratto.match(/NUMERO\s*RATE[^\d\n]*([\d]{2,3})/i)
-    || testoContratto.match(/(\d{2,3})\s*RATE/i)
-    || testoContratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i)
-    || testoEstratto.match(/NUMERO\s*RATE[^\d\n]*:?\s*([\d]{2,3})/i)
-    || testoEstratto.match(/NUMERO\s*RATE[^\d\n]*([\d]{2,3})/i)
-    || testoEstratto.match(/(\d{2,3})\s*RATE/i)
-    || testoEstratto.match(/RATE[^\d\n]*:?\s*([\d]{2,3})/i);
-  const numeroRate = numeroRateMatch ? parseInt(numeroRateMatch[1]) : 1;
+  // Regex per NUMERO RATE (priorità al contratto, poi estratto)
+  const numeroRatePatternsContratto = [
+    /DURATA:\s*(\d+)\s*MESI/i,
+    /NUMERO\s*RATE[^\d\n]*:?\s*(\d{2,3})/i,
+    /N\.\s*RATE\s*MENSILI:\s*(\d{2,3})/i,
+    // Altre regex esistenti per numeroRate possono essere aggiunte qui se necessario
+  ];
+  const numeroRatePatternsEstratto = [ // Cercare anche nel conteggio se non trovato prima
+    /NUMERO\s*RATE[^\d\n]*:?\s*(\d{2,3})/i,
+  ];
 
-  // Regex ultra-flessibile per RATE SCADUTE
-  const rateScaduteMatch = testoEstratto.match(/RATE\s*SCADUTE[^\d\n]*:?\s*\(?([\d]{1,3})\s*MESI?/i)
-    || testoEstratto.match(/(\d{1,3})\s*rate\s*scadute/i)
-    || testoEstratto.match(/SCADUTE[^\d\n]*([\d]{1,3})/i);
-  const rateScadute = rateScaduteMatch ? parseInt(rateScaduteMatch[1]) : 0;
-  let durataResidua = numeroRate - rateScadute;
-  let durataTotale = numeroRate;
+  let numeroRateMatch: RegExpMatchArray | null = null;
+  for (const regex of numeroRatePatternsContratto) {
+    numeroRateMatch = testoContratto.match(regex);
+    if (numeroRateMatch) break;
+  }
+  if (!numeroRateMatch) {
+    for (const regex of numeroRatePatternsEstratto) {
+      numeroRateMatch = testoEstratto.match(regex);
+      if (numeroRateMatch) break;
+    }
+  }
+  const numeroRate = numeroRateMatch && numeroRateMatch[1] ? parseInt(numeroRateMatch[1]) : 1;
 
-  // Cerca frasi tipo "residuavano da versare 63 rate delle 120"
-  const residuanoMatch = testoLettera?.match(/residu[a-z]* da versare (\d{1,3}) rate (?:delle|su|di) (\d{1,3})/i);
-  if (residuanoMatch) {
-    durataResidua = parseInt(residuanoMatch[1]);
-    durataTotale = parseInt(residuanoMatch[2]);
+  // Regex per RATE SCADUTE (solo da testoEstratto)
+  const rateScadutePatterns = [
+    /IMPORTO RATE VERSATE ED INCASSATE DALLA BANCA N\.\s*RATE\s*(\d+)/i, // Es: IMPORTO RATE VERSATE ED INCASSATE DALLA BANCA N. RATE 57
+    /RATE SCADUTE AL MESE DI COMPETENZA DEL CONTEGGIO ESTINTIVO\s*\((\d+)\s*MESI\)/i, // Es: RATE SCADUTE AL MESE DI COMPETENZA DEL CONTEGGIO ESTINTIVO (57 MESI)
+    /RATE\s*SCADUTE[^\d\n]*:?\s*\(?(\d{1,3})\s*MESI?/i, // Generica per "RATE SCADUTE XX MESI"
+    /N\.\s*RATE\s*PAGATE\s*(\d+)/i, // Es: N. RATE PAGATE 57
+    /(\d{1,3})\s*rate\s*scadute/i,
+    /SCADUTE[^\d\n]*(\d{1,3})/i,
+  ];
+  let rateScaduteMatch: RegExpMatchArray | null = null;
+  for (const regex of rateScadutePatterns) {
+    rateScaduteMatch = testoEstratto.match(regex);
+    if (rateScaduteMatch) break;
+  }
+  const rateScadute = rateScaduteMatch && rateScaduteMatch[1] ? parseInt(rateScaduteMatch[1]) : 0;
+
+  const durataResidua = numeroRate > 0 && rateScadute >= 0 && numeroRate > rateScadute ? numeroRate - rateScadute : 0;
+  const durataTotale = numeroRate > 0 ? numeroRate : 0;
+
+
+  // Nome cliente: cerca prima nel contratto, poi nell'estratto
+  let nomeClienteEstratto = '';
+  // Pattern per "CLIENTE COGNOME: LORIA NOME: MASSIMO" o "CLIENTE LORIA MASSIMO"
+  const clienteCognomeNomeMatch = testoContratto.match(/CLIENTE\s*(?:COGNOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*(?:NOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
+  if (clienteCognomeNomeMatch) {
+      if (clienteCognomeNomeMatch[1] && clienteCognomeNomeMatch[2]) { // COGNOME: X NOME: Y
+          nomeClienteEstratto = `${clienteCognomeNomeMatch[1].trim()} ${clienteCognomeNomeMatch[2].trim()}`;
+      } else if (clienteCognomeNomeMatch[3]) { // CLIENTE X Y (X Cognome, Y Nome)
+          nomeClienteEstratto = clienteCognomeNomeMatch[3].trim();
+      }
   }
 
-  // Nome cliente
-  const nomeCliente = (testoContratto.match(/COGNOME:?\s*([A-Z]+)/i)?.[1] || testoContratto.match(/cliente[:\s]*([A-Z a-z]+)/i)?.[1] || '').trim();
-  // Data chiusura (non sempre presente, fallback vuoto)
-  const dataChiusura = testoEstratto.match(/DATA\s*STAMPA:?\s*([\d\/]+)/i)?.[1] || '';
+  if (!nomeClienteEstratto) {
+    const titolareMatchContratto = testoContratto.match(/Titolare:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)/i);
+    if (titolareMatchContratto && titolareMatchContratto[1]) {
+      nomeClienteEstratto = titolareMatchContratto[1].trim();
+    }
+  }
+  
+  // Fallback se non trovato nel contratto, cerca nell'estratto
+  if (!nomeClienteEstratto) {
+    const clienteMatchEstratto = testoEstratto.match(/CLIENTE\s*(?:COGNOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*(?:NOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
+    if (clienteMatchEstratto) {
+        if (clienteMatchEstratto[1] && clienteMatchEstratto[2]) {
+            nomeClienteEstratto = `${clienteMatchEstratto[1].trim()} ${clienteMatchEstratto[2].trim()}`;
+        } else if (clienteMatchEstratto[3]) {
+            nomeClienteEstratto = clienteMatchEstratto[3].trim();
+        }
+    }
+  }
+  if (!nomeClienteEstratto) {
+      const titolareMatchEstratto = testoEstratto.match(/Titolare:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)/i);
+      if (titolareMatchEstratto && titolareMatchEstratto[1]) {
+          nomeClienteEstratto = titolareMatchEstratto[1].trim();
+      }
+  }
+  const nomeCliente = nomeClienteEstratto || 'Cliente';
+
+  // Data chiusura
+  const dataChiusuraPatterns = [
+    /DATA ELABORAZIONE CONTEGGIO ESTINTIVO\s*([\d\/]+)/i, // Prioritaria
+    /DATA\s*STAMPA:?\s*([\d\/]+)/i,
+    /(\d{2}\/\d{2}\/\d{4})/i, // Generica per una data dd/mm/yyyy
+  ];
+  let dataChiusuraMatch: RegExpMatchArray | null = null;
+  for (const regex of dataChiusuraPatterns) {
+    dataChiusuraMatch = testoEstratto.match(regex);
+    if (dataChiusuraMatch) break;
+  }
+  const dataChiusura = dataChiusuraMatch && dataChiusuraMatch[1] ? dataChiusuraMatch[1] : '';
 
   // Log per debug
-  console.log('--- DEBUG ESTRAZIONE FINALE ---src/lib/parsing.ts ---');
-  console.log('Testo Lettera per residuanoMatch:', testoLettera ? 'PRESENTE' : 'ASSENTE');
-  console.log('Residuano Match Eseguito:', residuanoMatch ? 'Sì' : 'No');
-  console.log('Totale costi estratto:', totaleCosti);
-  console.log('Durata Totale FINALE (usata per calcolo):', durataTotale);
-  console.log('Durata Residua FINALE (usata per calcolo):', durataResidua);
+  console.log('--- DEBUG ESTRAZIONE FINALE ---src/lib/parsing.ts (v3)---');
+  console.log('Totale costi estratto (CT A+B):', totaleCosti);
+  console.log('Numero Rate Totali Estratto:', numeroRate);
+  console.log('Rate Scadute Estratte:', rateScadute);
+  console.log('Durata Totale Calcolata (usata per calcolo):', durataTotale);
+  console.log('Durata Residua Calcolata (usata per calcolo):', durataResidua);
   console.log('Nome Cliente Estratto:', nomeCliente);
   console.log('Data Chiusura Estratta (da statement):', dataChiusura);
 
@@ -80,15 +145,16 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     durataTotale: durataTotale,
     durataResidua: durataResidua > 0 ? durataResidua : 0,
     storno: 0, // non presente nei tuoi file
-    nomeCliente: nomeCliente || 'Cliente',
-    dataChiusura: dataChiusura || '',
+    nomeCliente: nomeCliente,
+    dataChiusura: dataChiusura,
     dettaglioCosti: [totaleCosti]
   };
 }
 
-export function calcolaRimborso(testoContratto: string, testoEstratto: string, testoLettera?: string) {
-  const dati = estraiDatiEconomici(testoContratto, testoEstratto, testoLettera);
-  const quotaNonGoduta = (dati.totaleCosti / dati.durataTotale) * dati.durataResidua;
+export function calcolaRimborso(testoContratto: string, testoEstratto: string) {
+  const dati = estraiDatiEconomici(testoContratto, testoEstratto);
+  // Assicurarsi che durataTotale non sia 0 per evitare divisione per zero
+  const quotaNonGoduta = dati.durataTotale > 0 ? (dati.totaleCosti / dati.durataTotale) * dati.durataResidua : 0;
   const rimborso = quotaNonGoduta - dati.storno;
   return {
     rimborso: rimborso > 0 ? rimborso : 0,
