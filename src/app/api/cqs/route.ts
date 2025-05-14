@@ -5,126 +5,92 @@ import mammoth from 'mammoth';
 
 export const runtime = 'nodejs';
 
-// Funzione helper per ritardare l'esecuzione
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Rimuoviamo la funzione delay se OCR.space non richiede polling esplicito (risposta diretta)
+// const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function extractTextFromApiFile(file: File): Promise<string> {
   console.log(`API - extractTextFromApiFile: Inizio estrazione per ${file.name}, tipo ${file.type}, size ${file.size}`);
   const arrayBuffer = await file.arrayBuffer();
 
   if (file.type === 'application/pdf') {
-    // IMPORTANTE: Spostare questa API key in una variabile d'ambiente (es. DOCUPIPE_API_KEY)
-    const apiKey = process.env.DOCUPIPE_API_KEY;
+    // IMPORTANTE: Spostare questa API key in una variabile d'ambiente (es. OCR_SPACE_API_KEY)
+    // const apiKey = process.env.OCR_SPACE_API_KEY;
+    const apiKey = process.env.OCR_SPACE_API_KEY;
 
     if (!apiKey) {
-      console.error("API - extractTextFromApiFile: DOCUPIPE_API_KEY non configurata.");
+      console.error("API - extractTextFromApiFile: OCR_SPACE_API_KEY non configurata.");
       return "";
     }
 
-    console.log("API - extractTextFromApiFile: Tentativo di estrazione testo da PDF tramite API DocuPipe...");
+    console.log("API - extractTextFromApiFile: Tentativo di estrazione testo da PDF tramite API OCR.space...");
 
     try {
-      // 1. Converti ArrayBuffer in base64
       const buffer = Buffer.from(arrayBuffer);
       const base64Content = buffer.toString('base64');
-      console.log("API - extractTextFromApiFile: Contenuto PDF convertito in base64.");
+      // OCR.space richiede il prefisso data URI per le stringhe base64
+      const base64ImageWithPrefix = `data:application/pdf;base64,${base64Content}`;
+      console.log("API - extractTextFromApiFile: Contenuto PDF convertito in base64 con prefisso.");
 
-      // 2. POST del documento a DocuPipe
-      const postUrl = "https://app.docupipe.ai/document";
-      const postPayload = {
-        document: {
-          file: {
-            contents: base64Content,
-            filename: file.name,
-          },
-        },
-      };
-      const postHeaders = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "X-API-Key": apiKey,
-      };
+      const formData = new FormData();
+      formData.append('apikey', apiKey); // L'API key può anche andare qui come parametro form-data
+      formData.append('base64Image', base64ImageWithPrefix);
+      formData.append('language', 'ita'); // Specifica lingua italiana
+      formData.append('isOverlayRequired', 'false');
+      formData.append('OCREngine', '1'); // O '2' se si vuole provare l'altro motore
+      // formData.append('scale', 'true'); // Opzionale, può migliorare OCR per PDF a bassa risoluzione
+      // formData.append('detectOrientation', 'true'); // Opzionale
 
-      console.log(`API - extractTextFromApiFile: Invio POST a DocuPipe: ${postUrl}`);
-      const postResponse = await fetch(postUrl, {
+      const ocrUrl = "https://api.ocr.space/parse/image";
+      console.log(`API - extractTextFromApiFile: Invio POST a OCR.space: ${ocrUrl}`);
+
+      const response = await fetch(ocrUrl, {
         method: 'POST',
-        headers: postHeaders,
-        body: JSON.stringify(postPayload),
+        body: formData, // Non serve specificare Content-Type, fetch lo fa per FormData
       });
 
-      if (!postResponse.ok) {
-        const errorBody = await postResponse.text();
-        console.error(`API - extractTextFromApiFile: Errore DocuPipe POST (${postResponse.status}): ${errorBody}`);
-        throw new Error(`DocuPipe POST error (${postResponse.status}): ${errorBody}`);
+      console.log(`API - extractTextFromApiFile: Risposta da OCR.space ricevuta, status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`API - extractTextFromApiFile: Errore da OCR.space (${response.status}): ${errorBody}`);
+        // Prova a parsare come JSON se possibile per vedere messaggi di errore strutturati
+        try { 
+            const errorJson = JSON.parse(errorBody);
+            console.error("API - extractTextFromApiFile: Errore OCR.space (JSON):", errorJson);
+        } catch(e) { /* non era JSON */ }
+        throw new Error(`OCR.space API error (${response.status}): ${errorBody}`);
       }
 
-      const postResult = await postResponse.json();
-      const documentId = postResult.documentId;
-      console.log(`API - extractTextFromApiFile: DocuPipe documentId ricevuto: ${documentId}`);
+      const result = await response.json();
+      console.log("API - extractTextFromApiFile: Risultato JSON da OCR.space:", JSON.stringify(result, null, 2));
 
-      if (!documentId) {
-        console.error("API - extractTextFromApiFile: DocuPipe non ha restituito un documentId.");
-        throw new Error("DocuPipe non ha restituito un documentId.");
+      if (result.IsErroredOnProcessing) {
+        console.error("API - extractTextFromApiFile: OCR.space ha segnalato un errore nell'elaborazione:", result.ErrorMessage, result.ErrorDetails);
+        return "";
       }
 
-      // 3. Polling per il risultato del documento
-      const getUrl = `https://app.docupipe.ai/document/${documentId}`;
-      const getHeaders = {
-        "accept": "application/json",
-        "X-API-Key": apiKey,
-      };
-      let attempts = 0;
-      const maxAttempts = 10; // Prova per max 50 secondi (10 tentativi * 5 sec)
-      const pollInterval = 5000; // 5 secondi
-
-      while (attempts < maxAttempts) {
-        attempts++;
-        console.log(`API - extractTextFromApiFile: Tentativo GET ${attempts}/${maxAttempts} per ${documentId} a ${getUrl}`);
-        await delay(pollInterval); // Attendi prima di ogni tentativo (tranne il primo se delay è dopo)
-
-        const getResponse = await fetch(getUrl, { headers: getHeaders });
-
-        if (!getResponse.ok) {
-          const errorBody = await getResponse.text();
-          // Non interrompere per errori 5xx durante il polling, potrebbe essere transitorio
-          if (getResponse.status >= 400 && getResponse.status < 500) {
-             console.error(`API - extractTextFromApiFile: Errore DocuPipe GET (${getResponse.status}): ${errorBody}`);
-             throw new Error(`DocuPipe GET error (${getResponse.status}): ${errorBody}`);
+      if (result.ParsedResults && result.ParsedResults.length > 0) {
+        let fullText = "";
+        result.ParsedResults.forEach((parsedPage: any, index: number) => {
+          if (parsedPage.FileParseExitCode === 1) {
+            console.log(`API - extractTextFromApiFile: Testo estratto da OCR.space (pagina ${index + 1}): ${parsedPage.ParsedText?.length} caratteri.`);
+            fullText += parsedPage.ParsedText + "\n\n"; // Aggiungi testo della pagina e due a capo
           } else {
-            console.warn(`API - extractTextFromApiFile: Avviso DocuPipe GET (${getResponse.status}): ${errorBody}. Riprovo...`);
-            continue; // Riprova se è un errore server o non fatale
+            console.warn(`API - extractTextFromApiFile: OCR.space - Errore parsing pagina ${index + 1}:`, parsedPage.ErrorMessage, parsedPage.ErrorDetails);
           }
-        }
-
-        const getResult = await getResponse.json();
-
-        if (getResult.status === "completed") {
-          console.log("API - extractTextFromApiFile: DocuPipe elaborazione completata.");
-          const pagesText = getResult.result?.pagesText;
-          if (pagesText && Array.isArray(pagesText)) {
-            const extractedText = pagesText.join("\\n\\n"); // Unisci il testo di tutte le pagine
-            console.log("API - extractTextFromApiFile: Testo estratto da DocuPipe lunghezza:", extractedText.length);
-            console.log("API - extractTextFromApiFile: Testo DocuPipe (primi 300 char):", extractedText.substring(0, 300));
-            return extractedText;
-          } else {
-            console.warn("API - extractTextFromApiFile: DocuPipe ha completato ma pagesText è mancante o non è un array.");
-            return "";
-          }
-        } else if (getResult.status === "processing") {
-          console.log(`API - extractTextFromApiFile: DocuPipe ancora in elaborazione per ${documentId} (tentativo ${attempts})...`);
-        } else if (getResult.status === "failed") {
-            console.error(`API - extractTextFromApiFile: DocuPipe elaborazione fallita per ${documentId}. Dettagli:`, getResult.result || "Nessun dettaglio fornito");
-            return ""; // Elaborazione fallita
-        } else {
-          console.warn(`API - extractTextFromApiFile: Stato DocuPipe sconosciuto o inatteso: ${getResult.status}. Riprovo...`);
-        }
+        });
+        
+        const finalText = fullText.trim();
+        console.log("API - extractTextFromApiFile: Testo finale aggregato da OCR.space lunghezza:", finalText.length);
+        console.log("API - extractTextFromApiFile: Testo finale OCR.space (primi 300 char):", finalText.substring(0, 300));
+        return finalText;
+      } else {
+        console.warn("API - extractTextFromApiFile: OCR.space non ha restituito ParsedResults o è vuoto.");
+        return "";
       }
 
-      console.error(`API - extractTextFromApiFile: DocuPipe timeout dopo ${maxAttempts} tentativi per ${documentId}.`);
-      return ""; // Timeout
-
-    } catch (docuPipeError) {
-      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API DocuPipe per PDF:", docuPipeError);
+    } catch (ocrSpaceError) {
+      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API OCR.space per PDF:", ocrSpaceError);
       return ""; 
     }
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
