@@ -62,8 +62,8 @@ export default function Home() {
     setLoading(true);
     try {
       // Parsing PDF lato client
-      const contractText = await extractTextFromFile(contract);
-      const statementText = await extractTextFromFile(statement);
+      let contractText = '';
+      let statementText = '';
       let templateText: string | undefined = undefined;
       let useBackendForTemplate = false;
       if (template.type === 'application/msword') { // .doc
@@ -74,16 +74,23 @@ export default function Home() {
       
       let res;
       if (useBackendForTemplate) {
-        // Invio il file template come FormData
+        // Invio il file template come FormData, e anche contract e statement come file
         const formData = new FormData();
-        formData.append('contractText', contractText);
-        formData.append('statementText', statementText);
-        formData.append('templateFile', template);
+        // Modifica: Invia i file originali invece del testo estratto
+        if (contract) formData.append('contractFile', contract);
+        if (statement) formData.append('statementFile', statement);
+        formData.append('templateFile', template); // template è sempre un File qui
+        
         res = await fetch('/api/cqs', {
         method: 'POST',
         body: formData,
       });
       } else {
+        // Estrai testo da contratto e statement se non si usa il backend per il template
+        // (il templateText è già stato estratto se non è .doc)
+        contractText = await extractTextFromFile(contract);
+        statementText = await extractTextFromFile(statement);
+
         res = await fetch('/api/cqs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

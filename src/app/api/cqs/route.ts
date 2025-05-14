@@ -1,8 +1,37 @@
 import { NextResponse } from 'next/server';
 import { calcolaRimborso, generaLettera } from '@/lib/parsing';
 import WordExtractor from 'word-extractor';
+import mammoth from 'mammoth';
+import pdf from 'pdf-parse';
 
 export const runtime = 'nodejs';
+
+async function extractTextFromApiFile(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  if (file.type === 'application/pdf') {
+    const data = await pdf(buffer);
+    return data.text;
+  } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  } else if (file.type === 'application/msword') {
+    const extractor = new WordExtractor();
+    const doc = await extractor.extract(buffer);
+    return doc.getBody();
+  } else if (file.type === 'text/plain') {
+    return buffer.toString('utf-8');
+  } else {
+    console.warn(`Formato file non supportato direttamente dall'API: ${file.type}. Tentativo di leggerlo come testo.`);
+    try {
+      return buffer.toString('utf-8');
+    } catch (e) {
+      console.error(`Errore leggendo file di tipo ${file.type} come testo:`, e)
+      return '';
+    }
+  }
+}
 
 async function callOpenRouterAIMultimodal({ prompt, file }: { prompt: string, file?: File }): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -32,25 +61,37 @@ export async function POST(request: Request) {
   try {
     // Supporto sia JSON (testo) che multipart/form-data (file)
     let contractText = '', statementText = '', templateText = '';
-    let templateFile: File | undefined = undefined;
+    
     const contentType = request.headers.get('content-type') || '';
+
     if (contentType.includes('application/json')) {
       const body = await request.json();
-      contractText = body.contractText;
-      statementText = body.statementText;
-      templateText = body.templateText;
+      contractText = body.contractText || '';
+      statementText = body.statementText || '';
+      templateText = body.templateText || '';
     } else if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
-      contractText = formData.get('contractText') as string;
-      statementText = formData.get('statementText') as string;
-      templateFile = formData.get('templateFile') as File;
+      
+      const contractFile = formData.get('contractFile') as File | null;
+      const statementFile = formData.get('statementFile') as File | null;
+      const templateFile = formData.get('templateFile') as File | null;
+
+      if (contractFile) {
+        contractText = await extractTextFromApiFile(contractFile);
+      } else {
+        contractText = formData.get('contractText') as string || '';
+      }
+
+      if (statementFile) {
+        statementText = await extractTextFromApiFile(statementFile);
+      } else {
+        statementText = formData.get('statementText') as string || '';
+      }
+      
       if (templateFile) {
-        // Estraggo testo dal file .doc
-        const arrayBuffer = await templateFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const extractor = new WordExtractor();
-        const doc = await extractor.extract(buffer);
-        templateText = doc.getBody();
+        templateText = await extractTextFromApiFile(templateFile);
+      } else {
+        templateText = formData.get('templateText') as string || '';
       }
     }
     // LOG dei dati ricevuti
