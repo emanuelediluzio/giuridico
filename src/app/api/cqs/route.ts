@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     // Calcola il rimborso se c'è testo
     let result = undefined, letter = undefined;
     if (contractText && statementText) {
-      result = calcolaRimborso(contractText, statementText, templateText);
+      result = calcolaRimborso(contractText, statementText);
       letter = generaLettera(
         templateText,
         result.rimborso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }),
