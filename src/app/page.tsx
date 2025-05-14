@@ -9,8 +9,8 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 // Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
 
-import CalculatorIcon from '@/assets/icons/calculator.svg';
-import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg';
+import CalculatorIcon from '@/assets/icons/calculator.svg?react';
+import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg?react';
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 

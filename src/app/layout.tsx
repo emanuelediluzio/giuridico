@@ -9,13 +9,17 @@ export const metadata = {
     apple: '/apple-touch-icon.svg'
   },
   manifest: '/site.webmanifest',
-  themeColor: '#0f0f11',
-  viewport: 'width=device-width, initial-scale=1.0',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Lexa AI'
   }
+};
+
+export const viewport = {
+  themeColor: '#0f0f11',
+  width: 'device-width',
+  initialScale: 1.0,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
