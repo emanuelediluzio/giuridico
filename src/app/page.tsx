@@ -7,7 +7,8 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
-import "@fontsource/space-grotesk/700.css";
+import "@fontsource/montserrat/500.css";
+import "@fontsource/montserrat/700.css";
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
@@ -104,7 +105,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar currentScreen={mainScreen} onScreenChange={setMainScreen} />
       
       <main className="flex-grow pt-24 pb-8">
@@ -112,11 +113,11 @@ export default function Home() {
           <div className="container-lexa">
             {/* Hero section */}
             <section className="py-16 md:py-20">
-              <div className="max-w-3xl mx-auto text-center mb-12">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl mb-6 font-bold text-white">
-                  L'assistente legale per avvocati
+              <div className="max-w-3xl mx-auto text-center mb-16">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl mb-6 font-bold text-slate-800">
+                  L'assistente legale <span className="text-blue-600">per avvocati</span>
                 </h1>
-                <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
+                <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
                   Lexa semplifica il tuo lavoro quotidiano fornendo strumenti avanzati per calcolare rimborsi
                   e rispondere alle tue domande con precisione legale.
                 </p>
@@ -137,18 +138,18 @@ export default function Home() {
               </div>
               
               {/* Feature Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <div className="feature-card">
                   <div className="feature-icon">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold mb-3 text-white">Calcolo Rimborso</h3>
-                  <p className="text-gray-400 mb-4">Determina l'importo da restituire in base all'Art. 125 sexies T.U.B.</p>
+                  <h3 className="text-xl font-bold mb-3 text-slate-800">Calcolo Rimborso</h3>
+                  <p className="text-slate-600 mb-4">Determina l'importo da restituire in base all'Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
                   <button 
                     onClick={() => setMainScreen('rimborso')} 
-                    className="btn-secondary btn-small"
+                    className="btn-primary btn-small"
                   >
                     Avvia calcolo
                   </button>
@@ -160,14 +161,42 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold mb-3 text-white">Assistente AI</h3>
-                  <p className="text-gray-400 mb-4">Interagisci con l'intelligenza artificiale legale per domande specifiche.</p>
+                  <h3 className="text-xl font-bold mb-3 text-slate-800">Assistente AI</h3>
+                  <p className="text-slate-600 mb-4">Interagisci con l'intelligenza artificiale legale per domande specifiche e assistenza immediata.</p>
                   <button 
                     onClick={() => setMainScreen('chat')} 
-                    className="btn-secondary btn-small"
+                    className="btn-primary btn-small"
                   >
                     Inizia chat
                   </button>
+                </div>
+              </div>
+              
+              {/* Informazioni aggiuntive */}
+              <div className="mt-20 text-center">
+                <h2 className="text-2xl font-bold text-slate-800 mb-6">Come funziona Lexa</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                  <div className="p-6 bg-blue-50 rounded-xl">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="font-bold text-lg">1</span>
+                    </div>
+                    <h3 className="text-lg font-bold mb-2 text-slate-800">Carica i documenti</h3>
+                    <p className="text-slate-600">Carica contratto, conteggio estintivo e template per la lettera di rimborso.</p>
+                  </div>
+                  <div className="p-6 bg-blue-50 rounded-xl">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="font-bold text-lg">2</span>
+                    </div>
+                    <h3 className="text-lg font-bold mb-2 text-slate-800">Analisi automatica</h3>
+                    <p className="text-slate-600">Lexa estrae informazioni rilevanti e calcola il rimborso dovuto.</p>
+                  </div>
+                  <div className="p-6 bg-blue-50 rounded-xl">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="font-bold text-lg">3</span>
+                    </div>
+                    <h3 className="text-lg font-bold mb-2 text-slate-800">Risultato immediato</h3>
+                    <p className="text-slate-600">Ottieni importo del rimborso e lettera già pronta in formato PDF.</p>
+                  </div>
                 </div>
               </div>
             </section>
@@ -181,7 +210,7 @@ export default function Home() {
               {!result ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="contract" className="block text-gray-300 mb-2">Contratto di finanziamento</label>
+                    <label htmlFor="contract" className="block text-slate-700 font-medium mb-2">Contratto di finanziamento</label>
                     <input 
                       type="file" 
                       id="contract" 
@@ -189,10 +218,11 @@ export default function Home() {
                       onChange={handleFileChange(setContract)} 
                       className="input-lexa"
                     />
+                    <p className="mt-1 text-sm text-slate-500">Carica il contratto di cessione del quinto</p>
                   </div>
                   
                   <div>
-                    <label htmlFor="statement" className="block text-gray-300 mb-2">Conteggio estintivo</label>
+                    <label htmlFor="statement" className="block text-slate-700 font-medium mb-2">Conteggio estintivo</label>
                     <input 
                       type="file" 
                       id="statement" 
@@ -200,10 +230,11 @@ export default function Home() {
                       onChange={handleFileChange(setStatement)} 
                       className="input-lexa"
                     />
+                    <p className="mt-1 text-sm text-slate-500">Carica il conteggio estintivo rilasciato dalla finanziaria</p>
                   </div>
                   
                   <div>
-                    <label htmlFor="template" className="block text-gray-300 mb-2">Template per la lettera</label>
+                    <label htmlFor="template" className="block text-slate-700 font-medium mb-2">Template per la lettera</label>
                     <input 
                       type="file" 
                       id="template" 
@@ -211,10 +242,11 @@ export default function Home() {
                       onChange={handleFileChange(setTemplate)} 
                       className="input-lexa"
                     />
+                    <p className="mt-1 text-sm text-slate-500">Carica il template per la lettera di richiesta rimborso</p>
                   </div>
                   
                   {error && (
-                    <div className="bg-red-900/30 border border-red-500 text-white px-4 py-3 rounded-lg">
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                       {error}
                     </div>
                   )}
@@ -243,45 +275,45 @@ export default function Home() {
                 <div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                      <h3 className="text-xl font-bold text-[#3b82f6] mb-4">Dati estratti</h3>
-                      <div className="space-y-3">
+                      <h3 className="text-xl font-bold text-blue-600 mb-4">Dati estratti</h3>
+                      <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
                         <div>
-                          <p className="text-gray-400">Data stipula:</p>
-                          <p className="text-lg font-medium">{result.contractData.stipulationDate}</p>
+                          <p className="text-slate-500 text-sm">Data stipula:</p>
+                          <p className="text-lg font-medium text-slate-800">{result.contractData.stipulationDate}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Importo finanziato:</p>
-                          <p className="text-lg font-medium">{formatCurrency(result.contractData.financedAmount)}</p>
+                          <p className="text-slate-500 text-sm">Importo finanziato:</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result.contractData.financedAmount)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Durata (mesi):</p>
-                          <p className="text-lg font-medium">{result.contractData.durationMonths}</p>
+                          <p className="text-slate-500 text-sm">Durata (mesi):</p>
+                          <p className="text-lg font-medium text-slate-800">{result.contractData.durationMonths}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Data estinzione:</p>
-                          <p className="text-lg font-medium">{result.statementData.terminationDate}</p>
+                          <p className="text-slate-500 text-sm">Data estinzione:</p>
+                          <p className="text-lg font-medium text-slate-800">{result.statementData.terminationDate}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Rate pagate:</p>
-                          <p className="text-lg font-medium">{result.statementData.installmentsPaid}</p>
+                          <p className="text-slate-500 text-sm">Rate pagate:</p>
+                          <p className="text-lg font-medium text-slate-800">{result.statementData.installmentsPaid}</p>
                         </div>
                       </div>
                     </div>
                     
                     <div>
-                      <h3 className="text-xl font-bold text-[#60a5fa] mb-4">Risultato Calcolo</h3>
-                      <div className="space-y-3">
+                      <h3 className="text-xl font-bold text-blue-600 mb-4">Risultato Calcolo</h3>
+                      <div className="space-y-3 bg-blue-50 p-4 rounded-lg">
                         <div>
-                          <p className="text-gray-400">Commissioni bancarie:</p>
-                          <p className="text-lg font-medium">{formatCurrency(result.refund.bankFees || 0)}</p>
+                          <p className="text-slate-600 text-sm">Commissioni bancarie:</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result.refund.bankFees || 0)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Commissioni intermediazione:</p>
-                          <p className="text-lg font-medium">{formatCurrency(result.refund.intermediationFees || 0)}</p>
+                          <p className="text-slate-600 text-sm">Commissioni intermediazione:</p>
+                          <p className="text-lg font-medium text-slate-800">{formatCurrency(result.refund.intermediationFees || 0)}</p>
                         </div>
-                        <div className="border-t border-[#374151] pt-3 mt-4">
-                          <p className="text-white font-bold">Totale da rimborsare:</p>
-                          <p className="text-2xl font-bold text-[#3b82f6]">
+                        <div className="border-t border-blue-200 pt-3 mt-4">
+                          <p className="text-blue-800 font-bold text-sm">Totale da rimborsare:</p>
+                          <p className="text-2xl font-bold text-blue-700">
                             {formatCurrency(result.refund.totalRefund || 0)}
                           </p>
                         </div>
@@ -289,7 +321,7 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="flex justify-center space-x-4 mt-6">
+                  <div className="flex justify-center space-x-4 mt-8">
                     <button 
                       className="btn-secondary"
                       onClick={() => setResult(null)}

@@ -52,30 +52,30 @@ export default function ChatAI() {
   }
 
   return (
-    <div className="card-lexa h-[75vh]">
+    <div className="card-lexa h-[75vh] shadow-md">
       <div className="flex flex-col h-full">
         <div className="mb-6">
-          <h2 className="text-center mb-2">Chat con Lexa</h2>
-          <p className="text-center text-gray-400 text-sm mb-4">Consulta l'AI su questioni legali</p>
+          <h2 className="text-center mb-2 text-slate-800">Chat con Lexa</h2>
+          <p className="text-center text-slate-500 text-sm mb-4">Consulta l'AI su questioni legali</p>
         </div>
         
         <div className="flex flex-row h-full gap-4">
           {/* Chat area */}
-          <div className="flex-grow flex flex-col border border-white/10 rounded-lg overflow-hidden bg-gradient-to-b from-[#23232a]/70 to-[#18181b]">
-            <div className="flex-grow overflow-y-auto p-5 space-y-4">
+          <div className="flex-grow flex flex-col border border-slate-200 rounded-lg overflow-hidden bg-white">
+            <div className="flex-grow overflow-y-auto p-5 space-y-4 bg-slate-50">
               {messages.filter(m => m.role !== "system").map((msg, i) => (
                 <div key={i} className={`${msg.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
                   <div className={`max-w-[75%] rounded-xl p-3 ${
                     msg.role === "user"
-                      ? "bg-gradient-to-br from-cyan-800/70 to-cyan-700/50 text-white border border-cyan-600/30"
-                      : "bg-[#23232a] text-gray-100 border border-white/5"
+                      ? "bg-blue-500 text-white shadow-sm"
+                      : "bg-white text-slate-800 border border-slate-200 shadow-sm"
                   }`}>
                     {msg.role === "assistant" && (
-                      <div className="flex items-center gap-2 mb-1 pb-1 border-b border-white/10">
-                        <div className="w-6 h-6 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold">
+                      <div className="flex items-center gap-2 mb-1 pb-1 border-b border-slate-200">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[10px] text-blue-600 font-bold">
                           L
                         </div>
-                        <span className="font-medium text-cyan-400 text-sm">Lexa</span>
+                        <span className="font-medium text-blue-600 text-sm">Lexa</span>
                       </div>
                     )}
                     <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -85,7 +85,7 @@ export default function ChatAI() {
               <div ref={messagesEndRef} />
             </div>
             
-            <form onSubmit={inviaMessaggio} className="p-2 border-t border-white/10 bg-[#23232a]">
+            <form onSubmit={inviaMessaggio} className="p-2 border-t border-slate-200 bg-white">
               <div className="relative">
                 <input
                   type="text"
@@ -100,8 +100,8 @@ export default function ChatAI() {
                   disabled={!input.trim() || loading}
                   className={`absolute right-1 top-1 bottom-1 px-4 rounded-lg transition-all ${
                     !input.trim() || loading
-                      ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-cyan-600 to-cyan-700 text-white hover:from-cyan-500 hover:to-cyan-600"
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
                 >
                   {loading ? (
