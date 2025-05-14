@@ -53,7 +53,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <a href="#" className="text-slate-300 hover:text-blue-400 transition-colors flex items-center">
-                  <svg className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="14" height="14" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '0.5rem' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
                   </svg>
                   Privacy Policy
