@@ -7,23 +7,43 @@ import pdf from 'pdf-parse';
 export const runtime = 'nodejs';
 
 async function extractTextFromApiFile(file: File): Promise<string> {
+  console.log(`API - extractTextFromApiFile: Inizio estrazione per ${file.name}, tipo ${file.type}, size ${file.size}`);
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+  console.log(`API - extractTextFromApiFile: Buffer creato, lunghezza ${buffer.length}`);
 
   if (file.type === 'application/pdf') {
-    const data = await pdf(buffer);
-    return data.text;
+    try {
+      console.log("API - extractTextFromApiFile: Tentativo parsing PDF...");
+      const data = await pdf(buffer);
+      console.log("API - extractTextFromApiFile: Parsing PDF completato.");
+      console.log("API - extractTextFromApiFile: Info da pdf-parse:", { numpages: data.numpages, numrender: data.numrender, info: data.info, metadata: data.metadata, version: data.version });
+      console.log("API - extractTextFromApiFile: Lunghezza testo estratto da PDF:", data.text?.length);
+      console.log("API - extractTextFromApiFile: Testo PDF (primi 300 char):", data.text?.substring(0, 300));
+      return data.text || ""; // Assicurati di restituire stringa vuota se data.text è null/undefined
+    } catch (pdfError) {
+      console.error("API - extractTextFromApiFile: ERRORE durante parsing PDF:", pdfError);
+      return ""; // Restituisci stringa vuota in caso di errore
+    }
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    console.log("API - extractTextFromApiFile: Tentativo parsing DOCX...");
     const result = await mammoth.extractRawText({ buffer });
+    console.log("API - extractTextFromApiFile: Lunghezza testo estratto da DOCX:", result.value?.length);
     return result.value;
   } else if (file.type === 'application/msword') {
+    console.log("API - extractTextFromApiFile: Tentativo parsing DOC...");
     const extractor = new WordExtractor();
     const doc = await extractor.extract(buffer);
-    return doc.getBody();
+    const body = doc.getBody();
+    console.log("API - extractTextFromApiFile: Lunghezza testo estratto da DOC:", body?.length);
+    return body;
   } else if (file.type === 'text/plain') {
-    return buffer.toString('utf-8');
+    console.log("API - extractTextFromApiFile: Tentativo parsing TXT...");
+    const text = buffer.toString('utf-8');
+    console.log("API - extractTextFromApiFile: Lunghezza testo estratto da TXT:", text?.length);
+    return text;
   } else {
-    console.warn(`Formato file non supportato direttamente dall'API: ${file.type}. Tentativo di leggerlo come testo.`);
+    console.warn(`API - extractTextFromApiFile: Formato file non supportato direttamente: ${file.type}. Tentativo come testo generico.`);
     try {
       return buffer.toString('utf-8');
     } catch (e) {
@@ -99,7 +119,7 @@ export async function POST(request: Request) {
       const body = await request.json();
       contractText = body.contractText || '';
       statementText = body.statementText || '';
-      templateText = body.templateText || '';
+      statementText = body.templateText || '';
     }
     // LOG dei dati ricevuti
     console.log('--- API /api/cqs ---');
