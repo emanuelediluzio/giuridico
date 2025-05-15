@@ -10,7 +10,7 @@
     {
       "src": "src/app/api/cqs/route.ts",
       "use": "@vercel/node",
-      "config": { "maxDuration": 30 }
+      "config": { "maxDuration": 55 }
     }
   ],
   "headers": [

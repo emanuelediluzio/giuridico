@@ -4,7 +4,7 @@ import WordExtractor from 'word-extractor';
 import mammoth from 'mammoth';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30; // Aumentiamo a 30 secondi
+export const maxDuration = 55; // Aumentiamo a 55 secondi
 
 // Rimuoviamo la funzione delay se OCR.space non richiede polling esplicito (risposta diretta)
 // const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -280,8 +280,8 @@ export async function POST(request: Request) {
 
     // Impostiamo un timeout generale per l'intera funzione
     const timeout = setTimeout(() => {
-      console.error("API - TIMEOUT: La funzione ha impiegato troppo tempo");
-    }, 25000); // 25 secondi di avviso, prima del timeout effettivo di 30 secondi
+      console.error("API - TIMEOUT WARNING: La funzione sta impiegando più di 50 secondi");
+    }, 50000); // 50 secondi di avviso, prima del timeout effettivo di 55 secondi
 
     if (contentType.includes("multipart/form-data")) {
       try {
