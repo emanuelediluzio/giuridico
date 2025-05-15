@@ -3,11 +3,6 @@
   "builds": [
     { "src": "package.json", "use": "@vercel/next" },
     {
-      "src": "api/process_pdf/index.py",
-      "use": "@vercel/python",
-      "config": { "runtime": "python3.9" }
-    },
-    {
       "src": "src/app/api/cqs/route.ts",
       "use": "@vercel/node",
       "config": { "maxDuration": 55 }
