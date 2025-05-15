@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import WordExtractor from 'word-extractor';
 import mammoth from 'mammoth';
+import pdfParse from 'pdf-parse';
 
 export const runtime = 'nodejs';
 export const maxDuration = 55; // Manteniamo 55 secondi, ma monitoriamo
@@ -41,11 +42,24 @@ async function extractTextLocally(file: File): Promise<string> {
   return "";
 }
 
-// Funzione helper per estrarre testo usando Mistral OCR (attualmente placeholder)
+// La funzione OCR ora tenterà di usare pdf-parse
 async function extractTextWithMistralOcr(file: File): Promise<string> {
-  logMessage(`extractTextWithMistralOcr: Placeholder per OCR di ${file.name}. Restituisco stringa vuota.`);
-  // In futuro, qui si potrebbe implementare una chiamata a un endpoint OCR di Mistral (se disponibile via REST) o a un servizio terzo.
-  return ""; 
+  logMessage(`extractTextWithMistralOcr: Tentativo di estrazione testo da PDF ${file.name} usando pdf-parse.`);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const data = await pdfParse(buffer);
+    logMessage(`extractTextWithMistralOcr: Testo estratto da ${file.name} (pdf-parse), lunghezza: ${data.text?.length}. Info: ${data.info.PDFFormatVersion}, Pagine: ${data.numpages}`);
+    if (data.text && data.text.trim().length > 0) {
+      return data.text;
+    } else {
+      logMessage(`extractTextWithMistralOcr: pdf-parse non ha estratto testo significativo da ${file.name}.`);
+      return ""; // Restituisce stringa vuota se nessun testo o solo spazi bianchi
+    }
+  } catch (error: any) {
+    logMessage(`extractTextWithMistralOcr: Errore durante il parsing PDF di ${file.name} con pdf-parse: ${error.message}`);
+    return ""; // Restituisce stringa vuota in caso di errore
+  }
 }
 
 // Funzione principale per estrarre testo, che decide la strategia
