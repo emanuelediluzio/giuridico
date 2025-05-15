@@ -184,52 +184,90 @@ export default function Home() {
               <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
                 {(() => {
                   // Ottieni la lettera con completamento se necessario
-                  let finalLetter = result.lettera.trim().endsWith("convertito") 
-                    ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\\n\\nDistinti saluti,\\nAvv. Gabriele Scappaticci" 
-                    : result.lettera.replace(/Avv\\. _________________$/, "Avv. Gabriele Scappaticci");
+                  let rawLetter = result.lettera || "";
+
+                  // Normalizza i ritorni a capo (es. \n -> \n)
+                  rawLetter = rawLetter.replace(/\\n/g, "\n");
+
+                  let finalLetter = rawLetter;
+
+                  // Logica per la firma e la conclusione
+                  const signature = "Avv. Gabriele Scappaticci";
+                  const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
                   
-                  // Rimuovi i dati mancanti tra parentesi quadre
-                  finalLetter = finalLetter.replace(/\\\[[^\\\]]*non specificat[^\\\]]*\\\]/g, "");
-                  finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Nn]on disponibil[^\\\]]*\\\]/g, "");
-                  finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Dd]ato [^\\\]]*mancan[^\\\]]*\\\]/g, "");
-                  // Rimuovi placeholder specifici come [Luogo di nascita] o [Data di nascita]
-                  finalLetter = finalLetter.replace(/, nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\],/g, "");
-                  finalLetter = finalLetter.replace(/nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\]/g, "");
+                  if (rawLetter.trim().endsWith("convertito")) {
+                    finalLetter = rawLetter.trim() + " " + standardEnding;
+                  } else if (rawLetter.includes("Avv. _________________")) {
+                    finalLetter = rawLetter.replace("Avv. _________________", signature);
+                  } else if (!rawLetter.trim().endsWith(signature.trim())) {
+                    if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
+                         finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
+                    }
+                  }
                   
+                  // Rimuovi i dati mancanti tra parentesi quadre in modo più generico
+                  finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^\/\]]*non specificat[^\/\]]*\] il \[[^\/\]]*non specificat[^\/\]]*\]\s*,?/gi, "");
+                  finalLetter = finalLetter.replace(/\[[^\/\]]*non specificat[^\/\]]*\]/gi, ""); // Deve essere case-insensitive per prendere "non specificato" e "Non specificato"
+                  finalLetter = finalLetter.replace(/\[[^\/\]]*[Nn]on disponibil[^\/\]]*\]/gi, "");
+                  finalLetter = finalLetter.replace(/\[[^\/\]]*[Dd]ato [^\/\]]*mancan[^\/\]]*\]/gi, "");
+                  finalLetter = finalLetter.replace(/\s*\-\s*il\s*\[Data di nascita non specificata\]/gi, "");
+
+
                   // Correggi la punteggiatura e gli spazi
                   finalLetter = finalLetter.replace(/ ,/g, ",");
                   finalLetter = finalLetter.replace(/ \./g, ".");
-                  finalLetter = finalLetter.replace(/  +/g, " ");
+                  finalLetter = finalLetter.replace(/ {2,}/g, " "); // Rimuove spazi multipli
+                  finalLetter = finalLetter.replace(/\s+\n/g, "\n"); // Rimuove spazi prima di un a capo
+                  finalLetter = finalLetter.replace(/\n\s+/g, "\n"); // Rimuove spazi dopo un a capo
+                  finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n"); // Limita a un massimo di due a capo consecutivi
                   finalLetter = finalLetter.replace(/ \)/g, ")");
                   finalLetter = finalLetter.replace(/\( /g, "(");
-                  
-                  return finalLetter;
+                  finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
+
+
+                  return finalLetter.trim();
                 })()}
               </pre>
               <div className="flex space-x-4">
                 <DownloadPDFButton 
                   content={(() => {
                     // Prepara lo stesso testo pulito anche per il PDF
-                    let finalLetter = result.lettera.trim().endsWith("convertito") 
-                      ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\\n\\nDistinti saluti,\\nAvv. Gabriele Scappaticci" 
-                      : result.lettera.replace(/Avv\\. _________________$/, "Avv. Gabriele Scappaticci");
+                    let rawLetter = result.lettera || "";
+                    rawLetter = rawLetter.replace(/\\n/g, "\n");
+                    let finalLetter = rawLetter;
+
+                    const signature = "Avv. Gabriele Scappaticci";
+                    const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
+
+                    if (rawLetter.trim().endsWith("convertito")) {
+                      finalLetter = rawLetter.trim() + " " + standardEnding;
+                    } else if (rawLetter.includes("Avv. _________________")) {
+                      finalLetter = rawLetter.replace("Avv. _________________", signature);
+                    } else if (!rawLetter.trim().endsWith(signature.trim())) {
+                       if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
+                           finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
+                       }
+                    }
                     
                     // Rimuovi i dati mancanti tra parentesi quadre
-                    finalLetter = finalLetter.replace(/\\\[[^\\\]]*non specificat[^\\\]]*\\\]/g, "");
-                    finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Nn]on disponibil[^\\\]]*\\\]/g, "");
-                    finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Dd]ato [^\\\]]*mancan[^\\\]]*\\\]/g, "");
-                    // Rimuovi placeholder specifici come [Luogo di nascita] o [Data di nascita]
-                    finalLetter = finalLetter.replace(/, nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\],/g, "");
-                    finalLetter = finalLetter.replace(/nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\]/g, "");
+                    finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^\/\]]*non specificat[^\/\]]*\] il \[[^\/\]]*non specificat[^\/\]]*\]\s*,?/gi, "");
+                    finalLetter = finalLetter.replace(/\[[^\/\]]*non specificat[^\/\]]*\]/gi, "");
+                    finalLetter = finalLetter.replace(/\[[^\/\]]*[Nn]on disponibil[^\/\]]*\]/gi, "");
+                    finalLetter = finalLetter.replace(/\[[^\/\]]*[Dd]ato [^\/\]]*mancan[^\/\]]*\]/gi, "");
+                    finalLetter = finalLetter.replace(/\s*\-\s*il\s*\[Data di nascita non specificata\]/gi, "");
                     
                     // Correggi la punteggiatura e gli spazi
                     finalLetter = finalLetter.replace(/ ,/g, ",");
                     finalLetter = finalLetter.replace(/ \./g, ".");
-                    finalLetter = finalLetter.replace(/  +/g, " ");
+                    finalLetter = finalLetter.replace(/ {2,}/g, " ");
+                    finalLetter = finalLetter.replace(/\s+\n/g, "\n"); 
+                    finalLetter = finalLetter.replace(/\n\s+/g, "\n"); 
+                    finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n"); 
                     finalLetter = finalLetter.replace(/ \)/g, ")");
                     finalLetter = finalLetter.replace(/\( /g, "(");
+                    finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
                     
-                    return finalLetter;
+                    return finalLetter.trim();
                   })()} 
                   fileName="lettera_diffida.pdf" 
                 />
