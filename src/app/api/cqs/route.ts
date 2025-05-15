@@ -19,8 +19,13 @@ async function extractTextFromApiFile(file: File): Promise<string> {
       // Prepariamo il PDF per l'invio all'API process_pdf
       const buffer = Buffer.from(arrayBuffer);
       
+      // Otteniamo l'URL host dalla richiesta o usiamo l'URL di produzione
+      const host = process.env.VERCEL_URL || 'giuridico.vercel.app';
+      const apiUrl = `https://${host}/api/process_pdf`;
+      console.log(`API - extractTextFromApiFile: Inviando PDF a ${apiUrl}`);
+      
       // Chiamata alla nostra funzione serverless che utilizza iLovePDF
-      const response = await fetch('/api/process_pdf', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: buffer, // Inviamo direttamente i byte del PDF
       });
