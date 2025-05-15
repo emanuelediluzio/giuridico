@@ -1,6 +1,7 @@
 {
   "version": 2,
   "builds": [
+    { "src": "package.json", "use": "@vercel/next" },
     {
       "src": "api/process_pdf/index.py",
       "use": "@vercel/python",
