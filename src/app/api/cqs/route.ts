@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
     // }
     
     const contractFile = formData.get("contract") as File | null;
-    const statementFile = formData.get("statement") as File | null;
-    const templateFile = formData.get("template") as File | null;
+    const statementFile = formData.get("conteggio") as File | null;
+    const templateFile = formData.get("templateFile") as File | null;
 
       if (contractFile) {
       filesInfo.contract = `${contractFile.name} (${contractFile.size} bytes)`;
