@@ -185,13 +185,16 @@ export default function Home() {
                 {(() => {
                   // Ottieni la lettera con completamento se necessario
                   let finalLetter = result.lettera.trim().endsWith("convertito") 
-                    ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
-                    : result.lettera;
+                    ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\\n\\nDistinti saluti,\\nAvv. Gabriele Scappaticci" 
+                    : result.lettera.replace(/Avv\\. _________________$/, "Avv. Gabriele Scappaticci");
                   
                   // Rimuovi i dati mancanti tra parentesi quadre
-                  finalLetter = finalLetter.replace(/\[[^\]]*non specificat[^\]]*\]/g, "");
-                  finalLetter = finalLetter.replace(/\[[^\]]*[Nn]on disponibil[^\]]*\]/g, "");
-                  finalLetter = finalLetter.replace(/\[[^\]]*[Dd]ato [^\]]*mancan[^\]]*\]/g, "");
+                  finalLetter = finalLetter.replace(/\\\[[^\\\]]*non specificat[^\\\]]*\\\]/g, "");
+                  finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Nn]on disponibil[^\\\]]*\\\]/g, "");
+                  finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Dd]ato [^\\\]]*mancan[^\\\]]*\\\]/g, "");
+                  // Rimuovi placeholder specifici come [Luogo di nascita] o [Data di nascita]
+                  finalLetter = finalLetter.replace(/, nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\],/g, "");
+                  finalLetter = finalLetter.replace(/nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\]/g, "");
                   
                   // Correggi la punteggiatura e gli spazi
                   finalLetter = finalLetter.replace(/ ,/g, ",");
@@ -208,13 +211,16 @@ export default function Home() {
                   content={(() => {
                     // Prepara lo stesso testo pulito anche per il PDF
                     let finalLetter = result.lettera.trim().endsWith("convertito") 
-                      ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
-                      : result.lettera;
+                      ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\\n\\nDistinti saluti,\\nAvv. Gabriele Scappaticci" 
+                      : result.lettera.replace(/Avv\\. _________________$/, "Avv. Gabriele Scappaticci");
                     
                     // Rimuovi i dati mancanti tra parentesi quadre
-                    finalLetter = finalLetter.replace(/\[[^\]]*non specificat[^\]]*\]/g, "");
-                    finalLetter = finalLetter.replace(/\[[^\]]*[Nn]on disponibil[^\]]*\]/g, "");
-                    finalLetter = finalLetter.replace(/\[[^\]]*[Dd]ato [^\]]*mancan[^\]]*\]/g, "");
+                    finalLetter = finalLetter.replace(/\\\[[^\\\]]*non specificat[^\\\]]*\\\]/g, "");
+                    finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Nn]on disponibil[^\\\]]*\\\]/g, "");
+                    finalLetter = finalLetter.replace(/\\\[[^\\\]]*[Dd]ato [^\\\]]*mancan[^\\\]]*\\\]/g, "");
+                    // Rimuovi placeholder specifici come [Luogo di nascita] o [Data di nascita]
+                    finalLetter = finalLetter.replace(/, nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\],/g, "");
+                    finalLetter = finalLetter.replace(/nato a \\\[Luogo di nascita\\\] il \\\[Data di nascita\\\]/g, "");
                     
                     // Correggi la punteggiatura e gli spazi
                     finalLetter = finalLetter.replace(/ ,/g, ",");
