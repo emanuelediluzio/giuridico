@@ -1,357 +1,342 @@
-import { NextResponse, NextRequest } from 'next/server';
-import WordExtractor from 'word-extractor';
-import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
+import { NextRequest, NextResponse } from "next/server";
+import pdfParse from "pdf-parse";
 
-export const runtime = 'nodejs';
-export const maxDuration = 55; // Manteniamo 55 secondi, ma monitoriamo
+export const maxDuration = 55; // Vercel Hobby plan max duration
 
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const logMessage = (message: string, data?: any) => {
+  // Basic logger, replace with a more robust solution in production
+  console.log(`[API CQS] ${message}`, data || ""); 
+};
 
-// Funzione helper per il logging
-function logMessage(message: string) {
-  const timestamp = new Date().toLocaleTimeString();
-  console.log(`[${timestamp}] API CQS: ${message}`);
-}
-
-// Funzione helper per estrarre testo usando utility locali per DOC, DOCX, TXT
-async function extractTextLocally(file: File): Promise<string> {
-  logMessage(`extractTextLocally: Inizio estrazione per ${file.name}, tipo ${file.type}`);
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    logMessage("extractTextLocally: Parsing DOCX con mammoth...");
-    const result = await mammoth.extractRawText({ buffer });
-    logMessage(`extractTextLocally: Lunghezza testo estratto da DOCX: ${result.value?.length}`);
-    return result.value || "";
-  } else if (file.type === 'application/msword') {
-    logMessage("extractTextLocally: Parsing DOC con word-extractor...");
-    const extractor = new WordExtractor();
-    const doc = await extractor.extract(buffer);
-    const body = doc.getBody();
-    logMessage(`extractTextLocally: Lunghezza testo estratto da DOC: ${body?.length}`);
-    return body || "";
-  } else if (file.type === 'text/plain') {
-    logMessage("extractTextLocally: Parsing TXT...");
-    const text = buffer.toString('utf-8');
-    logMessage(`extractTextLocally: Lunghezza testo estratto da TXT: ${text?.length}`);
-    return text;
+// Helper function to extract text from a PDF using pdf-parse
+async function extractTextFromPDF(file: File): Promise<string> {
+  try {
+    logMessage("Inizio estrazione testo da PDF con pdf-parse", { name: file.name, size: file.size, type: file.type });
+    const arrayBuffer = await file.arrayBuffer();
+    const data = await pdfParse(Buffer.from(arrayBuffer));
+    logMessage("Testo estratto con pdf-parse", { length: data.text.length });
+    return data.text;
+  } catch (error) {
+    logMessage("Errore durante estrazione testo da PDF con pdf-parse", error);
+    return ""; // Return empty string or handle error as needed
   }
-  logMessage(`extractTextLocally: Formato file non gestito localmente: ${file.type}. Restituisco stringa vuota.`);
-  return "";
 }
 
-// La funzione OCR ora tenterà di usare pdf-parse
-async function extractTextWithMistralOcr(file: File): Promise<string> {
-  logMessage(`extractTextWithMistralOcr: Tentativo di estrazione testo da PDF ${file.name} usando pdf-parse.`);
+// Updated function to extract text from a PDF using Mistral OCR API
+async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<string> {
+  if (!file) {
+    logMessage("File del contratto non fornito per OCR Mistral.");
+    return "";
+  }
+  if (!apiKey) {
+    logMessage("API Key Mistral non fornita per OCR.");
+    return "Errore: MISTRAL_API_KEY non configurata.";
+  }
+
+  logMessage("Inizio estrazione testo da PDF con Mistral OCR", { name: file.name, size: file.size, type: file.type });
+
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const data = await pdfParse(buffer);
-    logMessage(`extractTextWithMistralOcr: Testo estratto da ${file.name} (pdf-parse), lunghezza: ${data.text?.length}. Info: ${data.info.PDFFormatVersion}, Pagine: ${data.numpages}`);
-    if (data.text && data.text.trim().length > 0) {
-      return data.text;
-    } else {
-      logMessage(`extractTextWithMistralOcr: pdf-parse non ha estratto testo significativo da ${file.name}.`);
-      return ""; // Restituisce stringa vuota se nessun testo o solo spazi bianchi
+    const base64Pdf = Buffer.from(arrayBuffer).toString('base64');
+    const documentUrl = `data:application/pdf;base64,${base64Pdf}`;
+
+    const OCR_API_URL = "https://api.mistral.ai/v1/ocr";
+
+    const response = await fetch(OCR_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "mistral-ocr-latest",
+        document: {
+          type: "document_url",
+          document_url: documentUrl,
+        },
+        // include_image_base64: false, // Optional, default is likely false
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      logMessage(`Errore API OCR Mistral: ${response.status} ${response.statusText}`, errorBody);
+      throw new Error(`Mistral OCR API error: ${response.status} ${errorBody}`);
     }
-  } catch (error: any) {
-    logMessage(`extractTextWithMistralOcr: Errore durante il parsing PDF di ${file.name} con pdf-parse: ${error.message}`);
-    return ""; // Restituisce stringa vuota in caso di errore
+
+    const ocrResult = await response.json();
+    
+    if (ocrResult && ocrResult.pages && Array.isArray(ocrResult.pages)) {
+      const markdownText = ocrResult.pages.map((page: any) => page.markdown || "").join("\n\n");
+      logMessage("Testo estratto con Mistral OCR", { length: markdownText.length });
+      return markdownText;
+    } else {
+      logMessage("Risposta OCR Mistral non valida o senza pagine.", ocrResult);
+      return "";
+    }
+
+  } catch (error) {
+    logMessage("Errore durante estrazione testo con Mistral OCR", error);
+    // Consider returning a specific error message or re-throwing if critical
+    return `Errore durante l'OCR del contratto: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
 
-// Funzione principale per estrarre testo, che decide la strategia
-async function extractTextFromFile(file: File): Promise<string> {
-  logMessage(`extractTextFromFile: Inizio estrazione per ${file.name}, tipo ${file.type}, size ${file.size}`);
-  
-  if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
-    logMessage(`extractTextFromFile: ${file.name} è PDF/Immagine, uso placeholder OCR.`);
-    return extractTextWithMistralOcr(file);
-  } else if (
-    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    file.type === 'application/msword' ||
-    file.type === 'text/plain'
-  ) {
-    logMessage(`extractTextFromFile: ${file.name} è DOCX/DOC/TXT, uso utility locali.`);
-    return extractTextLocally(file);
-  } else {
-    logMessage(`extractTextFromFile: Formato file ${file.type} (${file.name}) non gestito, uso placeholder OCR.`);
-    return extractTextWithMistralOcr(file);
-  }
-}
-
-export async function POST(req: NextRequest) {
-  logMessage("--- API POST INIZIO (fetch_v1) ---");
+export async function POST(request: NextRequest) {
+  logMessage("Ricevuta richiesta POST");
+  const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 
   if (!MISTRAL_API_KEY) {
-    logMessage("ERRORE: MISTRAL_API_KEY non configurata.");
-    return NextResponse.json({ error: "Configurazione API mancante." }, { status: 500 });
+    logMessage("MISTRAL_API_KEY non configurata.");
+    return NextResponse.json(
+      { error: "MISTRAL_API_KEY non configurata." },
+      { status: 500 }
+    );
   }
+
+  let contractText = "";
+  let statementText = "";
+  let templateText = "";
+  let filesInfo: { contract: string; statement: string; template: string } = {
+    contract: "NON TROVATO",
+    statement: "NON TROVATO",
+    template: "NON TROVATO",
+  };
 
   try {
-    const formData = await req.formData();
-    logMessage("FormData ricevuto. Itero sulle entries:");
-    const filesMap = new Map<string, File>();
-    for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-            logMessage(`FormData entry: key=${key}, file={ name: '${value.name}', size: ${value.size}, type: '${value.type}' }`);
-            filesMap.set(key, value);
-        } else {
-            logMessage(`FormData entry: key=${key}, value='${String(value)}' (Not a File)`);
-        }
-    }
+    const formData = await request.formData();
+    logMessage("FormData ricevuto");
 
-    const contractFile = filesMap.get('contratto') || null;
-    const statementFile = filesMap.get('conteggio') || null;
-    const templateFile = filesMap.get('templateFile') || null;
-
-    logMessage(`Contract File (da filesMap): ${contractFile ? `{ name: '${contractFile.name}', type: '${contractFile.type}' }` : 'NON TROVATO'}`);
-    logMessage(`Statement File (da filesMap): ${statementFile ? `{ name: '${statementFile.name}', type: '${statementFile.type}' }` : 'NON TROVATO'}`);
-    logMessage(`Template File (da filesMap): ${templateFile ? `{ name: '${templateFile.name}', type: '${templateFile.type}' }` : 'NON TROVATO'}`);
-
-    if (!contractFile || !statementFile || !templateFile) {
-      logMessage("File mancanti nella richiesta.");
-      return NextResponse.json({ error: "File mancanti. Assicurati di caricare contratto, conteggio e template." }, { status: 400 });
-    }
+    // Log all form data entries
+    // for (const [key, value] of (formData as any).entries()) {
+    //   if (value instanceof File) {
+    //     logMessage(`File trovato nel FormData: key=${key}, name=${value.name}, size=${value.size}, type=${value.type}`);
+    //   } else {
+    //     logMessage(`Valore trovato nel FormData: key=${key}, value=${value}`);
+    //   }
+    // }
     
-    logMessage(`File ricevuti: Contratto: ${contractFile.name}, Conteggio: ${statementFile.name}, Template: ${templateFile.name}`);
+    const contractFile = formData.get("contract") as File | null;
+    const statementFile = formData.get("statement") as File | null;
+    const templateFile = formData.get("template") as File | null;
 
-    let templateTextExtractedPromise: Promise<string>;
-    if (templateFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        templateFile.type === 'application/msword' ||
-        templateFile.type === 'text/plain') {
-        logMessage(`Template (${templateFile.name}) è ${templateFile.type}, uso utility locali.`);
-        templateTextExtractedPromise = extractTextLocally(templateFile);
+    if (contractFile) {
+      filesInfo.contract = `${contractFile.name} (${contractFile.size} bytes)`;
+      logMessage("API - Contract File Trovato:", filesInfo.contract);
+      // Utilizza Mistral OCR per il contratto
+      contractText = await extractTextWithMistralOcr(contractFile, MISTRAL_API_KEY);
+      if (!contractText || contractText.startsWith("Errore:")) {
+        logMessage("Fallimento estrazione testo contratto con Mistral OCR.", contractText);
+        // Potresti voler restituire un errore qui se l'OCR del contratto è cruciale
+      }
     } else {
-        logMessage(`Template (${templateFile.name}) è di tipo ${templateFile.type}, che non è DOC/DOCX/TXT. Tento estrazione locale (potrebbe fallire).`);
-        templateTextExtractedPromise = extractTextLocally(templateFile); 
+      logMessage("API - Contract File: NON TROVATO");
     }
 
-    const [contractTextExtracted, statementTextExtracted, templateTextExtracted] = await Promise.all([
-      extractTextFromFile(contractFile),
-      extractTextFromFile(statementFile),
-      templateTextExtractedPromise
-    ]);
-    
-    if (templateTextExtracted === "") {
-        logMessage(`Testo del template ${templateFile.name} è vuoto dopo estrazione. Il prompt lo userà come "Contenuto non disponibile".`);
+    if (statementFile) {
+      filesInfo.statement = `${statementFile.name} (${statementFile.size} bytes)`;
+      logMessage("API - Statement File Trovato:", filesInfo.statement);
+      // Utilizza pdf-parse per il conteggio estintivo
+      statementText = await extractTextFromPDF(statementFile);
+    } else {
+      logMessage("API - Statement File: NON TROVATO");
     }
 
-    logMessage(`Testi estratti. Lunghezze: Contratto=${contractTextExtracted?.length ?? 0}, Conteggio=${statementTextExtracted?.length ?? 0}, Template=${templateTextExtracted?.length ?? 0}`);
-    
-    if (contractTextExtracted.length < 10 && (contractFile.type === 'application/pdf' || contractFile.type.startsWith('image/'))) {
-        logMessage("Testo estratto dal contratto (OCR placeholder) molto corto o assente.");
+    if (templateFile) {
+      filesInfo.template = `${templateFile.name} (${templateFile.size} bytes)`;
+      logMessage("API - Template File Trovato:", filesInfo.template);
+      templateText = await templateFile.text();
+    } else {
+      logMessage("API - Template File: NON TROVATO");
     }
-    if (statementTextExtracted.length < 10 && (statementFile.type === 'application/pdf' || statementFile.type.startsWith('image/'))) {
-        logMessage("Testo estratto dal conteggio (OCR placeholder) molto corto o assente.");
-    }
 
-    const promptMessages = [
-      {
-        role: 'user',
-        content: `
-          Sei un assistente legale esperto specializzato nell'analisi di documenti finanziari e nel calcolo di rimborsi per cessioni del quinto dello stipendio, in conformità con l'Art. 125 sexies del Testo Unico Bancario (T.U.B.) italiano.
-          Il tuo compito è analizzare tre testi forniti: il testo di un contratto di finanziamento, il testo di un conteggio estintivo e il testo di un template per una lettera di diffida.
-
-          TESTO DEL CONTRATTO:
-          --- Inizio Contratto ---
-          ${contractTextExtracted || "Contenuto non disponibile o non estratto."}
-          --- Fine Contratto ---
-
-          TESTO DEL CONTEGGIO ESTINTIVO:
-          --- Inizio Conteggio Estintivo ---
-          ${statementTextExtracted || "Contenuto non disponibile o non estratto."}
-          --- Fine Conteggio Estintivo ---
-
-          TEMPLATE PER LA LETTERA DI DIFFIDA:
-          --- Inizio Template Lettera ---
-          ${templateTextExtracted || "Contenuto del template non disponibile o non estratto."}
-          --- Fine Template Lettera ---
-
-          ISTRUZIONI DETTAGLIATE:
-          1.  ANALISI DEI DOCUMENTI: Estrai con la massima precisione tutte le informazioni rilevanti dal testo del contratto e dal testo del conteggio estintivo. I dati finanziari sono cruciali.
-              Dati chiave da cercare (elenco non esaustivo, cerca ogni dato utile):
-              *   Contratto: Nome e Cognome del cliente, Codice Fiscale del cliente, Data di stipula del contratto, Importo totale finanziato (capitale lordo), Numero totale di rate (durata in mesi), Importo della singola rata, TAN (Tasso Annuo Nominale), TAEG (Tasso Annuo Effettivo Globale), Elenco dettagliato e importi di tutte le commissioni (es. commissioni di intermediazione, commissioni di attivazione, spese di istruttoria, premi assicurativi vita e impiego).
-              *   Conteggio Estintivo: Data di estinzione anticipata del finanziamento, Capitale residuo alla data di estinzione, Numero di rate residue, Eventuali penali di estinzione anticipata (se applicabili e legali), Dettaglio dei rimborsi già considerati dalla finanziaria (se presenti).
-
-          2.  CALCOLO DEL RIMBORSO: Basandoti sui dati estratti e sull'Art. 125 sexies T.U.B., che prevede il diritto del consumatore a una riduzione, in misura proporzionale alla vita residua del contratto, degli interessi e di tutti i costi compresi nel costo totale del credito (escluse eventuali imposte), calcola l'importo totale del rimborso spettante al cliente.
-              Il calcolo deve considerare:
-              *   La quota di interessi non maturati.
-              *   La quota parte delle commissioni e di tutti gli altri costi ("upfront" e "recurring") non goduti a causa dell'estinzione anticipata. Identifica quali costi sono "up-front" (sostenuti interamente all'inizio) e quali sono "recurring" (maturano nel tempo). Per i costi up-front, il rimborso è proporzionale alla durata residua del contratto.
-              *   Fornisci un dettaglio del calcolo, mostrando come sei arrivato all'importo finale del rimborso. Questo dettaglio sarà inserito nella lettera.
-
-          3.  GENERAZIONE LETTERA: Utilizza il "TEMPLATE PER LA LETTERA DI DIFFIDA" fornito. Compila il template sostituendo i segnaposto (tipicamente indicati con parentesi quadre, es. [NOME_CLIENTE], [IMPORTO_RIMBORSO_TOTALE], [DATA_CONTRATTO], [DATA_ESTINZIONE], [DETTAGLIO_CALCOLO_RIMBORSO_ART_125]) con i dati corretti estratti e calcolati.
-              Presta particolare attenzione al segnaposto [DETTAGLIO_CALCOLO_RIMBORSO_ART_125]: qui dovrai inserire una spiegazione chiara e concisa del metodo di calcolo utilizzato e delle voci che compongono il rimborso totale.
-
-          4.  FORMATO RISPOSTA: La tua risposta DEVE essere un singolo oggetto JSON. Non aggiungere commenti o testo al di fuori di questo oggetto JSON.
-              La struttura del JSON deve essere la seguente:
-              {
-                "letteraGenerata": "TESTO COMPLETO DELLA LETTERA DI DIFFIDA COMPILATA...",
-                "datiEstratti": {
-                  "contratto": {
-                    "nomeCliente": "Nome Cognome" | null,
-                    "codiceFiscale": "CF" | null,
-                    "dataStipula": "GG/MM/AAAA" | null,
-                    "importoFinanziato": 15000.00 | null, 
-                    "numeroRateTotali": 120 | null, 
-                    "importoRata": 150.00 | null, 
-                    "tan": 5.5 | null, 
-                    "taeg": 6.5 | null, 
-                    "commissioniIntermediazione": 500.00 | null,
-                    "commissioniAttivazione": 100.00 | null,
-                    "speseIstruttoria": 150.00 | null,
-                    "premioVita": 800.00 | null,
-                    "premioImpiego": 700.00 | null,
-                    "altriCosti": [ 
-                      { "descrizione": "Nome costo", "importo": 100.00 }
-                    ] | null
-                  },
-                  "conteggioEstintivo": {
-                    "dataEstinzione": "GG/MM/AAAA" | null,
-                    "capitaleResiduo": 8000.00 | null,
-                    "numeroRateResidue": 60 | null,
-                    "penaleEstinzione": 0.00 | null
-                  }
-                },
-                "calcoloRimborso": {
-                  "interessiNonGoduti": 1200.00 | null,
-                  "rimborsoCommissioniIntermediazione": 250.00 | null,
-                  "rimborsoCommissioniAttivazione": 50.00 | null,
-                  "rimborsoSpeseIstruttoria": 75.00 | null,
-                  "rimborsoPremioVita": 400.00 | null,
-                  "rimborsoPremioImpiego": 350.00 | null,
-                  "rimborsoAltriCosti": [ { "descrizione": "Nome costo rimborsato", "importoRimborsato": 50.00 } ] | null,
-                  "totaleRimborsabile": 2325.00 | null
-                },
-                "erroriAnalisi": ["Descrizione di un problema riscontrato durante l'analisi o il calcolo"] | null,
-                "debugInfo": {
-                    "contractTextSample": "${(contractTextExtracted || "").substring(0, 200)}...",
-                    "statementTextSample": "${(statementTextExtracted || "").substring(0, 200)}...",
-                    "templateTextSample": "${(templateTextExtracted || "").substring(0,200)}..."
-                }
-              }
-              Se un dato specifico non può essere estratto con certezza, usa 'null' per il suo valore nel JSON.
-              Se i testi forniti sono insufficienti o di pessima qualità (es. OCR illeggibile), popola il campo 'erroriAnalisi' con messaggi chiari.
-              Nella 'letteraGenerata', assicurati che tutti i segnaposto siano riempiti o gestiti. Se un dato per un segnaposto non è disponibile, indica "[DATO MANCANTE]" nella lettera.
-              Sii meticoloso e preciso. La correttezza dei calcoli e dei dati estratti è fondamentale.
-              Verifica che TAN e TAEG siano espressi come numeri (es. 5.5 per 5.5%).
-              Assicurati che la somma dei rimborsi parziali corrisponda a 'totaleRimborsabile'.
-              Converti tutti gli importi numerici in numeri (float o integer), non stringhe.
-        `
-      }
-    ];
-
-    logMessage("Invio richiesta a Mistral Chat API tramite fetch...");
-    const startTime = Date.now();
-
-    const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
-    const mistralPayload = {
-      model: 'mistral-large-latest', // o il modello che preferisci
-      messages: promptMessages,
-      response_format: { type: 'json_object' }
-    };
-
-    const apiResponse = await fetch(mistralApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${MISTRAL_API_KEY}`
-      },
-      body: JSON.stringify(mistralPayload)
+    logMessage("Riepilogo estrazione testi:", {
+      contractTextLength: contractText.length,
+      statementTextLength: statementText.length,
+      templateTextLength: templateText.length,
     });
+
+    if (!contractText && !statementText && !templateText) {
+      logMessage("Nessun testo estratto dai file forniti.");
+      return NextResponse.json(
+        {
+          error: "Nessun testo è stato estratto dai file. Assicurati di aver caricato i file corretti.",
+          filesInfo,
+        },
+        { status: 400 }
+      );
+    }
     
-    const endTime = Date.now();
-    logMessage(`Risposta HTTP ricevuta da Mistral API in ${endTime - startTime}ms. Status: ${apiResponse.status}`);
-
-    if (!apiResponse.ok) {
-      const errorBody = await apiResponse.text();
-      logMessage(`Errore da API Mistral: ${apiResponse.status} - ${errorBody}`);
-      throw new Error(`Errore dall'API AI: ${apiResponse.status} - ${errorBody}`);
+    if (contractText.startsWith("Errore:") && contractText.includes("MISTRAL_API_KEY non configurata")) {
+        return NextResponse.json({ error: contractText }, { status: 500 });
     }
 
-    const chatResponse = await apiResponse.json();
+    const SYSTEM_PROMPT = `
+Sei un assistente legale altamente qualificato specializzato nell'analisi di documenti finanziari e nella generazione di lettere di diffida per problematiche relative a Cessioni del Quinto dello Stipendio (CQS).
 
-    if (!chatResponse.choices || chatResponse.choices.length === 0 || !chatResponse.choices[0].message.content) {
-      logMessage("Risposta JSON da Mistral non valida o contenuto messaggio vuoto.");
-      throw new Error("Risposta da Mistral non valida o contenuto messaggio vuoto.");
+Il tuo compito è analizzare TRE documenti forniti dall'utente:
+1.  CONTRATTO CQS: Un file PDF contenente il contratto originale della Cessione del Quinto. Da questo dovrai estrarre i dati anagrafici dell'intestatario, i dettagli del finanziamento (importo erogato, numero rate, importo rata, date, TAN, TAEG), e le informazioni sulla compagnia assicurativa e i costi delle polizze.
+2.  CONTEGGIO ESTINTIVO: Un file PDF (o altro formato da cui è stato estratto il testo) contenente il conteggio estintivo fornito dalla banca o finanziaria. Da questo documento dovrai estrarre: la data del conteggio, il debito residuo, i dietimi di interesse, le commissioni, il tasso di interesse applicato per il calcolo degli interessi residui, e l'importo totale da rimborsare per l'estinzione anticipata.
+3.  TEMPLATE LETTERA: Un file di testo (.txt o .docx da cui è stato estratto il testo) che funge da modello per la lettera di diffida. Questo template conterrà dei segnaposto (es. {{NOME_CLIENTE}}, {{IMPORTO_RICHIESTO}}, ecc.) che dovrai popolare con i dati estratti dai primi due documenti e con i calcoli che effettuerai.
+
+Il tuo OBBIETTIVO FINALE è duplice:
+A. CALCOLI PRECISIONE:
+    1.  Determinare l'importo degli INTERESSI NON GODUTI: Basati sul debito residuo e sul TAN originario del contratto CQS, calcola gli interessi che il cliente non pagherà grazie all'estinzione anticipata.
+    2.  Determinare i PREMI ASSICURATIVI NON GODUTI: Calcola la quota dei premi assicurativi (vita e impiego) pagati ma non goduti a causa dell'estinzione anticipata. Usa la durata originaria del piano e il numero di rate residue implicite dal conteggio estintivo.
+    3.  Determinare le COMMISSIONI NON MATURATE: Se il contratto originale o il conteggio estintivo specificano commissioni (es. commissioni di intermediazione, commissioni di attivazione) che sono state pagate anticipatamente e che sono relative alla durata totale del prestito, calcola la quota non maturata.
+    4.  CALCOLARE L'IMPORTO TOTALE DA RIMBORSARE AL CLIENTE: Somma gli interessi non goduti, i premi assicurativi non goduti e le commissioni non maturate. Questo è l'importo che il cliente ha diritto a vedersi rimborsato.
+
+B. COMPILAZIONE LETTERA DI DIFFIDA:
+    1.  Utilizza il TEMPLATE LETTERA fornito.
+    2.  Sostituisci TUTTI i segnaposto presenti nel template con:
+        *   I dati anagrafici e i dettagli del finanziamento estratti dal CONTRATTO CQS.
+        *   I dettagli rilevanti estratti dal CONTEGGIO ESTINTIVO.
+        *   I risultati dei CALCOLI effettuati (interessi non goduti, premi non goduti, commissioni non maturate, importo totale da rimborsare).
+        *   Qualsiasi altra informazione pertinente che ritieni utile per supportare la richiesta del cliente.
+    3.  La lettera deve essere formattata professionalmente, chiara, concisa e legalmente solida. Presta attenzione alla grammatica e alla sintassi.
+
+Output Richiesto:
+Devi restituire un oggetto JSON con la seguente struttura:
+{
+  "letteraDiffidaCompleta": "...", // La lettera di diffida compilata come stringa
+  "datiEstratti": {
+    "contratto": {
+      "nomeCliente": "...",
+      "codiceFiscale": "...",
+      "dataNascita": "...",
+      "indirizzo": "...",
+      "numeroContratto": "...",
+      "dataContratto": "...",
+      "importoErogato": "...",
+      "numeroRateOriginario": "...",
+      "importoRata": "...",
+      "tan": "...",
+      "taeg": "...",
+      "compagniaAssicurativaVita": "...",
+      "costoPolizzaVita": "...",
+      "compagniaAssicurativaImpiego": "...",
+      "costoPolizzaImpiego": "...",
+      // ... altri campi rilevanti dal contratto
+    },
+    "conteggioEstintivo": {
+      "dataConteggio": "...",
+      "debitoResiduo": "...", // al lordo degli interessi futuri da stornare
+      "interessiResiduiDaStornare": "...", // se esplicitati nel conteggio, altrimenti calcolali tu
+      "penaleEstinzione": "...", // se presente
+      "commissioniResidue": "...", // se presenti
+      "importoTotaleEstinzioneNetto": "...", // l'importo effettivamente pagato o da pagare per estinguere
+      // ... altri campi rilevanti dal conteggio
     }
+  },
+  "calcoliEffettuati": {
+    "interessiNonGodutiStimato": "...", // Stima basata sul TAN e debito residuo
+    "premiAssicurativiNonGodutiStimato": "...",
+    "commissioniNonMaturateStimate": "...",
+    "totaleRimborsabileStimato": "..." // Somma dei tre precedenti
+  },
+  "logAnalisi": "Breve log dei passaggi chiave, delle difficoltà incontrate (es. dati mancanti, PDF illeggibili) e delle assunzioni fatte."
+}
 
-    const responseContent = chatResponse.choices[0].message.content;
-    logMessage(`Contenuto messaggio grezzo da Mistral (primi 500 caratteri): ${responseContent.substring(0, 500)}...`);
+IMPORTANTE:
+*   Se alcuni dati non sono reperibili nei documenti, indicalo chiaramente nel campo 'logAnalisi' e nei campi specifici (es. "Dato non trovato"). NON INVENTARE DATI.
+*   Se un PDF è parzialmente illeggibile o il testo estratto è di scarsa qualità, segnalalo nel 'logAnalisi'. Fai del tuo meglio con quello che hai.
+*   Presta attenzione alle date per calcolare correttamente le durate residue e le quote non godute.
+*   Assicurati che tutti i calcoli siano motivati e, se possibile, fai riferimento ai dati usati per il calcolo.
+*   Se il template contiene segnaposto non corrispondenti ai dati che hai, cerca di adattare o segnala la discrepanza nel log.
+`;
+
+    const userPrompt = `Analizza i seguenti documenti e genera la lettera di diffida come specificato nelle istruzioni di sistema.
+
+<documento id="contratto_cqs">
+<nome_file>${filesInfo.contract}</nome_file>
+<contenuto>
+${contractText || "Contenuto non disponibile o illeggibile."}
+</contenuto>
+</documento>
+
+<documento id="conteggio_estintivo">
+<nome_file>${filesInfo.statement}</nome_file>
+<contenuto>
+${statementText || "Contenuto non disponibile o illeggibile."}
+</contenuto>
+</documento>
+
+<documento id="template_lettera">
+<nome_file>${filesInfo.template}</nome_file>
+<contenuto>
+${templateText || "Contenuto non disponibile o illeggibile."}
+</contenuto>
+</documento>
+`;
+
+    logMessage("Prompt per Mistral AI:", { system: SYSTEM_PROMPT.length, user: userPrompt.length });
     
-    let structuredResponse;
-    try {
-      // Il contenuto è già un oggetto JSON se response_format: { type: 'json_object' } funziona correttamente
-      // e se il modello rispetta il formato. Altrimenti, potrebbe essere una stringa JSON da parsare.
-      if (typeof responseContent === 'string') {
-        structuredResponse = JSON.parse(responseContent);
-      } else if (typeof responseContent === 'object' && responseContent !== null) {
-        structuredResponse = responseContent; // Già un oggetto
-      } else {
-        throw new Error('Formato del contenuto del messaggio Mistral non riconosciuto.');
-      }
-    } catch (parseError: any) {
-      logMessage(`Errore nel parsing JSON della risposta di Mistral: ${parseError.message}`);
-      logMessage(`Risposta completa da Mistral (che ha causato errore di parsing): ${String(responseContent)}`);
-      throw new Error(`Errore nel parsing della risposta JSON da Mistral. Risposta: ${String(responseContent).substring(0, 200)}...`);
-    }
+    const CHAT_API_URL = "https://api.mistral.ai/v1/chat/completions";
 
-    logMessage("Risposta JSON strutturata da Mistral ricevuta e parsata.");
-    
-    // Adattamento della risposta di Mistral al formato ResultData del frontend { lettera: string, calcoli: string }
-    let calcoliContent = "Dettaglio calcoli non disponibile.";
-    if (structuredResponse.calcoloRimborso) {
-        try {
-            calcoliContent = JSON.stringify(structuredResponse.calcoloRimborso, null, 2);
-        } catch (stringifyError: any) {
-            logMessage(`Errore durante JSON.stringify di structuredResponse.calcoloRimborso: ${stringifyError.message}`);
-            calcoliContent = "Errore nella formattazione dei dettagli dei calcoli.";
-        }
-    }
-
-    let letteraGenerata = structuredResponse.letteraGenerata || "";
-    
-    if (structuredResponse.erroriAnalisi && structuredResponse.erroriAnalisi.length > 0) {
-        const erroriMsg = `Errori durante l'analisi AI: ${structuredResponse.erroriAnalisi.join('; ')}`;
-        logMessage(erroriMsg);
-        if (calcoliContent === "Dettaglio calcoli non disponibile.") {
-            calcoliContent = erroriMsg;
-        } else {
-            calcoliContent = `${erroriMsg}\n\n${calcoliContent}`;
-        }
-        if (!letteraGenerata) {
-            letteraGenerata = `Generazione lettera fallita a causa di errori nell'analisi: ${structuredResponse.erroriAnalisi.join('; ')}`;
-        }
-    }
-    if (!letteraGenerata) {
-        letteraGenerata = "Lettera non generata (nessun contenuto specifico da Mistral).";
-    }
-
-    const resultDataForFrontend = {
-        lettera: letteraGenerata,
-        calcoli: calcoliContent,
+    const apiRequestBody = {
+      model: "mistral-large-latest", // o un altro modello appropriato
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" }, // Per forzare l'output JSON
     };
 
-    if (!resultDataForFrontend.lettera && !resultDataForFrontend.calcoli.includes("Errori durante l'analisi AI")) {
-        logMessage("Rimborso o lettera non presenti o nulli nella risposta mappata di Mistral, senza errori espliciti.");
-        if (resultDataForFrontend.calcoli === "Dettaglio calcoli non disponibile."){
-            resultDataForFrontend.calcoli = (resultDataForFrontend.calcoli || "") + 
-            " Attenzione: il rimborso o la lettera potrebbero non essere stati generati o recuperati correttamente.";
-        }
-    }
-    return NextResponse.json(resultDataForFrontend, { status: 200 });
+    logMessage("Invio richiesta a Mistral Chat API...");
+    const mistralResponse = await fetch(CHAT_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MISTRAL_API_KEY}`,
+      },
+      body: JSON.stringify(apiRequestBody),
+    });
 
-  } catch (error: any) {
-    logMessage(`Errore generale nella funzione POST: ${error.stack || error.message || String(error)}`);
-    let errorMessage = "Errore interno del server durante l'elaborazione della richiesta.";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
+    logMessage("Risposta da Mistral Chat API ricevuta", { status: mistralResponse.status });
+
+    if (!mistralResponse.ok) {
+      const errorBody = await mistralResponse.text();
+      logMessage("Errore dalla Mistral Chat API", {
+        status: mistralResponse.status,
+        body: errorBody,
+      });
+      return NextResponse.json(
+        { error: "Errore dalla Mistral API", details: errorBody, filesInfo },
+        { status: mistralResponse.status }
+      );
     }
-    return NextResponse.json({ error: errorMessage, details: String(error) }, { status: 500 });
+
+    const result = await mistralResponse.json();
+    logMessage("Risultato JSON da Mistral Chat API parsato.");
+
+    // Assumendo che 'result.choices[0].message.content' sia la stringa JSON che vogliamo
+    // e che il modello rispetti la richiesta di output JSON.
+    // Se il modello non restituisce un JSON valido come stringa nel content, 
+    // dovremmo adattare questo parsing o la struttura del prompt.
+    try {
+      const contentString = result.choices[0].message.content;
+      const parsedContent = JSON.parse(contentString); // Parsa la stringa JSON
+      logMessage("Contenuto del messaggio parsato con successo.");
+      return NextResponse.json(parsedContent, { status: 200 });
+    } catch (e) {
+      logMessage("Errore nel parsing del contenuto del messaggio JSON da Mistral", { error: e, content: result.choices[0].message.content });
+      return NextResponse.json(
+        { error: "Errore nel parsing della risposta JSON da Mistral.", details: result.choices[0].message.content, filesInfo },
+        { status: 500 }
+      );
+    }
+
+  } catch (error) {
+    logMessage("Errore generico nella funzione POST", error);
+    const errorMessage = error instanceof Error ? error.message : "Errore sconosciuto";
+    return NextResponse.json(
+      { error: "Errore interno del server.", details: errorMessage, filesInfo },
+      { status: 500 }
+    );
   }
-} 
+}
+
+// GET handler per testare se l'API è raggiungibile
+export async function GET() {
+  return NextResponse.json({ message: "API CQS è attiva" });
+}
