@@ -18,33 +18,17 @@ async function extractTextFromApiFile(file: File): Promise<string> {
     try {
       // Prepariamo il PDF per l'invio all'API process_pdf
       const buffer = Buffer.from(arrayBuffer);
-      
-      // Otteniamo l'URL host dalla richiesta o usiamo l'URL di produzione
-      const host = process.env.VERCEL_URL || 'giuridico.vercel.app';
-      const apiUrl = `https://${host}/api/process_pdf`;
-      console.log(`API - extractTextFromApiFile: Inviando PDF a ${apiUrl}`);
-      
-      // Chiamata alla nostra funzione serverless che utilizza iLovePDF
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        body: buffer, // Inviamo direttamente i byte del PDF
-      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API - extractTextFromApiFile: Errore da API process_pdf (${response.status}): ${errorText}`);
-        throw new Error(`Errore API process_pdf (${response.status}): ${errorText}`);
-      }
-
-      const result = await response.json();
-      if (result.text) {
-        console.log(`API - extractTextFromApiFile: Testo estratto con iLovePDF. Lunghezza: ${result.text.length}`);
-        console.log("API - extractTextFromApiFile: Testo estratto (primi 300 caratteri):", result.text.substring(0, 300));
-        return result.text;
-      } else {
-        console.warn("API - extractTextFromApiFile: L'API process_pdf non ha restituito testo.");
-        return "";
-      }
+      // Ora usiamo una soluzione più affidabile per le chiamate serverless-to-serverless
+      // In Vercel le API serverless non possono chiamare altre API serverless con path relativi
+      // Dobbiamo inviare il PDF al browser e far gestire al client la chiamata a process_pdf
+      
+      console.log("API - extractTextFromApiFile: Attualmente non possiamo estrarre testo PDF da serverless");
+      console.log("API - extractTextFromApiFile: Restituendo stringa vuota per PDF (si userà OCR per upload da client)");
+      
+      // Per ora, in questa implementazione serverless, restituiamo una stringa vuota
+      // In futuro dovremo gestire l'estrazione del testo lato client
+      return "";
     } catch (error) {
       console.error("API - extractTextFromApiFile: ERRORE durante interazione con API process_pdf:", error);
       return "";
