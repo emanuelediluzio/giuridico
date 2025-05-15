@@ -10,10 +10,21 @@
   ],
   "headers": [
     {
+      "source": "/(.*).webmanifest",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    },
+    {
       "source": "/site.webmanifest",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        { "key": "Access-Control-Allow-Methods", "value": "GET" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Content-Type", "value": "application/manifest+json" }
       ]
     }
   ],
