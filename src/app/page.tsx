@@ -182,15 +182,49 @@ export default function Home() {
             <div>
               <h4 className="text-xl font-semibold text-gray-700 mb-3">Lettera di Diffida Proposta:</h4>
               <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
-                {result.lettera && result.lettera.trim().endsWith("convertito") 
-                  ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
-                  : result.lettera}
+                {(() => {
+                  // Ottieni la lettera con completamento se necessario
+                  let finalLetter = result.lettera.trim().endsWith("convertito") 
+                    ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
+                    : result.lettera;
+                  
+                  // Rimuovi i dati mancanti tra parentesi quadre
+                  finalLetter = finalLetter.replace(/\[[^\]]*non specificat[^\]]*\]/g, "");
+                  finalLetter = finalLetter.replace(/\[[^\]]*[Nn]on disponibil[^\]]*\]/g, "");
+                  finalLetter = finalLetter.replace(/\[[^\]]*[Dd]ato [^\]]*mancan[^\]]*\]/g, "");
+                  
+                  // Correggi la punteggiatura e gli spazi
+                  finalLetter = finalLetter.replace(/ ,/g, ",");
+                  finalLetter = finalLetter.replace(/ \./g, ".");
+                  finalLetter = finalLetter.replace(/  +/g, " ");
+                  finalLetter = finalLetter.replace(/ \)/g, ")");
+                  finalLetter = finalLetter.replace(/\( /g, "(");
+                  
+                  return finalLetter;
+                })()}
               </pre>
               <div className="flex space-x-4">
                 <DownloadPDFButton 
-                  content={result.lettera && result.lettera.trim().endsWith("convertito") 
-                    ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
-                    : result.lettera} 
+                  content={(() => {
+                    // Prepara lo stesso testo pulito anche per il PDF
+                    let finalLetter = result.lettera.trim().endsWith("convertito") 
+                      ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
+                      : result.lettera;
+                    
+                    // Rimuovi i dati mancanti tra parentesi quadre
+                    finalLetter = finalLetter.replace(/\[[^\]]*non specificat[^\]]*\]/g, "");
+                    finalLetter = finalLetter.replace(/\[[^\]]*[Nn]on disponibil[^\]]*\]/g, "");
+                    finalLetter = finalLetter.replace(/\[[^\]]*[Dd]ato [^\]]*mancan[^\]]*\]/g, "");
+                    
+                    // Correggi la punteggiatura e gli spazi
+                    finalLetter = finalLetter.replace(/ ,/g, ",");
+                    finalLetter = finalLetter.replace(/ \./g, ".");
+                    finalLetter = finalLetter.replace(/  +/g, " ");
+                    finalLetter = finalLetter.replace(/ \)/g, ")");
+                    finalLetter = finalLetter.replace(/\( /g, "(");
+                    
+                    return finalLetter;
+                  })()} 
                   fileName="lettera_diffida.pdf" 
                 />
                 <button 
