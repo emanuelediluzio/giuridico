@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     //   }
     // }
     
-    const contractFile = formData.get("contract") as File | null;
+    const contractFile = formData.get("contratto") as File | null;
     const statementFile = formData.get("conteggio") as File | null;
     const templateFile = formData.get("templateFile") as File | null;
 
