@@ -13,85 +13,36 @@ async function extractTextFromApiFile(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
 
   if (file.type === 'application/pdf') {
-    // IMPORTANTE: Spostare questa API key in una variabile d'ambiente (es. OCR_SPACE_API_KEY)
-    // const apiKey = process.env.OCR_SPACE_API_KEY;
-    const apiKey = process.env.OCR_SPACE_API_KEY;
-
-    if (!apiKey) {
-      console.error("API - extractTextFromApiFile: OCR_SPACE_API_KEY non configurata.");
-      return "";
-    }
-
-    console.log("API - extractTextFromApiFile: Tentativo di estrazione testo da PDF tramite API OCR.space...");
+    console.log("API - extractTextFromApiFile: Utilizzo iLovePDF API per estrazione testo...");
 
     try {
+      // Prepariamo il PDF per l'invio all'API process_pdf
       const buffer = Buffer.from(arrayBuffer);
-      const base64Content = buffer.toString('base64');
-      // OCR.space richiede il prefisso data URI per le stringhe base64
-      const base64ImageWithPrefix = `data:application/pdf;base64,${base64Content}`;
-      console.log("API - extractTextFromApiFile: Contenuto PDF convertito in base64 con prefisso.");
-
-      const formData = new FormData();
-      formData.append('apikey', apiKey); // L'API key può anche andare qui come parametro form-data
-      formData.append('base64Image', base64ImageWithPrefix);
-      formData.append('language', 'ita'); // Specifica lingua italiana
-      formData.append('isOverlayRequired', 'false');
-      formData.append('OCREngine', '1'); // O '2' se si vuole provare l'altro motore
-      // formData.append('scale', 'true'); // Opzionale, può migliorare OCR per PDF a bassa risoluzione
-      // formData.append('detectOrientation', 'true'); // Opzionale
-
-      const ocrUrl = "https://api.ocr.space/parse/image";
-      console.log(`API - extractTextFromApiFile: Invio POST a OCR.space: ${ocrUrl}`);
-
-      const response = await fetch(ocrUrl, {
+      
+      // Chiamata alla nostra funzione serverless che utilizza iLovePDF
+      const response = await fetch('/api/process_pdf', {
         method: 'POST',
-        body: formData, // Non serve specificare Content-Type, fetch lo fa per FormData
+        body: buffer, // Inviamo direttamente i byte del PDF
       });
 
-      console.log(`API - extractTextFromApiFile: Risposta da OCR.space ricevuta, status: ${response.status}`);
-
       if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`API - extractTextFromApiFile: Errore da OCR.space (${response.status}): ${errorBody}`);
-        // Prova a parsare come JSON se possibile per vedere messaggi di errore strutturati
-        try { 
-            const errorJson = JSON.parse(errorBody);
-            console.error("API - extractTextFromApiFile: Errore OCR.space (JSON):", errorJson);
-        } catch(e) { /* non era JSON */ }
-        throw new Error(`OCR.space API error (${response.status}): ${errorBody}`);
+        const errorText = await response.text();
+        console.error(`API - extractTextFromApiFile: Errore da API process_pdf (${response.status}): ${errorText}`);
+        throw new Error(`Errore API process_pdf (${response.status}): ${errorText}`);
       }
 
       const result = await response.json();
-      console.log("API - extractTextFromApiFile: Risultato JSON da OCR.space:", JSON.stringify(result, null, 2));
-
-      if (result.IsErroredOnProcessing) {
-        console.error("API - extractTextFromApiFile: OCR.space ha segnalato un errore nell'elaborazione:", result.ErrorMessage, result.ErrorDetails);
-        return "";
-      }
-
-      if (result.ParsedResults && result.ParsedResults.length > 0) {
-        let fullText = "";
-        result.ParsedResults.forEach((parsedPage: any, index: number) => {
-          if (parsedPage.FileParseExitCode === 1) {
-            console.log(`API - extractTextFromApiFile: Testo estratto da OCR.space (pagina ${index + 1}): ${parsedPage.ParsedText?.length} caratteri.`);
-            fullText += parsedPage.ParsedText + "\n\n"; // Aggiungi testo della pagina e due a capo
-          } else {
-            console.warn(`API - extractTextFromApiFile: OCR.space - Errore parsing pagina ${index + 1}:`, parsedPage.ErrorMessage, parsedPage.ErrorDetails);
-          }
-        });
-        
-        const finalText = fullText.trim();
-        console.log("API - extractTextFromApiFile: Testo finale aggregato da OCR.space lunghezza:", finalText.length);
-        console.log("API - extractTextFromApiFile: Testo finale OCR.space (primi 300 char):", finalText.substring(0, 300));
-        return finalText;
+      if (result.text) {
+        console.log(`API - extractTextFromApiFile: Testo estratto con iLovePDF. Lunghezza: ${result.text.length}`);
+        console.log("API - extractTextFromApiFile: Testo estratto (primi 300 caratteri):", result.text.substring(0, 300));
+        return result.text;
       } else {
-        console.warn("API - extractTextFromApiFile: OCR.space non ha restituito ParsedResults o è vuoto.");
+        console.warn("API - extractTextFromApiFile: L'API process_pdf non ha restituito testo.");
         return "";
       }
-
-    } catch (ocrSpaceError) {
-      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API OCR.space per PDF:", ocrSpaceError);
-      return ""; 
+    } catch (error) {
+      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API process_pdf:", error);
+      return "";
     }
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     console.log("API - extractTextFromApiFile: Tentativo parsing DOCX...");
