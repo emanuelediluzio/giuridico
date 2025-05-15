@@ -19,19 +19,196 @@ async function extractTextFromApiFile(file: File): Promise<string> {
     try {
       // Prepariamo il PDF per l'invio all'API process_pdf
       const buffer = Buffer.from(arrayBuffer);
-
-      // Ora usiamo una soluzione più affidabile per le chiamate serverless-to-serverless
-      // In Vercel le API serverless non possono chiamare altre API serverless con path relativi
-      // Dobbiamo inviare il PDF al browser e far gestire al client la chiamata a process_pdf
       
-      console.log("API - extractTextFromApiFile: Attualmente non possiamo estrarre testo PDF da serverless");
-      console.log("API - extractTextFromApiFile: Restituendo stringa vuota per PDF (si userà OCR per upload da client)");
+      // Chiamata diretta all'API iLovePDF utilizzando fetch con l'URL completo
+      // Questo dovrebbe funzionare correttamente perché stiamo facendo una chiamata diretta da server a server
+      const apiBaseUrl = 'https://api.ilovepdf.com/v1';
+      const apiKey = process.env.ILOVEPDF_API_KEY;
       
-      // Per ora, in questa implementazione serverless, restituiamo una stringa vuota
-      // In futuro dovremo gestire l'estrazione del testo lato client
-      return "";
+      if (!apiKey) {
+        console.error("API - extractTextFromApiFile: ILOVEPDF_API_KEY non configurata");
+        return "";
+      }
+      
+      console.log("API - extractTextFromApiFile: Ottengo token JWT da iLovePDF");
+      // 1. Autenticazione
+      const authResponse = await fetch(`${apiBaseUrl}/auth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ public_key: apiKey })
+      });
+      
+      if (!authResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore autenticazione iLovePDF (${authResponse.status})`);
+        return "";
+      }
+      
+      const authData = await authResponse.json();
+      const jwtToken = authData.token;
+      
+      console.log("API - extractTextFromApiFile: Token ottenuto, avvio task OCR");
+      // 2. Avvio task OCR
+      const startTaskResponse = await fetch(`${apiBaseUrl}/start/pdfocr`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      
+      if (!startTaskResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore avvio task OCR (${startTaskResponse.status})`);
+        return "";
+      }
+      
+      const taskData = await startTaskResponse.json();
+      const { task, server } = taskData;
+      
+      console.log(`API - extractTextFromApiFile: Task avviato: ${task}, Server: ${server}`);
+      
+      // 3. Upload file
+      const uploadFormData = new FormData();
+      uploadFormData.append('task', task);
+      uploadFormData.append('file', new Blob([buffer], { type: 'application/pdf' }), file.name);
+      
+      const uploadResponse = await fetch(`https://${server}/v1/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: uploadFormData
+      });
+      
+      if (!uploadResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore upload PDF (${uploadResponse.status})`);
+        return "";
+      }
+      
+      const uploadData = await uploadResponse.json();
+      const serverFilename = uploadData.server_filename;
+      
+      console.log(`API - extractTextFromApiFile: File caricato, server_filename: ${serverFilename}`);
+      
+      // 4. Process file
+      const processResponse = await fetch(`https://${server}/v1/process`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          task,
+          tool: 'pdfocr',
+          files: [{ server_filename: serverFilename, filename: file.name }],
+          ocr_languages: ['ita']
+        })
+      });
+      
+      if (!processResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore processamento OCR (${processResponse.status})`);
+        return "";
+      }
+      
+      console.log("API - extractTextFromApiFile: OCR completato, scarico file processato");
+      
+      // 5. Download processato
+      const downloadResponse = await fetch(`https://${server}/v1/download/${task}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      
+      if (!downloadResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore download file OCR (${downloadResponse.status})`);
+        return "";
+      }
+      
+      const pdfOcrBytes = await downloadResponse.arrayBuffer();
+      
+      // 6. Avvia task per estrazione testo
+      console.log("API - extractTextFromApiFile: File OCR scaricato, avvio estrazione testo");
+      
+      const startExtractResponse = await fetch(`${apiBaseUrl}/start/extract`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      
+      if (!startExtractResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore avvio task estrazione (${startExtractResponse.status})`);
+        return "";
+      }
+      
+      const extractTaskData = await startExtractResponse.json();
+      const { task: extractTask, server: extractServer } = extractTaskData;
+      
+      // 7. Upload file OCR per estrazione testo
+      const extractUploadFormData = new FormData();
+      extractUploadFormData.append('task', extractTask);
+      extractUploadFormData.append('file', new Blob([pdfOcrBytes], { type: 'application/pdf' }), "ocr_output.pdf");
+      
+      const extractUploadResponse = await fetch(`https://${extractServer}/v1/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: extractUploadFormData
+      });
+      
+      if (!extractUploadResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore upload PDF OCR (${extractUploadResponse.status})`);
+        return "";
+      }
+      
+      const extractUploadData = await extractUploadResponse.json();
+      const extractServerFilename = extractUploadData.server_filename;
+      
+      // 8. Process extract
+      const extractProcessResponse = await fetch(`https://${extractServer}/v1/process`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          task: extractTask,
+          tool: 'extract',
+          files: [{ server_filename: extractServerFilename, filename: "ocr_output.pdf" }]
+        })
+      });
+      
+      if (!extractProcessResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore processamento estrazione (${extractProcessResponse.status})`);
+        return "";
+      }
+      
+      console.log("API - extractTextFromApiFile: Estrazione completata, scarico testo");
+      
+      // 9. Download testo
+      const textDownloadResponse = await fetch(`https://${extractServer}/v1/download/${extractTask}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      
+      if (!textDownloadResponse.ok) {
+        console.error(`API - extractTextFromApiFile: Errore download testo (${textDownloadResponse.status})`);
+        return "";
+      }
+      
+      const textBytes = await textDownloadResponse.arrayBuffer();
+      const finalText = new TextDecoder().decode(textBytes);
+      
+      console.log(`API - extractTextFromApiFile: Testo estratto, lunghezza ${finalText.length} caratteri`);
+      console.log("API - extractTextFromApiFile: Primi 300 caratteri:", finalText.substring(0, 300));
+      
+      return finalText;
     } catch (error) {
-      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API process_pdf:", error);
+      console.error("API - extractTextFromApiFile: ERRORE durante interazione con API iLovePDF:", error);
       return "";
     }
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
