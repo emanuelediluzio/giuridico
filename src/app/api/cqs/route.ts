@@ -82,8 +82,12 @@ export async function POST(req: NextRequest) {
     logMessage("ERRORE: MISTRAL_API_KEY non configurata.");
     return NextResponse.json({ error: "Configurazione API mancante." }, { status: 500 });
   }
-  // Modificato: new MistralClient -> new (MistralClient as any)
-  const mistralClient = new (MistralClient as any)(MISTRAL_API_KEY);
+  
+  // Tentativo di risolvere il TypeError: h(...) is not a constructor
+  // Accediamo a .default se esiste, altrimenti usiamo MistralClient direttamente.
+  // Manteniamo 'as any' per sopprimere errori TS durante questa fase di debug runtime.
+  const ClientConstructor = (MistralClient as any).default || MistralClient;
+  const mistralClient = new (ClientConstructor as any)(MISTRAL_API_KEY);
 
   try {
     const formData = await req.formData();

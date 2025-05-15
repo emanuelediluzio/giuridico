@@ -110,13 +110,20 @@ export default function Home() {
 
       if (!res.ok) {
         let errorData;
+        const resClone = res.clone(); // Clona la risposta per poterla leggere più volte
         try {
-          errorData = await res.json();
+          errorData = await res.json(); // Primo tentativo di lettura del corpo
         } catch (jsonError) {
-          const errorText = await res.text();
-          throw new Error(errorText || `Errore dal server: ${res.status}`);
+          try {
+            const errorText = await resClone.text(); // Secondo tentativo sul clone
+            throw new Error(errorText || `Errore dal server: ${res.status} ${res.statusText}`);
+          } catch (textError) {
+            // Se entrambi i tentativi di lettura del corpo falliscono, solleva un errore generico
+            throw new Error(`Errore dal server: ${res.status} ${res.statusText}. Impossibile leggere il corpo della risposta.`);
+          }
         }
-        throw new Error(errorData.error || "Errore durante il calcolo. Riprova.");
+        // Se res.json() ha avuto successo, ma errorData.error non è definito, usa un messaggio generico.
+        throw new Error(errorData?.error || `Errore durante l'elaborazione della richiesta: ${res.status} ${res.statusText}`);
       }
 
       const data: ResultData = await res.json();
