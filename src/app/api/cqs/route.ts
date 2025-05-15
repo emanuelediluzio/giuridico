@@ -4,6 +4,7 @@ import WordExtractor from 'word-extractor';
 import mammoth from 'mammoth';
 
 export const runtime = 'nodejs';
+export const maxDuration = 30; // Aumentiamo a 30 secondi
 
 // Rimuoviamo la funzione delay se OCR.space non richiede polling esplicito (risposta diretta)
 // const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -98,77 +99,91 @@ export async function POST(request: Request) {
     let contractText = "";
     let statementText = "";
     let templateText = ""; // Usato solo se NON è .doc
-    let originalTemplateFileName = "template.txt"; // Default
+
+    // Impostiamo un timeout generale per l'intera funzione
+    const timeout = setTimeout(() => {
+      console.error("API - TIMEOUT: La funzione ha impiegato troppo tempo");
+    }, 25000); // 25 secondi di avviso, prima del timeout effettivo di 30 secondi
 
     if (contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
-      console.log("API - FormData ricevuto:", Array.from(formData.keys())); // Logga tutte le chiavi
+      try {
+        const formData = await request.formData();
+        console.log("API - FormData ricevuto:", Array.from(formData.keys())); // Logga tutte le chiavi
 
-      const contractFile = formData.get("contractFile") as File | null;
-      const statementFile = formData.get("statementFile") as File | null;
-      const templateFile = formData.get("templateFile") as File | null;
+        const contractFile = formData.get("contractFile") as File | null;
+        const statementFile = formData.get("statementFile") as File | null;
+        const templateFile = formData.get("templateFile") as File | null;
 
-      console.log("API - Contract File:", contractFile ? { name: contractFile.name, size: contractFile.size, type: contractFile.type } : "NON TROVATO");
-      console.log("API - Statement File:", statementFile ? { name: statementFile.name, size: statementFile.size, type: statementFile.type } : "NON TROVATO");
-      console.log("API - Template File:", templateFile ? { name: templateFile.name, size: templateFile.size, type: templateFile.type } : "NON TROVATO");
+        console.log("API - Contract File:", contractFile ? { name: contractFile.name, size: contractFile.size, type: contractFile.type } : "NON TROVATO");
+        console.log("API - Statement File:", statementFile ? { name: statementFile.name, size: statementFile.size, type: statementFile.type } : "NON TROVATO");
+        console.log("API - Template File:", templateFile ? { name: templateFile.name, size: templateFile.size, type: templateFile.type } : "NON TROVATO");
 
-      if (contractFile) {
-        contractText = await extractTextFromApiFile(contractFile);
-      } else {
-        contractText = formData.get('contractText') as string || '';
-      }
+        // Utilizziamo Promise.all per processare i file in parallelo
+        const results = await Promise.all([
+          contractFile ? extractTextFromApiFile(contractFile) : formData.get('contractText') as string || '',
+          statementFile ? extractTextFromApiFile(statementFile) : formData.get('statementText') as string || '',
+          templateFile ? extractTextFromApiFile(templateFile) : formData.get('templateText') as string || ''
+        ]);
 
-      if (statementFile) {
-        statementText = await extractTextFromApiFile(statementFile);
-      } else {
-        statementText = formData.get('statementText') as string || '';
-      }
-      
-      if (templateFile) {
-        templateText = await extractTextFromApiFile(templateFile);
-      } else {
-        templateText = formData.get('templateText') as string || '';
+        [contractText, statementText, templateText] = results;
+
+      } catch (formError) {
+        console.error("API - Errore durante elaborazione FormData:", formError);
+        clearTimeout(timeout);
+        return NextResponse.json(
+          { error: 'Errore durante elaborazione dei file caricati' },
+          { status: 400 }
+        );
       }
     } else if (contentType.includes('application/json')) {
       const body = await request.json();
       contractText = body.contractText || '';
       statementText = body.statementText || '';
-      statementText = body.templateText || '';
+      templateText = body.templateText || '';
     }
-    // LOG dei dati ricevuti
+
+    // LOG dei dati ricevuti (versione breve)
     console.log('--- API /api/cqs ---');
-    console.log('CONTRACT:', contractText);
-    console.log('STATEMENT:', statementText);
-    console.log('TEMPLATE:', templateText);
+    console.log('CONTRACT:', contractText.substring(0, 100) + '...');
+    console.log('STATEMENT:', statementText.substring(0, 100) + '...');
+    console.log('TEMPLATE:', templateText.substring(0, 100) + '...');
+
     if (!contractText) {
+      clearTimeout(timeout);
       return NextResponse.json(
-        { error: 'Devi fornire almeno testo.' },
+        { error: 'Devi fornire almeno testo del contratto.' },
         { status: 400 }
       );
     }
+
     // Calcola il rimborso se c'è testo
     let result = undefined, letter = undefined;
     if (contractText && statementText) {
       result = calcolaRimborso(contractText, statementText);
-      letter = generaLettera(
-        templateText,
-        result.rimborso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }),
-        {
-          nomeCliente: result.nomeCliente,
-          dataChiusura: result.dataChiusura
-        }
-      );
+      if (templateText) {
+        letter = generaLettera(
+          templateText,
+          result.rimborso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }),
+          {
+            nomeCliente: result.nomeCliente,
+            dataChiusura: result.dataChiusura
+          }
+        );
+      }
     }
+
+    clearTimeout(timeout);
     return NextResponse.json({
       ...(result ? { ...result, letter } : {}),
-      debugContractText: contractText,
-      debugStatementText: statementText,
-      debugTemplateText: templateText
+      // Inviamo solo i primi 500 caratteri per debug
+      debugContractText: contractText.substring(0, 500),
+      debugStatementText: statementText.substring(0, 500),
+      debugTemplateText: templateText.substring(0, 500) 
     });
   } catch (error) {
     console.error('Errore:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message + (error.stack ? ('\n' + error.stack) : '') : String(error) },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
