@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/process_pdf/index.py": {
+      "runtime": "python3.9"
+    }
+  },
   "headers": [
     {
       "source": "/site.webmanifest",
