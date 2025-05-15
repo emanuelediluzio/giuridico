@@ -12,7 +12,7 @@ const logMessage = (message: string, data?: any) => {
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
     logMessage("Inizio estrazione testo da PDF con pdf-parse", { name: file.name, size: file.size, type: file.type });
-    const arrayBuffer = await file.arrayBuffer();
+  const arrayBuffer = await file.arrayBuffer();
     const data = await pdfParse(Buffer.from(arrayBuffer));
     logMessage("Testo estratto con pdf-parse", { length: data.text.length });
     return data.text;
@@ -26,8 +26,8 @@ async function extractTextFromPDF(file: File): Promise<string> {
 async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<string> {
   if (!file) {
     logMessage("File del contratto non fornito per OCR Mistral.");
-    return "";
-  }
+      return "";
+    }
   if (!apiKey) {
     logMessage("API Key Mistral non fornita per OCR.");
     return "Errore: MISTRAL_API_KEY non configurata.";
@@ -58,8 +58,8 @@ async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<st
       }),
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
+      if (!response.ok) {
+        const errorBody = await response.text();
       logMessage(`Errore API OCR Mistral: ${response.status} ${response.statusText}`, errorBody);
       throw new Error(`Mistral OCR API error: ${response.status} ${errorBody}`);
     }
@@ -70,10 +70,10 @@ async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<st
       const markdownText = ocrResult.pages.map((page: any) => page.markdown || "").join("\n\n");
       logMessage("Testo estratto con Mistral OCR", { length: markdownText.length });
       return markdownText;
-    } else {
+          } else {
       logMessage("Risposta OCR Mistral non valida o senza pagine.", ocrResult);
-      return "";
-    }
+        return "";
+      }
 
   } catch (error) {
     logMessage("Errore durante estrazione testo con Mistral OCR", error);
@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let contractText = "";
-  let statementText = "";
+    let contractText = "";
+    let statementText = "";
   let templateText = "";
   let filesInfo: { contract: string; statement: string; template: string } = {
     contract: "NON TROVATO",
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const formData = await request.formData();
+      const formData = await request.formData();
     logMessage("FormData ricevuto");
 
     // Log all form data entries
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     const statementFile = formData.get("statement") as File | null;
     const templateFile = formData.get("template") as File | null;
 
-    if (contractFile) {
+      if (contractFile) {
       filesInfo.contract = `${contractFile.name} (${contractFile.size} bytes)`;
       logMessage("API - Contract File Trovato:", filesInfo.contract);
       // Utilizza Mistral OCR per il contratto
@@ -131,22 +131,22 @@ export async function POST(request: NextRequest) {
       }
     } else {
       logMessage("API - Contract File: NON TROVATO");
-    }
+      }
 
-    if (statementFile) {
+      if (statementFile) {
       filesInfo.statement = `${statementFile.name} (${statementFile.size} bytes)`;
       logMessage("API - Statement File Trovato:", filesInfo.statement);
       // Utilizza pdf-parse per il conteggio estintivo
       statementText = await extractTextFromPDF(statementFile);
-    } else {
+      } else {
       logMessage("API - Statement File: NON TROVATO");
-    }
-
-    if (templateFile) {
+      }
+      
+      if (templateFile) {
       filesInfo.template = `${templateFile.name} (${templateFile.size} bytes)`;
       logMessage("API - Template File Trovato:", filesInfo.template);
       templateText = await templateFile.text();
-    } else {
+      } else {
       logMessage("API - Template File: NON TROVATO");
     }
 
@@ -334,7 +334,7 @@ ${templateText || "Contenuto non disponibile o illeggibile."}
       { status: 500 }
     );
   }
-}
+} 
 
 // GET handler per testare se l'API è raggiungibile
 export async function GET() {
