@@ -99,6 +99,7 @@ export async function POST(request: Request) {
     let contractText = "";
     let statementText = "";
     let templateText = ""; // Usato solo se NON è .doc
+    let pdfUploaded = false;
 
     // Impostiamo un timeout generale per l'intera funzione
     const timeout = setTimeout(() => {
@@ -117,6 +118,11 @@ export async function POST(request: Request) {
         console.log("API - Contract File:", contractFile ? { name: contractFile.name, size: contractFile.size, type: contractFile.type } : "NON TROVATO");
         console.log("API - Statement File:", statementFile ? { name: statementFile.name, size: statementFile.size, type: statementFile.type } : "NON TROVATO");
         console.log("API - Template File:", templateFile ? { name: templateFile.name, size: templateFile.size, type: templateFile.type } : "NON TROVATO");
+
+        // Verifico se sono stati caricati file PDF
+        if (contractFile?.type === 'application/pdf' || statementFile?.type === 'application/pdf') {
+          pdfUploaded = true;
+        }
 
         // Utilizziamo Promise.all per processare i file in parallelo
         const results = await Promise.all([
@@ -148,7 +154,18 @@ export async function POST(request: Request) {
     console.log('STATEMENT:', statementText.substring(0, 100) + '...');
     console.log('TEMPLATE:', templateText.substring(0, 100) + '...');
 
-    if (!contractText) {
+    // Se sono stati caricati PDF ma non abbiamo testo estratto, non restituiamo errore
+    // ma informiamo l'utente che i PDF non possono essere elaborati dal server
+    if (pdfUploaded && (!contractText || !statementText)) {
+      clearTimeout(timeout);
+      return NextResponse.json({
+        message: "I file PDF caricati non possono essere elaborati lato server in questo momento.",
+        pdfProcessingDisabled: true,
+        templateText: templateText // Restituiamo comunque il template elaborato
+      }, { status: 200 });
+    }
+
+    if (!contractText && !pdfUploaded) {
       clearTimeout(timeout);
       return NextResponse.json(
         { error: 'Devi fornire almeno testo del contratto.' },
