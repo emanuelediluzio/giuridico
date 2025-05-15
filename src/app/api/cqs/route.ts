@@ -270,7 +270,7 @@ async function callOpenRouterAIMultimodal({ prompt, file }: { prompt: string, fi
 }
 
 export async function POST(request: Request) {
-  console.log("--- API POST INIZIO (v3) ---");
+  console.log("--- API POST INIZIO (v4) ---");
   try {
     const contentType = request.headers.get("content-type") || "";
     let contractText = "";
