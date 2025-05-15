@@ -217,7 +217,26 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
     try {
       const parsedContent = JSON.parse(contentString);
       logMessage("Contenuto del messaggio parsato con successo.");
-      return parsedContent;
+      
+      // Adattiamo la risposta al formato che si aspetta il frontend
+      const adaptedResponse = {
+        lettera: typeof parsedContent.letteraDiffidaCompleta === 'string' 
+          ? parsedContent.letteraDiffidaCompleta 
+          : JSON.stringify(parsedContent.letteraDiffidaCompleta, null, 2),
+        calcoli: `CALCOLI ESTRATTI:
+        
+${typeof parsedContent.calcoliEffettuati === 'string' 
+  ? parsedContent.calcoliEffettuati 
+  : JSON.stringify(parsedContent.calcoliEffettuati, null, 2)}
+
+DATI ESTRATTI:
+
+${JSON.stringify(parsedContent.datiEstratti || {}, null, 2)}
+
+${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + parsedContent.logAnalisi : ''}`,
+      };
+      
+      return adaptedResponse;
     } catch (e) {
       logMessage("Errore nel parsing del contenuto del messaggio JSON da Mistral", { 
         error: e, 
