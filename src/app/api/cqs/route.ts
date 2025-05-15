@@ -274,54 +274,112 @@ ${templateText || "Contenuto non disponibile o illeggibile."}
     const CHAT_API_URL = "https://api.mistral.ai/v1/chat/completions";
 
     const apiRequestBody = {
-      model: "mistral-large-latest", // o un altro modello appropriato
+      model: "mistral-medium-latest", // Cambio a medium che potrebbe essere più stabile con prompt lunghi
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
       ],
       response_format: { type: "json_object" }, // Per forzare l'output JSON
+      max_tokens: 4000, // Limito il numero di token per evitare risposte troppo lunghe
+      temperature: 0.1 // Temperatura più bassa per risposte più deterministiche
     };
 
     logMessage("Invio richiesta a Mistral Chat API...");
-    const mistralResponse = await fetch(CHAT_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${MISTRAL_API_KEY}`,
-      },
-      body: JSON.stringify(apiRequestBody),
-    });
-
-    logMessage("Risposta da Mistral Chat API ricevuta", { status: mistralResponse.status });
-
-    if (!mistralResponse.ok) {
-      const errorBody = await mistralResponse.text();
-      logMessage("Errore dalla Mistral Chat API", {
-        status: mistralResponse.status,
-        body: errorBody,
-      });
-      return NextResponse.json(
-        { error: "Errore dalla Mistral API", details: errorBody, filesInfo },
-        { status: mistralResponse.status }
-      );
-    }
-
-    const result = await mistralResponse.json();
-    logMessage("Risultato JSON da Mistral Chat API parsato.");
-
-    // Assumendo che 'result.choices[0].message.content' sia la stringa JSON che vogliamo
-    // e che il modello rispetti la richiesta di output JSON.
-    // Se il modello non restituisce un JSON valido come stringa nel content, 
-    // dovremmo adattare questo parsing o la struttura del prompt.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 secondi di timeout
+    
     try {
+      const mistralResponse = await fetch(CHAT_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${MISTRAL_API_KEY}`,
+        },
+        body: JSON.stringify(apiRequestBody),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      logMessage("Risposta da Mistral Chat API ricevuta", { status: mistralResponse.status });
+
+      if (!mistralResponse.ok) {
+        const errorBody = await mistralResponse.text();
+        logMessage("Errore dalla Mistral Chat API", {
+          status: mistralResponse.status,
+          body: errorBody,
+        });
+        return NextResponse.json(
+          { error: "Errore dalla Mistral API", details: errorBody, filesInfo },
+          { status: mistralResponse.status }
+        );
+      }
+
+      const result = await mistralResponse.json();
+      logMessage("Risultato JSON da Mistral Chat API parsato.");
+
+      // Estraiamo e verifichiamo il contenuto prima di tentare di parsarlo
       const contentString = result.choices[0].message.content;
-      const parsedContent = JSON.parse(contentString); // Parsa la stringa JSON
-      logMessage("Contenuto del messaggio parsato con successo.");
-      return NextResponse.json(parsedContent, { status: 200 });
-    } catch (e) {
-      logMessage("Errore nel parsing del contenuto del messaggio JSON da Mistral", { error: e, content: result.choices[0].message.content });
+      
+      // Verifichiamo che la risposta non sia solo spazi o tabulazioni
+      if (!contentString || contentString.trim() === '') {
+        logMessage("Mistral ha restituito una risposta vuota o solo spazi/tab");
+        return NextResponse.json(
+          { 
+            error: "Mistral ha restituito una risposta vuota o malformata.", 
+            details: "La risposta contiene solo spazi o è vuota. Prova a ridurre la dimensione dei documenti.",
+            filesInfo 
+          },
+          { status: 500 }
+        );
+      }
+      
+      // Log dei primi 100 caratteri per debugging
+      logMessage("Primi 100 caratteri della risposta:", contentString.substring(0, 100));
+      
+      try {
+        const parsedContent = JSON.parse(contentString); // Parsa la stringa JSON
+        logMessage("Contenuto del messaggio parsato con successo.");
+        return NextResponse.json(parsedContent, { status: 200 });
+      } catch (e) {
+        logMessage("Errore nel parsing del contenuto del messaggio JSON da Mistral", { 
+          error: e, 
+          contentPreview: contentString.substring(0, 200) // mostra solo i primi 200 caratteri
+        });
+        
+        // Tenta di costruire una risposta parziale con i dati che abbiamo
+        return NextResponse.json(
+          { 
+            error: "Errore nel parsing della risposta JSON da Mistral.", 
+            letteraDiffidaCompleta: "Errore nella generazione della lettera. Si prega di riprovare.",
+            calcoli: "È stato possibile estrarre correttamente i testi dai documenti:\n" +
+                    `- Contratto: ${contractText.length} caratteri\n` +
+                    `- Conteggio estintivo: ${statementText.length} caratteri\n` +
+                    `- Template: ${templateText.length} caratteri\n\n` +
+                    "Ma si è verificato un errore nell'elaborazione finale."
+          },
+          { status: 200 } // Restituiamo 200 con contenuto parziale invece di errore
+        );
+      }
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      logMessage("Errore durante la chiamata a Mistral API", fetchError);
+      
+      if (fetchError.name === 'AbortError') {
+        return NextResponse.json(
+          { 
+            error: "Timeout nella richiesta a Mistral API. L'elaborazione richiede troppo tempo.",
+            calcoli: "È stato possibile estrarre correttamente i testi dai documenti:\n" +
+                    `- Contratto: ${contractText.length} caratteri\n` +
+                    `- Conteggio estintivo: ${statementText.length} caratteri\n` +
+                    `- Template: ${templateText.length} caratteri\n\n` +
+                    "Ma l'elaborazione è stata interrotta per timeout. Prova con documenti più piccoli."
+          },
+          { status: 200 } // Restituiamo 200 con contenuto parziale invece di errore
+        );
+      }
+      
       return NextResponse.json(
-        { error: "Errore nel parsing della risposta JSON da Mistral.", details: result.choices[0].message.content, filesInfo },
+        { error: "Errore nella chiamata a Mistral API", details: fetchError.message, filesInfo },
         { status: 500 }
       );
     }
