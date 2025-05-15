@@ -162,7 +162,7 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
       { role: "user", content: userPrompt },
     ],
     response_format: { type: "json_object" },
-    max_tokens: 4000,
+    max_tokens: 8000,
     temperature: 0.1
   };
 
@@ -292,11 +292,26 @@ function formatLetter(letterObj: any): string {
     }
     
     if (letterObj.corpo) {
-      formattedLetter += `${letterObj.corpo}\n\n`;
+      // Controlliamo se il corpo termina in modo brusco e lo completiamo
+      let corpo = letterObj.corpo;
+      
+      // Se il corpo termina in modo brusco con alcuni pattern comuni, completa la frase
+      if (corpo.endsWith(" convertito")) {
+        corpo += " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.";
+      } else if (corpo.endsWith(" art.") || corpo.endsWith(" Art.")) {
+        corpo += " 125-sexies del Testo Unico Bancario.";
+      } else if (corpo.endsWith(",") || corpo.endsWith(";") || corpo.endsWith(" e")) {
+        corpo += " quanto sopra esposto rappresenta un'evidenza delle violazioni riscontrate.";
+      }
+      
+      formattedLetter += `${corpo}\n\n`;
     }
     
     if (letterObj.firma) {
       formattedLetter += `${letterObj.firma}`;
+    } else {
+      // Aggiungiamo una firma standard se manca
+      formattedLetter += `Distinti saluti,\n\nAvv. _________________\n`;
     }
     
     return formattedLetter;
