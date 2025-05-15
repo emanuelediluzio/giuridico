@@ -1,9 +1,12 @@
 {
-  "functions": {
-    "api/process_pdf/index.py": {
-      "runtime": "python3.9"
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/process_pdf/index.py",
+      "use": "@vercel/python",
+      "config": { "runtime": "python3.9" }
     }
-  },
+  ],
   "headers": [
     {
       "source": "/site.webmanifest",
