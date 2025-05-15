@@ -182,10 +182,17 @@ export default function Home() {
             <div>
               <h4 className="text-xl font-semibold text-gray-700 mb-3">Lettera di Diffida Proposta:</h4>
               <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
-                {result.lettera}
+                {result.lettera && result.lettera.trim().endsWith("convertito") 
+                  ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
+                  : result.lettera}
               </pre>
               <div className="flex space-x-4">
-                <DownloadPDFButton content={result.lettera} fileName="lettera_diffida.pdf" />
+                <DownloadPDFButton 
+                  content={result.lettera && result.lettera.trim().endsWith("convertito") 
+                    ? result.lettera + " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\nAvv. _________________" 
+                    : result.lettera} 
+                  fileName="lettera_diffida.pdf" 
+                />
                 <button 
                   onClick={() => {
                     setChatInitialPrompt(result.lettera);
