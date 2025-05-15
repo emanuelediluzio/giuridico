@@ -222,7 +222,7 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
       const adaptedResponse = {
         lettera: typeof parsedContent.letteraDiffidaCompleta === 'string' 
           ? parsedContent.letteraDiffidaCompleta 
-          : JSON.stringify(parsedContent.letteraDiffidaCompleta, null, 2),
+          : formatLetter(parsedContent.letteraDiffidaCompleta),
         calcoli: `CALCOLI ESTRATTI:
         
 ${typeof parsedContent.calcoliEffettuati === 'string' 
@@ -233,7 +233,7 @@ DATI ESTRATTI:
 
 ${JSON.stringify(parsedContent.datiEstratti || {}, null, 2)}
 
-${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + parsedContent.logAnalisi : ''}`,
+${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + (typeof parsedContent.logAnalisi === 'object' ? JSON.stringify(parsedContent.logAnalisi, null, 2) : parsedContent.logAnalisi) : ''}`,
       };
       
       return adaptedResponse;
@@ -273,6 +273,36 @@ ${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + parsedContent.logAnalisi : ''
       details: fetchError.message,
       filesInfo
     };
+  }
+}
+
+// Funzione per formattare la lettera quando arriva come oggetto
+function formatLetter(letterObj: any): string {
+  if (!letterObj) return "Lettera non disponibile";
+  
+  try {
+    // Se è già una stringa, restituiscila
+    if (typeof letterObj === 'string') return letterObj;
+    
+    // Se è un oggetto, formatta le parti
+    let formattedLetter = '';
+    
+    if (letterObj.intestazione) {
+      formattedLetter += `${letterObj.intestazione}\n\n`;
+    }
+    
+    if (letterObj.corpo) {
+      formattedLetter += `${letterObj.corpo}\n\n`;
+    }
+    
+    if (letterObj.firma) {
+      formattedLetter += `${letterObj.firma}`;
+    }
+    
+    return formattedLetter;
+  } catch (e) {
+    // In caso di errore, restituisci il JSON stringificato
+    return JSON.stringify(letterObj, null, 2);
   }
 }
 
