@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import WordExtractor from 'word-extractor';
 import mammoth from 'mammoth';
-import MistralClient from '@mistralai/mistralai';
 
 export const runtime = 'nodejs';
 export const maxDuration = 55; // Manteniamo 55 secondi, ma monitoriamo
@@ -43,25 +42,19 @@ async function extractTextLocally(file: File): Promise<string> {
 }
 
 // Funzione helper per estrarre testo usando Mistral OCR (attualmente placeholder)
-async function extractTextWithMistralOcr(file: File, client: any): Promise<string> { // Modificato client: MistralClient -> client: any
-  logMessage(`extractTextWithMistralOcr: Inizio OCR per ${file.name}`);
-  try {
-    logMessage("extractTextWithMistralOcr: Funzionalità OCR con SDK Mistral non implementata/disponibile in questo helper. Simulo estrazione fallita e restituisco stringa vuota.");
-    // In un'implementazione reale, qui ci sarebbe la logica per usare l'API OCR/multimodale di Mistral
-    return ""; 
-  } catch (error: any) {
-    logMessage(`extractTextWithMistralOcr: Errore OCR per ${file.name}: ${error.message}`);
-    throw error; 
-  }
+async function extractTextWithMistralOcr(file: File): Promise<string> {
+  logMessage(`extractTextWithMistralOcr: Placeholder per OCR di ${file.name}. Restituisco stringa vuota.`);
+  // In futuro, qui si potrebbe implementare una chiamata a un endpoint OCR di Mistral (se disponibile via REST) o a un servizio terzo.
+  return ""; 
 }
 
 // Funzione principale per estrarre testo, che decide la strategia
-async function extractTextFromFile(file: File, client: any): Promise<string> { // Modificato client: MistralClient -> client: any
+async function extractTextFromFile(file: File): Promise<string> {
   logMessage(`extractTextFromFile: Inizio estrazione per ${file.name}, tipo ${file.type}, size ${file.size}`);
   
   if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
-    logMessage(`extractTextFromFile: ${file.name} è PDF/Immagine, tento Mistral OCR.`);
-    return extractTextWithMistralOcr(file, client);
+    logMessage(`extractTextFromFile: ${file.name} è PDF/Immagine, uso placeholder OCR.`);
+    return extractTextWithMistralOcr(file);
   } else if (
     file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     file.type === 'application/msword' ||
@@ -70,24 +63,18 @@ async function extractTextFromFile(file: File, client: any): Promise<string> { /
     logMessage(`extractTextFromFile: ${file.name} è DOCX/DOC/TXT, uso utility locali.`);
     return extractTextLocally(file);
   } else {
-    logMessage(`extractTextFromFile: Formato file ${file.type} (${file.name}) non gestito esplicitamente, tento con Mistral OCR come fallback.`);
-    return extractTextWithMistralOcr(file, client);
+    logMessage(`extractTextFromFile: Formato file ${file.type} (${file.name}) non gestito, uso placeholder OCR.`);
+    return extractTextWithMistralOcr(file);
   }
 }
 
 export async function POST(req: NextRequest) {
-  logMessage("--- API POST INIZIO ---");
+  logMessage("--- API POST INIZIO (fetch_v1) ---");
 
   if (!MISTRAL_API_KEY) {
     logMessage("ERRORE: MISTRAL_API_KEY non configurata.");
     return NextResponse.json({ error: "Configurazione API mancante." }, { status: 500 });
   }
-  
-  // Tentativo di risolvere il TypeError: h(...) is not a constructor
-  // Accediamo a .default se esiste, altrimenti usiamo MistralClient direttamente.
-  // Manteniamo 'as any' per sopprimere errori TS durante questa fase di debug runtime.
-  const ClientConstructor = (MistralClient as any).default || MistralClient;
-  const mistralClient = new (ClientConstructor as any)(MISTRAL_API_KEY);
 
   try {
     const formData = await req.formData();
@@ -118,23 +105,19 @@ export async function POST(req: NextRequest) {
     logMessage(`File ricevuti: Contratto: ${contractFile.name}, Conteggio: ${statementFile.name}, Template: ${templateFile.name}`);
 
     let templateTextExtractedPromise: Promise<string>;
-    // Il template viene sempre letto localmente come testo, come da istruzioni utente.
-    // Non si usa OCR per il template, ma solo estrazione diretta.
     if (templateFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         templateFile.type === 'application/msword' ||
         templateFile.type === 'text/plain') {
         logMessage(`Template (${templateFile.name}) è ${templateFile.type}, uso utility locali.`);
         templateTextExtractedPromise = extractTextLocally(templateFile);
     } else {
-        logMessage(`Template (${templateFile.name}) è di tipo ${templateFile.type}, che non è DOC/DOCX/TXT. Tentativo di estrazione come testo semplice fallirà probabilmente o darà risultati inattesi. Procedo comunque con estrazione locale.`);
-        // Se il template non è un formato testuale atteso, extractTextLocally potrebbe restituire stringa vuota.
+        logMessage(`Template (${templateFile.name}) è di tipo ${templateFile.type}, che non è DOC/DOCX/TXT. Tento estrazione locale (potrebbe fallire).`);
         templateTextExtractedPromise = extractTextLocally(templateFile); 
     }
 
-
     const [contractTextExtracted, statementTextExtracted, templateTextExtracted] = await Promise.all([
-      extractTextFromFile(contractFile, mistralClient),
-      extractTextFromFile(statementFile, mistralClient),
+      extractTextFromFile(contractFile),
+      extractTextFromFile(statementFile),
       templateTextExtractedPromise
     ]);
     
@@ -145,10 +128,10 @@ export async function POST(req: NextRequest) {
     logMessage(`Testi estratti. Lunghezze: Contratto=${contractTextExtracted?.length ?? 0}, Conteggio=${statementTextExtracted?.length ?? 0}, Template=${templateTextExtracted?.length ?? 0}`);
     
     if (contractTextExtracted.length < 10 && (contractFile.type === 'application/pdf' || contractFile.type.startsWith('image/'))) {
-        logMessage("Testo estratto dal contratto (OCR) molto corto o assente. Qualità OCR potrebbe essere bassa o OCR non funzionante.");
+        logMessage("Testo estratto dal contratto (OCR placeholder) molto corto o assente.");
     }
     if (statementTextExtracted.length < 10 && (statementFile.type === 'application/pdf' || statementFile.type.startsWith('image/'))) {
-        logMessage("Testo estratto dal conteggio (OCR) molto corto o assente. Qualità OCR potrebbe essere bassa o OCR non funzionante.");
+        logMessage("Testo estratto dal conteggio (OCR placeholder) molto corto o assente.");
     }
 
     const promptMessages = [
@@ -246,45 +229,71 @@ export async function POST(req: NextRequest) {
       }
     ];
 
-    logMessage("Invio richiesta a Mistral Chat API...");
+    logMessage("Invio richiesta a Mistral Chat API tramite fetch...");
     const startTime = Date.now();
 
-    // Modificato: mistralClient.chat -> (mistralClient as any).chat
-    const chatResponse = await (mistralClient as any).chat({
-      model: 'mistral-large-latest', 
+    const mistralApiUrl = 'https://api.mistral.ai/v1/chat/completions';
+    const mistralPayload = {
+      model: 'mistral-large-latest', // o il modello che preferisci
       messages: promptMessages,
-      response_format: { type: 'json_object' } 
+      response_format: { type: 'json_object' }
+    };
+
+    const apiResponse = await fetch(mistralApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`
+      },
+      body: JSON.stringify(mistralPayload)
     });
     
     const endTime = Date.now();
-    logMessage(`Risposta ricevuta da Mistral Chat API in ${endTime - startTime}ms.`);
+    logMessage(`Risposta HTTP ricevuta da Mistral API in ${endTime - startTime}ms. Status: ${apiResponse.status}`);
+
+    if (!apiResponse.ok) {
+      const errorBody = await apiResponse.text();
+      logMessage(`Errore da API Mistral: ${apiResponse.status} - ${errorBody}`);
+      throw new Error(`Errore dall'API AI: ${apiResponse.status} - ${errorBody}`);
+    }
+
+    const chatResponse = await apiResponse.json();
 
     if (!chatResponse.choices || chatResponse.choices.length === 0 || !chatResponse.choices[0].message.content) {
-      logMessage("Risposta da Mistral non valida o vuota.");
-      throw new Error("Risposta da Mistral non valida o vuota.");
+      logMessage("Risposta JSON da Mistral non valida o contenuto messaggio vuoto.");
+      throw new Error("Risposta da Mistral non valida o contenuto messaggio vuoto.");
     }
 
     const responseContent = chatResponse.choices[0].message.content;
-    logMessage(`Contenuto grezzo della risposta da Mistral (primi 500 caratteri): ${responseContent.substring(0, 500)}...`);
+    logMessage(`Contenuto messaggio grezzo da Mistral (primi 500 caratteri): ${responseContent.substring(0, 500)}...`);
     
     let structuredResponse;
     try {
-      structuredResponse = JSON.parse(responseContent);
-    } catch (parseError) {
-      logMessage(`Errore nel parsing JSON della risposta di Mistral: ${parseError}`);
-      logMessage(`Risposta completa da Mistral (che ha causato errore di parsing): ${responseContent}`);
-      throw new Error(`Errore nel parsing della risposta JSON da Mistral. Risposta ricevuta: ${responseContent.substring(0, 200)}...`);
+      // Il contenuto è già un oggetto JSON se response_format: { type: 'json_object' } funziona correttamente
+      // e se il modello rispetta il formato. Altrimenti, potrebbe essere una stringa JSON da parsare.
+      if (typeof responseContent === 'string') {
+        structuredResponse = JSON.parse(responseContent);
+      } else if (typeof responseContent === 'object' && responseContent !== null) {
+        structuredResponse = responseContent; // Già un oggetto
+      } else {
+        throw new Error('Formato del contenuto del messaggio Mistral non riconosciuto.');
+      }
+    } catch (parseError: any) {
+      logMessage(`Errore nel parsing JSON della risposta di Mistral: ${parseError.message}`);
+      logMessage(`Risposta completa da Mistral (che ha causato errore di parsing): ${String(responseContent)}`);
+      throw new Error(`Errore nel parsing della risposta JSON da Mistral. Risposta: ${String(responseContent).substring(0, 200)}...`);
     }
 
-    logMessage("Risposta JSON strutturata da Mistral ricevuta.");
+    logMessage("Risposta JSON strutturata da Mistral ricevuta e parsata.");
     
     // Adattamento della risposta di Mistral al formato ResultData del frontend { lettera: string, calcoli: string }
     let calcoliContent = "Dettaglio calcoli non disponibile.";
     if (structuredResponse.calcoloRimborso) {
         try {
             calcoliContent = JSON.stringify(structuredResponse.calcoloRimborso, null, 2);
-        } catch (stringifyError) {
-            logMessage(`Errore durante JSON.stringify di structuredResponse.calcoloRimborso: ${stringifyError}`);
+        } catch (stringifyError: any) {
+            logMessage(`Errore durante JSON.stringify di structuredResponse.calcoloRimborso: ${stringifyError.message}`);
             calcoliContent = "Errore nella formattazione dei dettagli dei calcoli.";
         }
     }
@@ -294,7 +303,6 @@ export async function POST(req: NextRequest) {
     if (structuredResponse.erroriAnalisi && structuredResponse.erroriAnalisi.length > 0) {
         const erroriMsg = `Errori durante l'analisi AI: ${structuredResponse.erroriAnalisi.join('; ')}`;
         logMessage(erroriMsg);
-        // Aggiungiamo gli errori ai calcoli o alla lettera per visibilità nel frontend
         if (calcoliContent === "Dettaglio calcoli non disponibile.") {
             calcoliContent = erroriMsg;
         } else {
@@ -308,7 +316,6 @@ export async function POST(req: NextRequest) {
         letteraGenerata = "Lettera non generata (nessun contenuto specifico da Mistral).";
     }
 
-
     const resultDataForFrontend = {
         lettera: letteraGenerata,
         calcoli: calcoliContent,
@@ -316,31 +323,21 @@ export async function POST(req: NextRequest) {
 
     if (!resultDataForFrontend.lettera && !resultDataForFrontend.calcoli.includes("Errori durante l'analisi AI")) {
         logMessage("Rimborso o lettera non presenti o nulli nella risposta mappata di Mistral, senza errori espliciti.");
-         // Non sovrascriviamo calcoli se contengono già un errore.
         if (resultDataForFrontend.calcoli === "Dettaglio calcoli non disponibile."){
             resultDataForFrontend.calcoli = (resultDataForFrontend.calcoli || "") + 
             " Attenzione: il rimborso o la lettera potrebbero non essere stati generati o recuperati correttamente.";
         }
     }
-
     return NextResponse.json(resultDataForFrontend, { status: 200 });
 
   } catch (error: any) {
-    logMessage(`Errore generale nella funzione POST: ${error.stack || error.message || error}`);
+    logMessage(`Errore generale nella funzione POST: ${error.stack || error.message || String(error)}`);
     let errorMessage = "Errore interno del server durante l'elaborazione della richiesta.";
     if (error instanceof Error) {
       errorMessage = error.message;
     } else if (typeof error === 'string') {
       errorMessage = error;
     }
-    
-    // Controlla se è un errore specifico dell'API Mistral
-    if (error.constructor?.name?.includes('Mistral') || error.status) { 
-        logMessage(`Errore specifico da API Mistral: Status=${error.status}, Name=${error.name}, Message=${error.message}`);
-        errorMessage = `Errore dall'API AI (${error.name || 'MistralError'}): ${error.message || 'Dettagli non disponibili'}`;
-        return NextResponse.json({ error: errorMessage, details: error.message }, { status: error.status || 500 });
-    }
-
     return NextResponse.json({ error: errorMessage, details: String(error) }, { status: 500 });
   }
 } 
