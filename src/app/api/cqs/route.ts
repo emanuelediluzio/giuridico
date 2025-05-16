@@ -83,7 +83,7 @@ async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<st
 }
 
 // Funzione per limitare la dimensione del testo mantenendo le parti più significative
-function trimDocumentText(text: string, maxLength = 10000): string {
+function trimDocumentText(text: string, maxLength = 25000): string {
   if (!text || text.length <= maxLength) return text;
   
   // Prendiamo l'inizio (prime 2/5 del maxLength)
