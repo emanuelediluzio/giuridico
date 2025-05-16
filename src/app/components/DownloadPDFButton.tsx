@@ -14,11 +14,36 @@ export default function DownloadPDFButton({ content, fileName }: DownloadPDFButt
     doc.setFont("helvetica", "");
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 210, 297, "F");
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    const lines = doc.splitTextToSize(content, 180);
-    doc.text(lines, 15, 20);
+    // Margini (in mm)
+    const margin = 20;
+    const maxLineWidth = pageWidth - margin * 2;
+    let currentY = margin;
+    const lineHeightFactor = 1.4; // Aumenta per più spazio tra le linee
+    const fontSize = 12;
+    doc.setFontSize(fontSize);
+
+    // Rimuoviamo il rettangolo bianco, non è necessario se il contenuto riempie la pagina
+    // doc.setFillColor(255, 255, 255);
+    // doc.rect(0, 0, pageWidth, pageHeight, "F"); 
+
+    const lines = doc.splitTextToSize(content, maxLineWidth);
+
+    lines.forEach((line: string) => {
+      // Calcola l'altezza della linea corrente
+      const lineHeight = fontSize * lineHeightFactor / doc.internal.scaleFactor; // Altezza effettiva in mm
+      
+      if (currentY + lineHeight > pageHeight - margin) {
+        doc.addPage();
+        currentY = margin; // Reset Y per la nuova pagina
+      }
+      doc.text(line, margin, currentY);
+      currentY += lineHeight;
+    });
+
     doc.save(fileName);
   }
 

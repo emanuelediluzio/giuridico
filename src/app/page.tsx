@@ -54,9 +54,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
-  const [showChat, setShowChat] = useState<boolean>(false);
-  const [chatInitialPrompt, setChatInitialPrompt] = useState<string | undefined>(undefined);
-  const [mainScreen, setMainScreen] = useState<'home' | 'rimborso' | 'chat'>('home');
+  const [mainScreen, setMainScreen] = useState<'home' | 'rimborso'>('home');
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -128,7 +126,6 @@ export default function Home() {
 
       const data: ResultData = await res.json();
       setResult(data);
-      setChatInitialPrompt(data.lettera); // Aggiornato a lettera
 
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -271,16 +268,6 @@ export default function Home() {
                   })()} 
                   fileName="lettera_diffida.pdf" 
                 />
-                <button 
-                  onClick={() => {
-                    setChatInitialPrompt(result.lettera);
-                    setShowChat(true); // Questo presumibilmente apre un modale/sezione chat
-                    setMainScreen('chat'); // Assumendo che 'chat' sia la schermata per la chat AI
-                  }}
-                  className="px-6 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-150 ease-in-out shadow-sm"
-                >
-                  Modifica con AI
-                </button>
               </div>
             </div>
           )}
@@ -317,17 +304,11 @@ export default function Home() {
                   >
                     Calcola Rimborso
                   </button>
-                  <button 
-                    onClick={() => setMainScreen('chat')}
-                    className="btn-outline"
-                  >
-                    Chatta con Lexa
-                  </button>
                 </div>
               </div>
               
               {/* Feature Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-2xl mx-auto">
                 <div className="feature-card">
                   <div className="feature-icon">
                     {/* <CalculatorIcon className="w-6 h-6" fill="none" stroke="currentColor" /> */}
@@ -339,20 +320,6 @@ export default function Home() {
                     className="btn-primary btn-small"
                   >
                     Avvia calcolo
-                  </button>
-                </div>
-                
-                <div className="feature-card">
-                  <div className="feature-icon">
-                    {/* <ChatBubbleIcon className="w-6 h-6" fill="none" stroke="currentColor" /> */}
-                  </div>
-                  <h3 className="text-xl font-bold mb-3 text-slate-800">Assistente AI</h3>
-                  <p className="text-slate-600 mb-4">Interagisci con l'intelligenza artificiale legale per domande specifiche e assistenza immediata.</p>
-                  <button 
-                    onClick={() => setMainScreen('chat')} 
-                    className="btn-primary btn-small"
-                  >
-                    Inizia chat
                   </button>
                 </div>
               </div>
@@ -460,14 +427,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-          </div>
-        )}
-        
-        {mainScreen === 'chat' && (
-          <div className="container-lexa animate-fade-in mt-4">
-            {/* <ChatAI initialPrompt={chatInitialPrompt} onClose={() => setShowChat(false)} /> Commentato per risolvere errore lint */}
-            {/* <ChatAI onClose={() => { setShowChat(false); setMainScreen('home'); }} /> Ulteriormente commentato */}
-            <p>La funzionalità Chat sarà disponibile qui.</p> {/* Placeholder */}
           </div>
         )}
       </main>

@@ -3,14 +3,14 @@ import React, { useState } from 'react';
 // import XIcon from '@/assets/icons/x.svg';
 
 interface NavbarProps {
-  currentScreen?: 'home' | 'rimborso' | 'chat';
-  onScreenChange?: (screen: 'home' | 'rimborso' | 'chat') => void;
+  currentScreen?: 'home' | 'rimborso';
+  onScreenChange?: (screen: 'home' | 'rimborso') => void;
 }
 
 export default function Navbar({ currentScreen = 'home', onScreenChange }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleNavigate = (screen: 'home' | 'rimborso' | 'chat') => {
+  const handleNavigate = (screen: 'home' | 'rimborso') => {
     if (onScreenChange) {
       onScreenChange(screen);
       setMobileMenuOpen(false);
@@ -56,16 +56,6 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
           >
             Calcolo Rimborso
           </button>
-          <button
-            onClick={() => handleNavigate('chat')}
-            className={`px-5 py-2.5 rounded-xl transition-all duration-200 font-medium ${
-              currentScreen === 'chat' 
-                ? 'bg-blue-600 text-white shadow-md' 
-                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-            }`}
-          >
-            Chat con Lexa
-          </button>
         </div>
 
         {/* Mobile menu button */}
@@ -109,16 +99,6 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
               }`}
             >
               Calcolo Rimborso
-            </button>
-            <button
-              onClick={() => handleNavigate('chat')}
-              className={`block w-full text-left px-5 py-3 rounded-xl transition-all duration-200 font-medium ${
-                currentScreen === 'chat' 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-              }`}
-            >
-              Chat con Lexa
             </button>
           </div>
         </div>
