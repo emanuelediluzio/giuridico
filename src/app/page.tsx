@@ -111,6 +111,7 @@ export default function Home() {
       finalLetter = finalLetter.replace(/ \)/g, ")");
       finalLetter = finalLetter.replace(/\( /g, "(");
       finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
+      finalLetter = finalLetter.replace(/rappresentar Vi/g, "rappresentarVi");
       setLetterContent(finalLetter.trim());
     }
   }, [result]);
