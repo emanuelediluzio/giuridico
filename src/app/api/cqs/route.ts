@@ -124,7 +124,7 @@ Output: JSON con "letteraDiffidaCompleta", "datiEstratti", "calcoliEffettuati", 
   const trimmedTemplateText = templateText.length > 5000 ? 
     templateText.substring(0, 5000) : templateText;
     
-  logMessage("Dimensioni testi ridotte:", {
+  logMessage("Dimensioni testi ridotte (input per LLM):", {
     contractOriginal: contractText.length,
     contractTrimmed: trimmedContractText.length,
     statementOriginal: statementText.length,
@@ -132,6 +132,16 @@ Output: JSON con "letteraDiffidaCompleta", "datiEstratti", "calcoliEffettuati", 
     templateOriginal: templateText.length,
     templateTrimmed: trimmedTemplateText.length
   });
+
+  // LOG AGGIUNTIVI DEI TESTI TRONCATI
+  logMessage("--- DEBUG TESTI TRONCATI (input per LLM) ---");
+  logMessage("Testo Contratto TRONCATO (primi 500 char):", trimmedContractText.substring(0,500));
+  if (trimmedContractText.length > 500) logMessage("Testo Contratto TRONCATO (...ultimi 500 char):", trimmedContractText.substring(trimmedContractText.length - 500));
+  logMessage("Testo Conteggio TRONCATO (primi 500 char):", trimmedStatementText.substring(0,500));
+  if (trimmedStatementText.length > 500) logMessage("Testo Conteggio TRONCATO (...ultimi 500 char):", trimmedStatementText.substring(trimmedStatementText.length - 500));
+  logMessage("Testo Template TRONCATO (primi 500 char):", trimmedTemplateText.substring(0,500));
+  if (trimmedTemplateText.length > 500) logMessage("Testo Template TRONCATO (...ultimi 500 char):", trimmedTemplateText.substring(trimmedTemplateText.length - 500));
+  logMessage("--- FINE DEBUG TESTI TRONCATI ---");
 
   const userPrompt = `Analizza questi documenti e genera la lettera di diffida:
 
@@ -147,12 +157,22 @@ ${trimmedStatementText || "Contenuto non disponibile."}
 ${trimmedTemplateText || "Contenuto non disponibile."}
 </template_lettera>`;
 
-  logMessage("Prompt per Mistral AI:", { 
+  logMessage("Dimensioni Prompt per Mistral AI:", { 
     system: SYSTEM_PROMPT.length, 
     user: userPrompt.length,
     totale: SYSTEM_PROMPT.length + userPrompt.length
   });
   
+  // LOG AGGIUNTIVO USERPROMPT COMPLETO
+  logMessage("--- DEBUG USERPROMPT COMPLETO (input per LLM) ---");
+  logMessage("User Prompt (primi 1000 char):", userPrompt.substring(0,1000));
+  if (userPrompt.length > 1000) {
+    logMessage("User Prompt (...continuazione... ultimi 500 char):", userPrompt.substring(userPrompt.length - 500));
+  }
+  // Per un debug più approfondito, potresti voler loggare l'intero userPrompt, ma attenzione alle dimensioni dei log.
+  // Esempio: logMessage("User Prompt COMPLETO:", userPrompt);
+  logMessage("--- FINE DEBUG USERPROMPT COMPLETO ---");
+
   const CHAT_API_URL = "https://api.mistral.ai/v1/chat/completions";
 
   const apiRequestBody = {
@@ -373,10 +393,57 @@ export async function POST(request: NextRequest) {
     if (templateFile) {
       filesInfo.template = `${templateFile.name} (${templateFile.size} bytes)`;
       logMessage("API - Template File Trovato:", filesInfo.template);
-      templateText = await templateFile.text();
+      if (templateFile.type === "application/pdf") {
+        logMessage("Estrazione testo da template PDF...");
+        templateText = await extractTextFromPDF(templateFile);
+      } else if (templateFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || templateFile.type === "application/msword") {
+        logMessage("Estrazione testo da template DOCX/DOC...");
+        // Qui andrebbe una vera logica di parsing per DOCX/DOC lato server se necessaria
+        // Per ora, proviamo a leggerlo come testo, potrebbe funzionare per .docx semplici o se sono .doc salvati come .docx
+        // o se l'utente carica un .txt rinominato .docx. Altrimenti, l'output sarà probabilmente binario o illeggibile.
+        try {
+            templateText = await templateFile.text(); 
+            // Controllo se il testo sembra binario (euristica semplice)
+            if (templateText.includes("\\uFFFD") || templateText.substring(0,100).replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '').length < 50) {
+                logMessage("Lettura template DOCX/DOC come testo ha prodotto output sospetto/binario. Placeholder usato.");
+                templateText = "Contenuto template DOCX/DOC non direttamente leggibile come testo semplice. Implementare parser specifico se necessario.";
+            }
+        } catch (e) {
+            logMessage("Errore lettura template DOCX/DOC come testo", e);
+            templateText = "Errore lettura template DOCX/DOC";
+        }
+      } else { // Assumiamo .txt o altro formato testuale semplice
+        logMessage("Lettura template come testo semplice...");
+        try {
+            templateText = await templateFile.text();
+        } catch (e) {
+            logMessage("Errore lettura template come testo", e);
+            templateText = "Errore lettura template";
+        }
+      }
+      if (!templateText) {
+        logMessage("Estrazione/Lettura testo template fallita o ha prodotto testo vuoto.");
+        templateText = "Template non leggibile o vuoto.";
+      }
     } else {
       logMessage("API - Template File: NON TROVATO");
+      templateText = "Template file non fornito."; // Placeholder se il file non è proprio arrivato
     }
+    logMessage("Testo estratto per il template (primi 200 char):", templateText.substring(0,200));
+
+    // LOG AGGIUNTIVI PRIMA DI PROCESSWITHMISTRALCHAT
+    logMessage("--- DEBUG TESTI PRE-TRONCAMENTO (input per processWithMistralChat) ---");
+    logMessage("Testo Contratto (primi 500 char):", contractText.substring(0,500));
+    if (contractText.length > 500) logMessage("Testo Contratto (...ultimi 500 char):", contractText.substring(contractText.length - 500));
+    logMessage("Testo Conteggio (primi 500 char):", statementText.substring(0,500));
+    if (statementText.length > 500) logMessage("Testo Conteggio (...ultimi 500 char):", statementText.substring(statementText.length - 500));
+    logMessage("Testo Template (primi 500 char):", templateText.substring(0,500));
+    if (templateText.length > 500) logMessage("Testo Template (...ultimi 500 char):", templateText.substring(templateText.length - 500));
+    logMessage("--- FINE DEBUG TESTI PRE-TRONCAMENTO ---");
+
+    logMessage("Testo estratto per il contratto (primi 200 char):", contractText.substring(0,200));
+    logMessage("Testo estratto per il conteggio (primi 200 char):", statementText.substring(0,200));
+    // --- FINE SEZIONE CRITICA PER ESTRAZIONE TESTO ---
 
     logMessage("Riepilogo estrazione testi:", {
       contractTextLength: contractText.length,
