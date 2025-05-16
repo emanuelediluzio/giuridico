@@ -396,24 +396,24 @@ export async function POST(request: NextRequest) {
       if (templateFile.type === "application/pdf") {
         logMessage("Estrazione testo da template PDF...");
         templateText = await extractTextFromPDF(templateFile);
-      } else if (templateFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || templateFile.type === "application/msword") {
-        logMessage("Estrazione testo da template DOCX/DOC...");
-        // Qui andrebbe una vera logica di parsing per DOCX/DOC lato server se necessaria
-        // Per ora, proviamo a leggerlo come testo, potrebbe funzionare per .docx semplici o se sono .doc salvati come .docx
-        // o se l'utente carica un .txt rinominato .docx. Altrimenti, l'output sarà probabilmente binario o illeggibile.
+      } else if (templateFile.name.toLowerCase().endsWith(".doc")) {
+        logMessage("Rilevato template .doc (formato Word 97-2003). Questo formato non è direttamente leggibile come testo.");
+        templateText = "FORMATO TEMPLATE .DOC NON SUPPORTATO DIRETTAMENTE. Si prega di convertire il template in formato .txt, .md (Markdown), o .pdf e ricaricarlo. Il contenuto del template originale .doc non può essere utilizzato.";
+      } else if (templateFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") { // DOCX
+        logMessage("Estrazione testo da template DOCX...");
         try {
             templateText = await templateFile.text(); 
-            // Controllo se il testo sembra binario (euristica semplice)
-            if (templateText.includes("\\uFFFD") || templateText.substring(0,100).replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '').length < 50) {
-                logMessage("Lettura template DOCX/DOC come testo ha prodotto output sospetto/binario. Placeholder usato.");
-                templateText = "Contenuto template DOCX/DOC non direttamente leggibile come testo semplice. Implementare parser specifico se necessario.";
+            // Controllo euristico per contenuto sospetto/binario (può capitare se un .doc è mascherato da .docx o per encoding strani)
+            if (templateText.includes("\uFFFD") || templateText.substring(0,100).replace(/[\x00-\x1F\x7F-\x9F]/g, '').length < 50) {
+                logMessage("Lettura template DOCX come testo ha prodotto output sospetto/binario. Placeholder usato.");
+                templateText = "Contenuto template DOCX non correttamente leggibile come testo semplice. Provare a salvare come .txt, .md o .pdf.";
             }
         } catch (e) {
-            logMessage("Errore lettura template DOCX/DOC come testo", e);
-            templateText = "Errore lettura template DOCX/DOC";
+            logMessage("Errore lettura template DOCX come testo", e);
+            templateText = "Errore lettura template DOCX";
         }
-      } else { // Assumiamo .txt o altro formato testuale semplice
-        logMessage("Lettura template come testo semplice...");
+      } else { // Assumiamo .txt, .md o altro formato testuale semplice
+        logMessage("Lettura template come testo semplice (es. .txt, .md)...");
         try {
             templateText = await templateFile.text();
         } catch (e) {
