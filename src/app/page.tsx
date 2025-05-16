@@ -14,11 +14,11 @@ import "@fontsource/inter/700.css";
 
 // Import dinamico per ReactQuill per evitare problemi SSR
 // Tentativo di import più esplicito del default
-const ReactQuill = dynamic(() => import('react-quill').then(mod => mod.default), { 
+const ReactQuill = dynamic(() => import('react-quill-new'), { 
   ssr: false, 
   loading: () => <p>Caricamento editor...</p> // Aggiungi un fallback di caricamento
 });
-import 'react-quill/dist/quill.snow.css'; // Importa CSS per il tema snow di ReactQuill
+import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di ReactQuill
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
