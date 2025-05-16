@@ -119,8 +119,8 @@ Output: JSON con "letteraDiffidaCompleta", "datiEstratti", "calcoliEffettuati", 
 `;
 
   // Limitiamo la dimensione dei testi per ridurre il prompt
-  const trimmedContractText = trimDocumentText(contractText, 10000);
-  const trimmedStatementText = trimDocumentText(statementText, 10000);
+  const trimmedContractText = trimDocumentText(contractText);
+  const trimmedStatementText = trimDocumentText(statementText);
   const trimmedTemplateText = templateText.length > 5000 ? 
     templateText.substring(0, 5000) : templateText;
     
