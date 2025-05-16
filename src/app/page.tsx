@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import { extractTextFromPDF } from './components/pdfTextExtractClient';
+// import { extractTextFromPDF } from './components/pdfTextExtractClient'; // Client-side extraction rimosso
 import dynamic from 'next/dynamic';
 import ChatAI from './components/ChatAI';
 import Navbar from './components/Navbar';
@@ -17,7 +17,7 @@ const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton')
 // Interfaccia per i dati del risultato
 interface ResultData {
   lettera?: string; // Modificato da letter
-  calcoli?: string; // Aggiunto per i calcoli da Mistral
+  calcoli?: string; // Mantenuto per ora nella struttura dati, ma non visualizzato
   // Campi rimossi: rimborso, quotaNonGoduta, totaleCosti, durataTotale, durataResidua, storno, dettaglioCosti, nomeCliente, dataChiusura, message, pdfProcessingDisabled
 }
 
@@ -56,24 +56,56 @@ export default function Home() {
   const [progress, setProgress] = useState<number>(0);
   const [mainScreen, setMainScreen] = useState<'home' | 'rimborso'>('home');
 
+  const [letterContent, setLetterContent] = useState<string>('');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setter(e.target.files[0]);
       setError(null); // Pulisce l'errore quando un file viene cambiato/aggiunto
       setResult(null); // Pulisce i risultati precedenti
+      setLetterContent(''); // Resetta il contenuto della lettera
+      setIsEditing(false); // Esci dalla modalità modifica
     }
   };
 
   useEffect(() => {
-    // Rimuoviamo l'incremento graduale del progresso, lo gestiremo diversamente
-    // let timer: NodeJS.Timeout;
-    // if (isLoading && progress < 90) {
-    //   timer = setTimeout(() => {
-    //     setProgress(prevProgress => Math.min(prevProgress + 10, 90));
-    //   }, 500);
-    // }
-    // return () => clearTimeout(timer);
-  }, [isLoading, progress]);
+    if (result && result.lettera) {
+      let rawLetter = result.lettera || "";
+      rawLetter = rawLetter.replace(/\\n/g, "\n"); 
+
+      let finalLetter = rawLetter;
+      const signature = "Avv. Gabriele Scappaticci";
+      const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
+      
+      if (rawLetter.trim().endsWith("convertito")) {
+        finalLetter = rawLetter.trim() + " " + standardEnding;
+      } else if (rawLetter.includes("Avv. _________________")) {
+        finalLetter = rawLetter.replace("Avv. _________________", signature);
+      } else if (!rawLetter.trim().endsWith(signature.trim())) {
+        if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
+             finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
+        }
+      }
+      
+      finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^/\]]*non specificat[^/\]]*\] il \[[^/\]]*non specificat[^/\]]*\]\s*,?/gi, "");
+      finalLetter = finalLetter.replace(/\[[^/\]]*non specificat[^/\]]*\]/gi, ""); 
+      finalLetter = finalLetter.replace(/\[[^/\]]*[Nn]on disponibil[^/\]]*\]/gi, "");
+      finalLetter = finalLetter.replace(/\[[^/\]]*[Dd]ato [^/\]]*mancan[^/\]]*\]/gi, "");
+      finalLetter = finalLetter.replace(/\s*-\s*il\s*\[Data di nascita non specificata\]/gi, "");
+
+      finalLetter = finalLetter.replace(/ ,/g, ",");
+      finalLetter = finalLetter.replace(/ \./g, ".");
+      finalLetter = finalLetter.replace(/ {2,}/g, " "); 
+      finalLetter = finalLetter.replace(/\s+\n/g, "\n"); 
+      finalLetter = finalLetter.replace(/\n\s+/g, "\n"); 
+      finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n"); 
+      finalLetter = finalLetter.replace(/ \)/g, ")");
+      finalLetter = finalLetter.replace(/\( /g, "(");
+      finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
+      setLetterContent(finalLetter.trim());
+    }
+  }, [result]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,6 +118,8 @@ export default function Home() {
     setProgress(0);
     setError(null);
     setResult(null);
+    setLetterContent('');
+    setIsEditing(false);
 
     try {
       const formData = new FormData();
@@ -125,7 +159,7 @@ export default function Home() {
       }
 
       const data: ResultData = await res.json();
-      setResult(data);
+      setResult(data); // Questo triggererà l'useEffect per impostare letterContent
 
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -161,119 +195,57 @@ export default function Home() {
       );
     }
 
-    if (result) {
+    if (result && letterContent) { // Mostra solo se abbiamo result e letterContent
       return (
         <div className="mt-8 p-6 border border-gray-300 rounded-lg shadow-lg bg-white">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">Risultati Elaborazione</h3>
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
           
-          {result.calcoli && (
-            <div className="mb-6">
-              <h4 className="text-xl font-semibold text-gray-700 mb-3">Calcoli Estratti:</h4>
-              <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap">
-                {result.calcoli}
-              </pre>
-            </div>
+          {isEditing ? (
+            // @ts-ignore // Ignora temporaneamente l'errore di tipo per ReactQuill
+            <ReactQuill 
+              theme="snow" 
+              value={letterContent} 
+              onChange={setLetterContent} 
+              modules={{
+                toolbar: [
+                  [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
+                  [{size: []}],
+                  ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                  [{'list': 'ordered'}, {'list': 'bullet'}, 
+                   {'indent': '-1'}, {'indent': '+1'}],
+                  ['link', /*'image', 'video'*/], // Rimosso image e video per semplicità
+                  ['clean'],
+                  [{ 'align': [] }], // Aggiunto controllo allineamento
+                  [{ 'color': [] }, { 'background': [] }], // Aggiunto controllo colori
+                ],
+              }}
+              formats={[
+                'header', 'font', 'size',
+                'bold', 'italic', 'underline', 'strike', 'blockquote',
+                'list', 'bullet', 'indent',
+                'link', /*'image', 'video',*/
+                'align', 'color', 'background' // Aggiunto align, color, background
+              ]}
+              className="mb-4 bg-white" // Aggiunto bg-white per contrasto se necessario
+              style={{ height: '400px', marginBottom: '50px' }} // Aggiunto stile per altezza e margine inferiore per la toolbar
+            />
+          ) : (
+            <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
+              {letterContent}
+            </pre>
           )}
-          
-          {result.lettera && (
-            <div>
-              <h4 className="text-xl font-semibold text-gray-700 mb-3">Lettera di Diffida Proposta:</h4>
-              <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
-                {(() => {
-                  // Ottieni la lettera con completamento se necessario
-                  let rawLetter = result.lettera || "";
-
-                  // Normalizza i ritorni a capo (es. \n -> \n)
-                  rawLetter = rawLetter.replace(/\\n/g, "\n");
-
-                  let finalLetter = rawLetter;
-
-                  // Logica per la firma e la conclusione
-                  const signature = "Avv. Gabriele Scappaticci";
-                  const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
-                  
-                  if (rawLetter.trim().endsWith("convertito")) {
-                    finalLetter = rawLetter.trim() + " " + standardEnding;
-                  } else if (rawLetter.includes("Avv. _________________")) {
-                    finalLetter = rawLetter.replace("Avv. _________________", signature);
-                  } else if (!rawLetter.trim().endsWith(signature.trim())) {
-                    if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
-                         finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
-                    }
-                  }
-                  
-                  // Rimuovi i dati mancanti tra parentesi quadre in modo più generico
-                  finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^\/\]]*non specificat[^\/\]]*\] il \[[^\/\]]*non specificat[^\/\]]*\]\s*,?/gi, "");
-                  finalLetter = finalLetter.replace(/\[[^\/\]]*non specificat[^\/\]]*\]/gi, ""); // Deve essere case-insensitive per prendere "non specificato" e "Non specificato"
-                  finalLetter = finalLetter.replace(/\[[^\/\]]*[Nn]on disponibil[^\/\]]*\]/gi, "");
-                  finalLetter = finalLetter.replace(/\[[^\/\]]*[Dd]ato [^\/\]]*mancan[^\/\]]*\]/gi, "");
-                  finalLetter = finalLetter.replace(/\s*\-\s*il\s*\[Data di nascita non specificata\]/gi, "");
-
-
-                  // Correggi la punteggiatura e gli spazi
-                  finalLetter = finalLetter.replace(/ ,/g, ",");
-                  finalLetter = finalLetter.replace(/ \./g, ".");
-                  finalLetter = finalLetter.replace(/ {2,}/g, " "); // Rimuove spazi multipli
-                  finalLetter = finalLetter.replace(/\s+\n/g, "\n"); // Rimuove spazi prima di un a capo
-                  finalLetter = finalLetter.replace(/\n\s+/g, "\n"); // Rimuove spazi dopo un a capo
-                  finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n"); // Limita a un massimo di due a capo consecutivi
-                  finalLetter = finalLetter.replace(/ \)/g, ")");
-                  finalLetter = finalLetter.replace(/\( /g, "(");
-                  finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
-
-
-                  return finalLetter.trim();
-                })()}
-              </pre>
-              <div className="flex space-x-4">
-                <DownloadPDFButton 
-                  content={(() => {
-                    // Prepara lo stesso testo pulito anche per il PDF
-                    let rawLetter = result.lettera || "";
-                    rawLetter = rawLetter.replace(/\\n/g, "\n");
-                    let finalLetter = rawLetter;
-
-                    const signature = "Avv. Gabriele Scappaticci";
-                    const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
-
-                    if (rawLetter.trim().endsWith("convertito")) {
-                      finalLetter = rawLetter.trim() + " " + standardEnding;
-                    } else if (rawLetter.includes("Avv. _________________")) {
-                      finalLetter = rawLetter.replace("Avv. _________________", signature);
-                    } else if (!rawLetter.trim().endsWith(signature.trim())) {
-                       if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
-                           finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
-                       }
-                    }
-                    
-                    // Rimuovi i dati mancanti tra parentesi quadre
-                    finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^\/\]]*non specificat[^\/\]]*\] il \[[^\/\]]*non specificat[^\/\]]*\]\s*,?/gi, "");
-                    finalLetter = finalLetter.replace(/\[[^\/\]]*non specificat[^\/\]]*\]/gi, "");
-                    finalLetter = finalLetter.replace(/\[[^\/\]]*[Nn]on disponibil[^\/\]]*\]/gi, "");
-                    finalLetter = finalLetter.replace(/\[[^\/\]]*[Dd]ato [^\/\]]*mancan[^\/\]]*\]/gi, "");
-                    finalLetter = finalLetter.replace(/\s*\-\s*il\s*\[Data di nascita non specificata\]/gi, "");
-                    
-                    // Correggi la punteggiatura e gli spazi
-                    finalLetter = finalLetter.replace(/ ,/g, ",");
-                    finalLetter = finalLetter.replace(/ \./g, ".");
-                    finalLetter = finalLetter.replace(/ {2,}/g, " ");
-                    finalLetter = finalLetter.replace(/\s+\n/g, "\n"); 
-                    finalLetter = finalLetter.replace(/\n\s+/g, "\n"); 
-                    finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n"); 
-                    finalLetter = finalLetter.replace(/ \)/g, ")");
-                    finalLetter = finalLetter.replace(/\( /g, "(");
-                    finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
-                    
-                    return finalLetter.trim();
-                  })()} 
-                  fileName="lettera_diffida.pdf" 
-                />
-              </div>
-            </div>
-          )}
-          {!result.calcoli && !result.lettera && (
-            <p className="text-gray-600">Nessun risultato specifico da visualizzare, ma l'elaborazione è terminata.</p>
-          )}
+          <div className="flex space-x-4">
+            <DownloadPDFButton 
+              content={letterContent} // Usa letterContent (potenzialmente modificato)
+              fileName="lettera_diffida.pdf" 
+            />
+            <button 
+              onClick={() => setIsEditing(!isEditing)}
+              className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-150 ease-in-out shadow-sm"
+            >
+              {isEditing ? 'Termina Modifica' : 'Modifica Lettera'}
+            </button>
+          </div>
         </div>
       );
     }
