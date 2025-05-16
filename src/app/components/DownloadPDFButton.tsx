@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import html2pdf from 'html2pdf.js';
+import MarkdownIt from 'markdown-it';
 
 interface DownloadPDFButtonProps {
   content: string;
@@ -9,42 +11,46 @@ interface DownloadPDFButtonProps {
 export default function DownloadPDFButton({ content, fileName }: DownloadPDFButtonProps) {
   async function handleDownloadPDF() {
     if (!content) return;
-    const { default: jsPDF } = await import("jspdf");
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    doc.setFont("helvetica", "");
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
 
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    
-    // Margini (in mm)
-    const margin = 20;
-    const maxLineWidth = pageWidth - margin * 2;
-    let currentY = margin;
-    const lineHeightFactor = 1.4; // Aumenta per più spazio tra le linee
-    const fontSize = 12;
-    doc.setFontSize(fontSize);
-
-    // Rimuoviamo il rettangolo bianco, non è necessario se il contenuto riempie la pagina
-    // doc.setFillColor(255, 255, 255);
-    // doc.rect(0, 0, pageWidth, pageHeight, "F"); 
-
-    const lines = doc.splitTextToSize(content, maxLineWidth);
-
-    lines.forEach((line: string) => {
-      // Calcola l'altezza della linea corrente
-      const lineHeight = fontSize * lineHeightFactor / doc.internal.scaleFactor; // Altezza effettiva in mm
-      
-      if (currentY + lineHeight > pageHeight - margin) {
-        doc.addPage();
-        currentY = margin; // Reset Y per la nuova pagina
-      }
-      doc.text(line, margin, currentY);
-      currentY += lineHeight;
+    const md = new MarkdownIt({
+      html: true,        // Permette tag HTML nel markdown (se presenti)
+      linkify: true,     // Autolink URL
+      typographer: true, // Abilita alcune sostituzioni tipografiche intelligenti
+      breaks: true       // Converte '\n' in <br> nel testo sorgente
     });
 
-    doc.save(fileName);
+    // Converte il testo semplice (con \n per le nuove righe) in HTML
+    const htmlContent = md.render(content);
+
+    // HTML finale con stili inline per il PDF
+    const finalStyledHtml = `
+      <style>
+        body {
+          font-family: 'Times New Roman', Times, serif;
+          font-size: 12pt;
+          line-height: 1.6;
+          text-align: justify;
+        }
+        p, div { /* Assicura che anche i div generici abbiano questi stili se md.render non wrappa tutto in p */
+          margin-bottom: 0.5em; /* Spazio tra "paragrafi" o blocchi di testo */
+        }
+        /* Puoi aggiungere altri stili CSS qui se necessario */
+      </style>
+      <div>
+        ${htmlContent}
+      </div>
+    `;
+
+    const options = {
+      margin: 20, // Margine uniforme di 20mm (può essere un array [top, left, bottom, right])
+      filename: fileName,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false }, // Aumenta scala per qualità, disabilita logging console
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'avoid-all'] } // Evita interruzioni dentro elementi, rispetta CSS page-break
+    };
+
+    html2pdf().from(finalStyledHtml).set(options).save();
   }
 
   return (
