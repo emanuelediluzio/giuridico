@@ -167,9 +167,9 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
   };
 
   logMessage("Invio richiesta a Mistral Chat API...");
-  // Utilizziamo un timeout più stretto (40 secondi) per lasciare tempo di processare la risposta
+  // Utilizziamo un timeout più stretto (50 secondi) per lasciare tempo di processare la risposta
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 40000);
+  const timeoutId = setTimeout(() => controller.abort("Timeout interno per Mistral Chat API dopo 50s"), 50000); // Aumentato a 50 secondi
   
   try {
     const mistralResponse = await fetch(CHAT_API_URL, {
@@ -191,8 +191,12 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
         status: mistralResponse.status,
         body: errorBody,
       });
+      // Se l'errore è dovuto a un AbortError (anche se catturato qui come !ok), 
+      // il controller.signal.reason potrebbe contenere il messaggio di abort.
+      // Tuttavia, mistralResponse.ok sarà false per errori HTTP, non per AbortError pre-request.
+      // L'AbortError viene catturato nel blocco catch.
       return {
-        error: "Errore dalla Mistral API",
+        error: `Errore dalla Mistral API: ${mistralResponse.status}`,
         details: errorBody,
         filesInfo
       };
@@ -253,24 +257,20 @@ ${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + (typeof parsedContent.logAnal
                 "Ma si è verificato un errore nell'elaborazione finale."
       };
     }
-  } catch (fetchError: any) {
-    clearTimeout(timeoutId);
-    logMessage("Errore durante la chiamata a Mistral API", fetchError);
-    
-    if (fetchError.name === 'AbortError') {
+  } catch (error: any) {
+    clearTimeout(timeoutId); // Assicurati di pulire il timeout
+    if (error.name === 'AbortError') {
+      logMessage("Chiamata a Mistral Chat API interrotta da AbortController", { reason: controller.signal.reason, error });
       return {
-        error: "Timeout nella richiesta a Mistral API. L'elaborazione richiede troppo tempo.",
-        calcoli: "È stato possibile estrarre correttamente i testi dai documenti:\n" +
-                `- Contratto: ${contractText.length} caratteri\n` +
-                `- Conteggio estintivo: ${statementText.length} caratteri\n` +
-                `- Template: ${templateText.length} caratteri\n\n` +
-                "Ma l'elaborazione è stata interrotta per timeout. Prova con documenti più piccoli."
+        error: "Timeout durante la comunicazione con l'AI",
+        details: controller.signal.reason || "L'elaborazione AI ha richiesto troppo tempo (timeout interno 50s). Prova con documenti più piccoli o riprova.",
+        filesInfo
       };
     }
-    
+    logMessage("Errore generico durante la chiamata a Mistral Chat API", { error });
     return {
-      error: "Errore nella chiamata a Mistral API",
-      details: fetchError.message,
+      error: "Errore imprevisto durante la comunicazione con l'AI",
+      details: error instanceof Error ? error.message : String(error),
       filesInfo
     };
   }
