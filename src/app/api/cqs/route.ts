@@ -106,16 +106,22 @@ function trimDocumentText(text: string, maxLength = 25000): string {
 async function processWithMistralChat(contractText: string, statementText: string, templateText: string, MISTRAL_API_KEY: string, filesInfo: any): Promise<any> {
   // Versione più compatta del sistema prompt
   const SYSTEM_PROMPT = `
-Sei un assistente legale specializzato in Cessioni del Quinto dello Stipendio (CQS). Analizza tre documenti:
+Sei un assistente legale esperto specializzato in Cessioni del Quinto dello Stipendio (CQS). Analizza tre documenti forniti:
 1. CONTRATTO CQS: Estrai dati anagrafici, dettagli finanziamento (importo, rate, TAN, TAEG), info assicurative.
 2. CONTEGGIO ESTINTIVO: Estrai data, debito residuo, interessi, commissioni, importo estinzione.
 3. TEMPLATE LETTERA: Usa questo template per creare la lettera di diffida.
 
-OBBIETTIVI:
-1. Calcola: interessi non goduti, premi assicurativi non goduti, commissioni non maturate, totale rimborso.
-2. Compila la lettera di diffida usando il template e i dati estratti.
+OBBIETTIVI PRINCIPALI:
+1. **Compilare la lettera di diffida**: Utilizza il template fornito e i dati estratti dai documenti. Questa è la priorità assoluta.
+2. Calcolare (se possibile): interessi non goduti, premi assicurativi non goduti, commissioni non maturate, e il totale rimborso.
 
-Output: JSON con "letteraDiffidaCompleta", "datiEstratti", "calcoliEffettuati", "logAnalisi".
+Output: Devi restituire un oggetto JSON.
+L'oggetto JSON DEVE contenere il campo "letteraDiffidaCompleta" con il testo completo della lettera generata.
+Se possibile, includi anche:
+- "datiEstratti": un oggetto con i dati chiave estratti dai documenti.
+- "calcoliEffettuati": un oggetto o una stringa con i calcoli dettagliati per il rimborso.
+- "logAnalisi": una breve descrizione testuale del tuo processo di analisi e dei punti critici identificati.
+Se hai difficoltà a popolare tutti i campi, DAI PRIORITÀ ASSOLUTA ALLA GENERAZIONE DI "letteraDiffidaCompleta".
 `;
 
   // Limitiamo la dimensione dei testi per ridurre il prompt
@@ -241,6 +247,10 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
     try {
       const parsedContent = JSON.parse(contentString);
       logMessage("Contenuto del messaggio parsato con successo.");
+      
+      if (!parsedContent.letteraDiffidaCompleta || parsedContent.letteraDiffidaCompleta.trim() === "") {
+        logMessage("ATTENZIONE: 'letteraDiffidaCompleta' è vuota o mancante nel JSON parsato. Contenuto grezzo della risposta da Mistral:", contentString);
+      }
       
       // Adattiamo la risposta al formato che si aspetta il frontend
       const adaptedResponse = {
