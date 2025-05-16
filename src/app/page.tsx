@@ -2,7 +2,7 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 // import { extractTextFromPDF } from './components/pdfTextExtractClient'; // Client-side extraction rimosso
 import dynamic from 'next/dynamic';
-import ChatAI from './components/ChatAI';
+// import ChatAI from './components/ChatAI'; // Rimosso perché non più utilizzato
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import "@fontsource/inter/400.css";
@@ -11,6 +11,14 @@ import "@fontsource/inter/700.css";
 
 // import CalculatorIcon from '@/assets/icons/calculator.svg?react';
 // import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg?react';
+
+// Import dinamico per ReactQuill per evitare problemi SSR
+// Tentativo di import più esplicito del default
+const ReactQuill = dynamic(() => import('react-quill').then(mod => mod.default), { 
+  ssr: false, 
+  loading: () => <p>Caricamento editor...</p> // Aggiungi un fallback di caricamento
+});
+import 'react-quill/dist/quill.snow.css'; // Importa CSS per il tema snow di ReactQuill
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 
@@ -201,7 +209,7 @@ export default function Home() {
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
           
           {isEditing ? (
-            // @ts-ignore // Ignora temporaneamente l'errore di tipo per ReactQuill
+            // @ts-ignore // Rimosso per ora per vedere l'errore di tipo effettivo se presente
             <ReactQuill 
               theme="snow" 
               value={letterContent} 
