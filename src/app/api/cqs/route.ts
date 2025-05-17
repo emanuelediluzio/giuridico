@@ -306,8 +306,12 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
       const parsedContent = JSON.parse(contentString);
       logMessage("Contenuto del messaggio parsato con successo.");
       
-      if (!parsedContent.letteraDiffidaCompleta || parsedContent.letteraDiffidaCompleta.trim() === "") {
-        logMessage("ATTENZIONE: 'letteraDiffidaCompleta' è vuota o mancante nel JSON parsato. Contenuto grezzo della risposta da Mistral:", contentString);
+      // Verifica corretta per letteraDiffidaCompleta come oggetto
+      if (!parsedContent.letteraDiffidaCompleta || 
+          typeof parsedContent.letteraDiffidaCompleta !== 'object' || 
+          !parsedContent.letteraDiffidaCompleta.corpoLettera || 
+          parsedContent.letteraDiffidaCompleta.corpoLettera.trim() === "") {
+        logMessage("ATTENZIONE: 'letteraDiffidaCompleta' non è un oggetto valido o 'corpoLettera' è vuoto/mancante. Contenuto grezzo:", contentString);
       }
       
       // Adattiamo la risposta al formato che si aspetta il frontend
