@@ -138,6 +138,7 @@ OBBIETTIVI PRINCIPALI (in ordine di importanza):
         *   'Somma Totale Richiesta = Quota Parte Costi Upfront Rimborsabili + Quota Parte Premi Assicurativi Rimborsabili'.
     *   Indicare che nel conteggio estintivo la banca ha (o non ha) riconosciuto rimborsi per tali costi (basandoti sulla voce "RIDUZIONE COSTO TOTALE DEL CREDITO" o simili nel conteggio estintivo). Se non ha riconosciuto nulla, la lettera lo deve specificare.
     *   Citare l'art. 125-sexies TUB.
+    *   **Non includere formule di saluto finale (come "Distinti saluti") o la firma dell'avvocato direttamente nel testo principale della lettera che produci per il campo 'corpo'. La firma sarà gestita separatamente.**
 2.  **DETTAGLIARE I CALCOLI**: Nel campo 'calcoliEffettuati' del JSON, fornisci una descrizione chiara di come sei arrivato alla somma richiesta, specificando:
     *   Quali voci di costo dal contratto hai incluso nei "Costi Upfront Rimborsabili" e il loro importo totale.
     *   L'importo dei "Premi Assicurativi" considerato.
@@ -145,9 +146,12 @@ OBBIETTIVI PRINCIPALI (in ordine di importanza):
     *   La formula *pro rata temporis* applicata.
 
 OUTPUT: Devi restituire un oggetto JSON.
-L'oggetto JSON DEVE contenere il campo "letteraDiffidaCompleta" con il testo completo della lettera generata.
+L'oggetto JSON DEVE contenere il campo "letteraDiffidaCompleta" che sarà un oggetto con le seguenti proprietà: "intestazione", "corpo", "firma".
+    *   "intestazione": Includi l'oggetto della lettera e l'indirizzo del destinatario.
+    *   "corpo": Includi tutto il testo della lettera dalla formula di apertura (es. "Spett.le...") fino alla frase che precede immediatamente i saluti finali. Non includere "Distinti saluti" o la firma qui.
+    *   "firma": Includi solo la parte relativa all'avvocato (es. "Avv. Nome Cognome" o "Avv. [Nome Avvocato da template/documenti]"). Se il nome dell'avvocato non è chiaramente identificabile, usa "Avv. [Nome Avvocato]".
 Includi SEMPRE anche:
-- "datiEstratti": un oggetto con i dati chiave estratti dai documenti (dati cliente completi, finanziaria, dettagli contratto, costi upfront identificati, premi assicurativi, dettagli estinzione, importo rimborsato dalla banca se presente).
+- "datiEstratti": un oggetto con i dati chiave estratti dai documenti (dati cliente completi, finanziaria, dettagli contratto, costi upfront identificati, premi assicurativi, dettagli estinzione, importo rimborsato dalla banca se presente, nome avvocato se identificato).
 - "calcoliEffettuati": una stringa o un oggetto JSON che dettaglia i calcoli come sopra specificato.
 - "logAnalisi": una breve descrizione testuale del tuo processo di analisi, delle voci di costo identificate come rimborsabili e di come hai interpretato il conteggio estintivo rispetto ai rimborsi già effettuati dalla banca.
 Se hai difficoltà a popolare tutti i campi, DAI PRIORITÀ ASSOLUTA ALLA GENERAZIONE DI "letteraDiffidaCompleta", ma cerca di fornire sempre anche "datiEstratti", "calcoliEffettuati" e "logAnalisi" al meglio delle tue capacità.
@@ -350,30 +354,43 @@ function formatLetter(letterObj: any): string {
       formattedLetter += `${letterObj.intestazione}\n\n`;
     }
     
+    let corpoDellaLettera = "";
     if (letterObj.corpo) {
       // Controlliamo se il corpo termina in modo brusco e lo completiamo
-      let corpo = letterObj.corpo;
+      corpoDellaLettera = letterObj.corpo;
       
       // Se il corpo termina in modo brusco con alcuni pattern comuni, completa la frase
-      if (corpo.endsWith(" convertito")) {
-        corpo += " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.";
-      } else if (corpo.endsWith(" art.") || corpo.endsWith(" Art.")) {
-        corpo += " 125-sexies del Testo Unico Bancario.";
-      } else if (corpo.endsWith(",") || corpo.endsWith(";") || corpo.endsWith(" e")) {
-        corpo += " quanto sopra esposto rappresenta un'evidenza delle violazioni riscontrate.";
+      if (corpoDellaLettera.endsWith(" convertito")) {
+        corpoDellaLettera += " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.";
+      } else if (corpoDellaLettera.endsWith(" art.") || corpoDellaLettera.endsWith(" Art.")) {
+        corpoDellaLettera += " 125-sexies del Testo Unico Bancario.";
+      } else if (corpoDellaLettera.endsWith(",") || corpoDellaLettera.endsWith(";") || corpoDellaLettera.endsWith(" e")) {
+        corpoDellaLettera += " quanto sopra esposto rappresenta un'evidenza delle violazioni riscontrate.";
       }
       
-      formattedLetter += `${corpo}\n\n`;
+      formattedLetter += `${corpoDellaLettera}\n\n`;
     }
     
+    // Gestione della firma per evitare duplicazioni
+    const salutoStandard = "Distinti saluti";
+    const corpoContieneSaluto = corpoDellaLettera.toLowerCase().includes(salutoStandard.toLowerCase());
+
     if (letterObj.firma) {
-      formattedLetter += `${letterObj.firma}`;
+      // Se la firma fornita dall'AI non inizia già con un saluto, e il corpo non lo contiene, aggiungiamo un saluto standard.
+      // Altrimenti, usiamo la firma così com'è, presumendo che sia completa o che il saluto sia già nel corpo.
+      if (!letterObj.firma.toLowerCase().startsWith(salutoStandard.toLowerCase()) && !corpoContieneSaluto) {
+        formattedLetter += `${salutoStandard},\n\n${letterObj.firma}`;
+      } else {
+        formattedLetter += `${letterObj.firma}`;
+      }
     } else {
-      // Aggiungiamo una firma standard se manca
-      formattedLetter += `Distinti saluti,\n\nAvv. _________________\n`;
+      // Se l'AI non fornisce una firma e il corpo non contiene già un saluto, aggiungiamo una firma standard completa.
+      if (!corpoContieneSaluto) {
+        formattedLetter += `${salutoStandard},\n\nAvv. _________________\n`;
+      }
     }
     
-    return formattedLetter;
+    return formattedLetter.trim(); // Trim per rimuovere eventuali spazi bianchi extra alla fine
   } catch (e) {
     // In caso di errore, restituisci il JSON stringificato
     return JSON.stringify(letterObj, null, 2);
