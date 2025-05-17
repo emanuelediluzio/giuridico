@@ -128,12 +128,12 @@ OBBIETTIVI PRINCIPALI (in ordine di importanza):
     *   Precisare il numero di rate residue al momento dell'estinzione.
     *   **Identificare e quantificare la somma richiesta a rimborso**. Questa somma deriva dalla quota parte dei COSTI UPFRONT (come commissioni di istruttoria, intermediazione, etc., ESCLUSI ONERI ERARIALI) e dei PREMI ASSICURATIVI pagati per il periodo non goduto.
     *   **Basare il calcolo della somma richiesta sul principio del *pro rata temporis***:
-        *   `Quota Parte Costi Upfront Rimborsabili = (Totale Costi Upfront Rimborsabili / Numero Totale Rate da Contratto) * Numero Rate Residue`.
-        *   `Quota Parte Premi Assicurativi Rimborsabili = (Totale Premi Assicurativi / Numero Totale Rate da Contratto) * Numero Rate Residue`.
-        *   `Somma Totale Richiesta = Quota Parte Costi Upfront Rimborsabili + Quota Parte Premi Assicurativi Rimborsabili`.
+        *   'Quota Parte Costi Upfront Rimborsabili = (Totale Costi Upfront Rimborsabili / Numero Totale Rate da Contratto) * Numero Rate Residue'.
+        *   'Quota Parte Premi Assicurativi Rimborsabili = (Totale Premi Assicurativi / Numero Totale Rate da Contratto) * Numero Rate Residue'.
+        *   'Somma Totale Richiesta = Quota Parte Costi Upfront Rimborsabili + Quota Parte Premi Assicurativi Rimborsabili'.
     *   Indicare che nel conteggio estintivo la banca ha (o non ha) riconosciuto rimborsi per tali costi (basandoti sulla voce "RIDUZIONE COSTO TOTALE DEL CREDITO" o simili nel conteggio estintivo). Se non ha riconosciuto nulla, la lettera lo deve specificare.
     *   Citare l'art. 125-sexies TUB.
-2.  **DETTAGLIARE I CALCOLI**: Nel campo `calcoliEffettuati` del JSON, fornisci una descrizione chiara di come sei arrivato alla somma richiesta, specificando:
+2.  **DETTAGLIARE I CALCOLI**: Nel campo 'calcoliEffettuati' del JSON, fornisci una descrizione chiara di come sei arrivato alla somma richiesta, specificando:
     *   Quali voci di costo dal contratto hai incluso nei "Costi Upfront Rimborsabili" e il loro importo totale.
     *   L'importo dei "Premi Assicurativi" considerato.
     *   Il numero totale delle rate da contratto e il numero di rate residue utilizzate nel calcolo.
