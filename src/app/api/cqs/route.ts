@@ -12,7 +12,7 @@ const logMessage = (message: string, data?: any) => {
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
     logMessage("Inizio estrazione testo da PDF con pdf-parse", { name: file.name, size: file.size, type: file.type });
-    const arrayBuffer = await file.arrayBuffer();
+  const arrayBuffer = await file.arrayBuffer();
     const data = await pdfParse(Buffer.from(arrayBuffer));
     logMessage("Testo estratto con pdf-parse", { length: data.text.length });
     return data.text;
@@ -58,8 +58,8 @@ async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<st
       }),
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
+      if (!response.ok) {
+        const errorBody = await response.text();
       logMessage(`Errore API OCR Mistral: ${response.status} ${response.statusText}`, errorBody);
       throw new Error(`Mistral OCR API error: ${response.status} ${errorBody}`);
     }
@@ -72,8 +72,8 @@ async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<st
       return markdownText;
     } else {
       logMessage("Risposta OCR Mistral non valida o senza pagine.", ocrResult);
-      return "";
-    }
+        return "";
+      }
 
   } catch (error) {
     logMessage("Errore durante estrazione testo con Mistral OCR", error);
@@ -110,10 +110,15 @@ Sei un assistente legale esperto, specializzato nell'analisi di contratti di Ces
 ANALIZZA TRE DOCUMENTI FORNITI:
 1.  **CONTRATTO CQS**: Estrai con precisione:
     *   Dati anagrafici completi del cliente (Nome, Cognome, Data di Nascita, Luogo di Nascita, Codice Fiscale).
-    *   Dati dell'istituto finanziatore.
-    *   Dettagli del finanziamento: importo erogato, numero totale delle rate, importo della singola rata, TAN, TAEG.
-    *   **Costi Upfront**: Identifica e quantifica voci come "COSTI TOTALI (CT)", "Spese di Istruttoria Pratica (SIP)", "Costi di Intermediazione (CI)", "Commissioni Bancarie/Finanziarie", "Spese Iniziali". Presta attenzione a clausole che indicano questi costi come "non rimborsabili" poiché la lettera di diffida contesterà proprio questo. NON includere gli "Oneri Erariali" (tasse, imposte di bollo) in questi costi rimborsabili.
-    *   **Premi Assicurativi**: Identifica l'importo dei premi assicurativi pagati (vita e/o impiego).
+    *   Dati dell'istituto finanziatore (Nome, Sede se disponibile, Codice Fiscale/P.IVA se disponibili).
+    *   Dettagli del finanziamento: importo erogato, numero totale delle rate, importo della singola rata, TAN, TAEG (se esplicitato).
+    *   **Costi Upfront Rimborsabili**: Identifica e quantifica ESCLUSIVAMENTE le seguenti voci di costo dal contratto. Per ogni voce, cerca l'etichetta esatta e l'importo numerico associato in euro. Converti gli importi in formato numerico (es. da "€ 1.994,40" a 1994.40).
+        *   "**COSTI DI INTERMEDIAZIONE (CI)**": Estrai l'importo e associalo al campo 'costiUpfront.costiIntermediazione'.
+        *   "**SPESE DI ISTRUTTORIA PRATICA (SIP)**": Estrai l'importo e associalo al campo 'costiUpfront.speseIstruttoriaPratica'.
+        *   "**ONERI ERARIALI (TAX)**" o simile (es. "Imposta di bollo", "Tasse governative"): Identifica l'importo. **IMPORTANTE: Questi oneri NON sono rimborsabili e NON devono essere inclusi nel calcolo della somma da restituire né nel totale dei 'costiUpfrontRimborsabili' nel JSON, ma è utile estrarli per completezza se presenti nel contratto sotto una voce separata dai costi rimborsabili.** Se devi popolare un campo JSON per questi, usa ad esempio 'costiUpfront.oneriErarialiNonRimborsabili'.
+        *   Altre voci chiaramente etichettate come "Commissioni Bancarie", "Commissioni Finanziarie", "Spese Iniziali", "Altre Commissioni" (escludendo sempre gli oneri erariali/tasse): Estrai gli importi e sommali se necessario per popolare 'costiUpfront.commissioniBancarie' o 'costiUpfront.speseIniziali' a seconda della natura della voce.
+        *   Nel popolare l'oggetto 'datiEstratti.costiUpfront', assicurati che 'totaleCostiUpfront' rifletta la somma dei soli costi considerati rimborsabili (quindi escludendo gli oneri erariali/TAX).
+    *   **Premi Assicurativi**: Identifica l'importo dei premi assicurativi pagati (es. "Premio Unico Polizza Vita", "Premio Polizza Impiego"). Se il contratto menziona polizze ma non esplicita un importo separato per i premi nel prospetto dei costi, considera l'importo come 0 per l'estrazione diretta. Popola i campi 'premiAssicurativi.premioAssicurativoVita' e 'premiAssicurativi.premioAssicurativoImpiego'. Il 'totalePremiAssicurativi' sarà la loro somma.
 2.  **CONTEGGIO ESTINTIVO**: Estrai con precisione:
     *   Data di estinzione anticipata del finanziamento.
     *   Numero di rate residue alla data di estinzione.
@@ -387,8 +392,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let contractText = "";
-  let statementText = "";
+    let contractText = "";
+    let statementText = "";
   let templateText = "";
   let filesInfo: { contract: string; statement: string; template: string } = {
     contract: "NON TROVATO",
@@ -397,15 +402,15 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const formData = await request.formData();
+      const formData = await request.formData();
     logMessage("FormData ricevuto");
-    
+
     const contractFile = formData.get("contratto") as File | null;
     const statementFile = formData.get("conteggio") as File | null;
-    const templateFile = formData.get("templateFile") as File | null;
+      const templateFile = formData.get("templateFile") as File | null;
 
     // Fase 1: Estrazione testi (questa è la parte veloce)
-    if (contractFile) {
+      if (contractFile) {
       filesInfo.contract = `${contractFile.name} (${contractFile.size} bytes)`;
       logMessage("API - Contract File Trovato:", filesInfo.contract);
       contractText = await extractTextWithMistralOcr(contractFile, MISTRAL_API_KEY);
@@ -414,17 +419,17 @@ export async function POST(request: NextRequest) {
       }
     } else {
       logMessage("API - Contract File: NON TROVATO");
-    }
+      }
 
-    if (statementFile) {
+      if (statementFile) {
       filesInfo.statement = `${statementFile.name} (${statementFile.size} bytes)`;
       logMessage("API - Statement File Trovato:", filesInfo.statement);
       statementText = await extractTextFromPDF(statementFile);
-    } else {
+      } else {
       logMessage("API - Statement File: NON TROVATO");
-    }
+      }
       
-    if (templateFile) {
+      if (templateFile) {
       filesInfo.template = `${templateFile.name} (${templateFile.size} bytes)`;
       logMessage("API - Template File Trovato:", filesInfo.template);
       if (templateFile.type === "application/pdf") {
