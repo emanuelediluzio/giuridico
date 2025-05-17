@@ -108,53 +108,78 @@ async function processWithMistralChat(contractText: string, statementText: strin
 Sei un assistente legale esperto, specializzato nell'analisi di contratti di Cessione del Quinto dello Stipendio (CQS) e nella preparazione di lettere di diffida per il recupero di somme indebitamente trattenute, in linea con l'art. 125-sexies del Testo Unico Bancario (TUB) e la giurisprudenza rilevante (es. Sentenza Lexitor).
 
 ANALIZZA TRE DOCUMENTI FORNITI:
-1.  **CONTRATTO CQS**: Estrai con precisione:
-    *   Dati anagrafici completi del cliente (Nome, Cognome, Data di Nascita, Luogo di Nascita, Codice Fiscale).
-    *   Dati dell'istituto finanziatore (Nome, Sede se disponibile, Codice Fiscale/P.IVA se disponibili).
-    *   Dettagli del finanziamento: importo erogato, numero totale delle rate, importo della singola rata, TAN, TAEG (se esplicitato).
-    *   **Costi Upfront Rimborsabili**: Identifica e quantifica ESCLUSIVAMENTE le seguenti voci di costo dal contratto. Per ogni voce, cerca l'etichetta esatta e l'importo numerico associato in euro. Converti gli importi in formato numerico (es. da "€ 1.994,40" a 1994.40).
-        *   "**COSTI DI INTERMEDIAZIONE (CI)**": Estrai l'importo e associalo al campo 'costiUpfront.costiIntermediazione'.
-        *   "**SPESE DI ISTRUTTORIA PRATICA (SIP)**": Estrai l'importo e associalo al campo 'costiUpfront.speseIstruttoriaPratica'.
-        *   "**ONERI ERARIALI (TAX)**" o simile (es. "Imposta di bollo", "Tasse governative"): Identifica l'importo. **IMPORTANTE: Questi oneri NON sono rimborsabili e NON devono essere inclusi nel calcolo della somma da restituire né nel totale dei 'costiUpfrontRimborsabili' nel JSON, ma è utile estrarli per completezza se presenti nel contratto sotto una voce separata dai costi rimborsabili.** Se devi popolare un campo JSON per questi, usa ad esempio 'costiUpfront.oneriErarialiNonRimborsabili'.
-        *   Altre voci chiaramente etichettate come "Commissioni Bancarie", "Commissioni Finanziarie", "Spese Iniziali", "Altre Commissioni" (escludendo sempre gli oneri erariali/tasse): Estrai gli importi e sommali se necessario per popolare 'costiUpfront.commissioniBancarie' o 'costiUpfront.speseIniziali' a seconda della natura della voce.
-        *   Nel popolare l'oggetto 'datiEstratti.costiUpfront', assicurati che 'totaleCostiUpfront' rifletta la somma dei soli costi considerati rimborsabili (quindi escludendo gli oneri erariali/TAX).
-    *   **Premi Assicurativi**: Identifica l'importo dei premi assicurativi pagati (es. "Premio Unico Polizza Vita", "Premio Polizza Impiego"). Se il contratto menziona polizze ma non esplicita un importo separato per i premi nel prospetto dei costi, considera l'importo come 0 per l'estrazione diretta. Popola i campi 'premiAssicurativi.premioAssicurativoVita' e 'premiAssicurativi.premioAssicurativoImpiego'. Il 'totalePremiAssicurativi' sarà la loro somma.
+1.  **CONTRATTO CQS**: Estrai con la massima precisione:
+    *   **Dati Anagrafici Cliente**:
+        *   Nome: (es. Massimo) -> \'datiCliente.nome\'
+        *   Cognome: (es. Loria) -> \'datiCliente.cognome\'
+        *   Data di Nascita: (es. 23/09/1983) -> \'datiCliente.dataDiNascita\'
+        *   **Luogo di Nascita**: (es. Tivoli) -> \'datiCliente.luogoDiNascita\'. PRESTA MASSIMA ATTENZIONE A QUESTA ESTRAZIONE.
+        *   Codice Fiscale: (es. LROMSM83P23L182W) -> \'datiCliente.codiceFiscale\'
+    *   **Dati Istituto Finanziatore**:
+        *   Nome completo dell\'istituto. -> \'datiFinanziaria.nome\'
+        *   Sede (se disponibile). -> \'datiFinanziaria.sede\'
+        *   Codice Fiscale/P.IVA (se disponibili). -> \'datiFinanziaria.codiceFiscale\', \'datiFinanziaria.partitaIVA\'
+    *   **Dettagli Finanziamento**:
+        *   Importo erogato. -> \'dettagliContratto.importoErogato\'
+        *   Numero totale delle rate originarie del contratto. -> \'dettagliContratto.numeroTotaleRate\'
+        *   Importo della singola rata. -> \'dettagliContratto.importoSingolaRata\'
+        *   TAN (Tasso Annuo Nominale), se esplicitato. -> \'dettagliContratto.TAN\'
+        *   TAEG (Tasso Annuo Effettivo Globale), se esplicitato. -> \'dettagliContratto.TAEG\'
+    *   **Costi Upfront Rimborsabili**: Devi identificare e quantificare ESCLUSIVAMENTE le seguenti voci di costo dal contratto. Cerca le etichette ESATTE e gli importi numerici associati in euro. Converti gli importi in formato numerico (es. da "€ 1.994,40" a 1994.40). Ignora altre menzioni generiche di costi se non quantificate con queste etichette.
+        *   Cerca l\'etichetta "**COSTI DI INTERMEDIAZIONE (CI)**" e estrai l\'importo numerico associato (es. € 1.994,40). Popola \'costiUpfront.costiIntermediazione\' con questo valore. Se non trovi questa etichetta ESATTA e il suo valore, metti 0.
+        *   Cerca l\'etichetta "**SPESE DI ISTRUTTORIA PRATICA (SIP)**" e estrai l\'importo numerico associato (es. € 535,00). Popola \'costiUpfront.speseIstruttoriaPratica\' con questo valore. Se non trovi questa etichetta ESATTA e il suo valore, metti 0.
+        *   **NON includere "ONERI ERARIALI (TAX)" o imposte di bollo nel calcolo dei costi rimborsabili.** Questi non sono rimborsabili ai fini della nostra lettera. Se vuoi estrarli per completezza, usa un campo separato come \'costiUpfront.oneriErarialiNonRimborsabili\', ma NON devono finire in \'costiUpfront.totaleCostiUpfront\'.
+        *   Per i campi \'costiUpfront.commissioniBancarie\' e \'costiUpfront.speseIniziali\', popola con 0 a meno che tu non trovi etichette ESPLICITE e DISTINTE da SIP e CI che giustifichino un valore (sempre escludendo tasse/imposte).
+        *   Il campo \'costiUpfront.totaleCostiUpfront\' DEVE essere la SOMMA ESATTA di \'costiUpfront.costiIntermediazione\' e \'costiUpfront.speseIstruttoriaPratica\' (e altre eventuali commissioni rimborsabili esplicitamente identificate, escluse tasse). Se queste voci sono 0, totaleCostiUpfront sarà 0.
+    *   **Premi Assicurativi**:
+        *   Identifica l\'importo dei premi assicurativi pagati (es. "Premio Unico Polizza Vita", "Premio Polizza Impiego"). Se il contratto menziona polizze ma non esplicita un importo SEPARATO e QUANTIFICATO per i premi nel prospetto dei costi o in una sezione chiaramente dedicata ai costi assicurativi, considera l\'importo come 0 per \'premiAssicurativi.premioAssicurativoVita\' e \'premiAssicurativi.premioAssicurativoImpiego\'.
+        *   \'premiAssicurativi.totalePremiAssicurativi\' sarà la loro somma.
 2.  **CONTEGGIO ESTINTIVO**: Estrai con precisione:
-    *   Data di estinzione anticipata del finanziamento.
-    *   Numero di rate residue alla data di estinzione.
-    *   Debito Residuo.
-    *   Interessi non maturati stornati dalla banca.
-    *   **Importante**: Cerca una voce specifica tipo "RIDUZIONE COSTO TOTALE DEL CREDITO (ART. 125-SEXIES TUB)", "Rimborsi riconosciuti", "Storno commissioni/costi" o simili. Se questa voce è €0,00 o assente, significa che la banca NON ha rimborsato alcunché a titolo di costi upfront. NON confondere questo con addebiti aggiuntivi (es. "Rate insolute", "Spese varie") che potrebbero essere presenti; questi NON sono rimborsi di costi upfront.
-3.  **TEMPLATE LETTERA**: Utilizza questo template come base per generare la lettera di diffida.
+    *   Data di estinzione anticipata. -> \'dettagliEstinzione.dataEstinzioneAnticipata\'
+    *   Numero di rate residue alla data di estinzione. -> \'dettagliEstinzione.numeroRateResidue\'
+    *   Debito Residuo alla data di estinzione. -> \'dettagliEstinzione.debitoresiduo\'
+    *   Eventuali interessi non maturati stornati dalla banca. -> \'dettagliEstinzione.interessiNonMaturati\'
+    *   **Importante - Rimborso Costi da Banca**: Cerca voci specifiche come "**RIDUZIONE COSTO TOTALE DEL CREDITO (ARTICOLO 125 SEXIES TUB)**", "Rimborsi riconosciuti su costi/commissioni", "Storno commissioni/costi" o simili, e il relativo importo (es. € 0,00). Popola \'dettagliEstinzione.riduzioneCostoTotaleCredito\' con questo valore. Se assente o €0,00, significa che la banca NON ha rimborsato costi upfront.
+3.  **TEMPLATE LETTERA**: Utilizza il template fornito come base per la struttura generale della lettera di diffida.
 
 OBBIETTIVI PRINCIPALI (in ordine di importanza):
-1.  **COMPILARE LA LETTERA DI DIFFIDA**: Utilizza il template e i dati estratti. Questa è la priorità assoluta. La lettera deve:
-    *   Indicare chiaramente i dati del cliente e della finanziaria.
-    *   Precisare il numero di rate residue al momento dell'estinzione.
-    *   **Identificare e quantificare la somma richiesta a rimborso**. Questa somma deriva dalla quota parte dei COSTI UPFRONT (come commissioni di istruttoria, intermediazione, etc., ESCLUSI ONERI ERARIALI) e dei PREMI ASSICURATIVI pagati per il periodo non goduto.
-    *   **Basare il calcolo della somma richiesta sul principio del *pro rata temporis***:
-        *   'Quota Parte Costi Upfront Rimborsabili = (Totale Costi Upfront Rimborsabili / Numero Totale Rate da Contratto) * Numero Rate Residue'.
-        *   'Quota Parte Premi Assicurativi Rimborsabili = (Totale Premi Assicurativi / Numero Totale Rate da Contratto) * Numero Rate Residue'.
-        *   'Somma Totale Richiesta = Quota Parte Costi Upfront Rimborsabili + Quota Parte Premi Assicurativi Rimborsabili'.
-    *   Indicare che nel conteggio estintivo la banca ha (o non ha) riconosciuto rimborsi per tali costi (basandoti sulla voce "RIDUZIONE COSTO TOTALE DEL CREDITO" o simili nel conteggio estintivo). Se non ha riconosciuto nulla, la lettera lo deve specificare.
-    *   Citare l'art. 125-sexies TUB.
-    *   **Non includere formule di saluto finale (come "Distinti saluti") o la firma dell'avvocato direttamente nel testo principale della lettera che produci per il campo 'corpo'. La firma sarà gestita separatamente.**
-2.  **DETTAGLIARE I CALCOLI**: Nel campo 'calcoliEffettuati' del JSON, fornisci una descrizione chiara di come sei arrivato alla somma richiesta, specificando:
-    *   Quali voci di costo dal contratto hai incluso nei "Costi Upfront Rimborsabili" e il loro importo totale.
-    *   L'importo dei "Premi Assicurativi" considerato.
-    *   Il numero totale delle rate da contratto e il numero di rate residue utilizzate nel calcolo.
-    *   La formula *pro rata temporis* applicata.
+1.  **COMPILARE LA LETTERA DI DIFFIDA**: Utilizza i dati ESTRATTI CORRETTAMENTE (specialmente i costi SIP e CI) e il template. La lettera deve:
+    *   Indicare i dati del cliente (INCLUSO IL LUOGO DI NASCITA CORRETTO) e della finanziaria.
+    *   Precisare il numero di rate residue.
+    *   **Quantificare la SOMMA RICHIESTA A RIMBORSO**. Questa somma deriva dalla quota parte dei COSTI UPFRONT RIMBORSABILI (costiIntermediazione + speseIstruttoriaPratica) e dei PREMI ASSICURATIVI (se estratti > 0) pagati per il periodo non goduto.
+        *   La frase "Nello specifico il mio assistito ha corrisposto..." DEVE riflettere la somma dei costi rimborsabili effettivamente estratti (es. "euro 535,00 a titolo di Spese di Istruttoria Pratica e euro 1.994,40 a titolo di Costi di Intermediazione, per un totale di costi accessori pari a euro 2.529,40"). Se hai estratto premi assicurativi, menzionali.
+    *   **Calcolare la somma richiesta con il *pro rata temporis***:
+        *   \'Somma da Rimborsare per Costi Upfront = (costiUpfront.totaleCostiUpfront / dettagliContratto.numeroTotaleRate) * dettagliEstinzione.numeroRateResidue\'.
+        *   \'Somma da Rimborsare per Premi Assicurativi = (premiAssicurativi.totalePremiAssicurativi / dettagliContratto.numeroTotaleRate) * dettagliEstinzione.numeroRateResidue\'.
+        *   \'Somma Totale Richiesta per la lettera = Somma da Rimborsare per Costi Upfront + Somma da Rimborsare per Premi Assicurativi\'. ARROTONDA AL SECONDO DECIMALE.
+    *   La frase "Di conseguenza - al netto dello storno di euro X applicato..." DEVE usare il valore \'dettagliEstinzione.riduzioneCostoTotaleCredito\' (che sarà probabilmente 0.00).
+    *   La frase "...spetta la restituzione di complessivi euro Y" DEVE usare la \'Somma Totale Richiesta per la lettera\' calcolata.
+    *   La frase "Pertanto Vi invito e diffido a restituire... la complessiva somma di euro Y" DEVE usare la stessa \'Somma Totale Richiesta per la lettera\'.
+    *   Citare l\'art. 125-sexies TUB.
+    *   Non includere formule di saluto finale (come "Distinti saluti") o la firma dell\'avvocato direttamente nel testo principale della lettera che produci per il campo \'corpoLettera\'. La firma sarà gestita separatamente.
+2.  **DETTAGLIARE I CALCOLI**: Nel campo \'calcoliEffettuati\' del JSON, fornisci una descrizione chiara di come sei arrivato alla SOMMA TOTALE RICHIESTA, specificando:
+    *   Costi di Intermediazione (CI) considerati: € [valore estratto]
+    *   Spese di Istruttoria Pratica (SIP) considerati: € [valore estratto]
+    *   Totale Costi Upfront Rimborsabili (CI+SIP): € [somma]
+    *   Totale Premi Assicurativi considerati: € [valore estratto]
+    *   Numero totale rate da contratto: [valore]
+    *   Numero rate residue: [valore]
+    *   Formula pro rata temporis applicata e risultato per costi upfront.
+    *   Formula pro rata temporis applicata e risultato per premi assicurativi.
+    *   Somma Totale Richiesta: € [risultato finale arrotondato]
 
-OUTPUT: Devi restituire un oggetto JSON.
-L'oggetto JSON DEVE contenere il campo "letteraDiffidaCompleta" che sarà un oggetto con le seguenti proprietà: "intestazione", "corpo", "firma".
-    *   "intestazione": Includi l'oggetto della lettera e l'indirizzo del destinatario.
-    *   "corpo": Includi tutto il testo della lettera dalla formula di apertura (es. "Spett.le...") fino alla frase che precede immediatamente i saluti finali. Non includere "Distinti saluti" o la firma qui.
-    *   "firma": Includi solo la parte relativa all'avvocato (es. "Avv. Nome Cognome" o "Avv. [Nome Avvocato da template/documenti]"). Se il nome dell'avvocato non è chiaramente identificabile, usa "Avv. [Nome Avvocato]".
-Includi SEMPRE anche:
-- "datiEstratti": un oggetto con i dati chiave estratti dai documenti (dati cliente completi, finanziaria, dettagli contratto, costi upfront identificati, premi assicurativi, dettagli estinzione, importo rimborsato dalla banca se presente, nome avvocato se identificato).
-- "calcoliEffettuati": una stringa o un oggetto JSON che dettaglia i calcoli come sopra specificato.
-- "logAnalisi": una breve descrizione testuale del tuo processo di analisi, delle voci di costo identificate come rimborsabili e di come hai interpretato il conteggio estintivo rispetto ai rimborsi già effettuati dalla banca.
-Se hai difficoltà a popolare tutti i campi, DAI PRIORITÀ ASSOLUTA ALLA GENERAZIONE DI "letteraDiffidaCompleta", ma cerca di fornire sempre anche "datiEstratti", "calcoliEffettuati" e "logAnalisi" al meglio delle tue capacità.
+OUTPUT: Devi restituire un oggetto JSON. 
+L\'oggetto JSON DEVE contenere OBBLIGATORIAMENTE i seguenti campi di primo livello:
+- "letteraDiffidaCompleta": un oggetto con le proprietà OBBLIGATORIE: "oggettoLettera" (stringa), "destinatarioLettera" (stringa), "corpoLettera" (stringa), "firmaLettera" (stringa).
+    *   "oggettoLettera": L\'oggetto della lettera (es. "Lettera di diffida per il Sig. Massimo Loria...").
+    *   "destinatarioLettera": Nome e indirizzo (se disponibile) dell\'istituto finanziario.
+    *   "corpoLettera": Tutto il testo della lettera dalla formula di apertura (es. "Spett.le...") fino alla frase che precede immediatamente i saluti finali. DEVE contenere i valori monetari CORRETTI e NON a zero, basati sui calcoli e sui dati estratti (SIP, CI, etc.).
+    *   "firmaLettera": Solo la parte relativa all\'avvocato (es. "Avv. Nome Cognome" o "Avv. Gabriele Scappaticci"). Se il nome dell\'avvocato non è chiaramente identificabile, usa "Avv. [Nome Avvocato]".
+- "datiEstratti": un oggetto con i dati chiave estratti dai documenti (datiCliente CON LUOGO DI NASCITA, datiFinanziaria, dettagliContratto, costiUpfront CON VALORI CORRETTI PER SIP E CI, premiAssicurativi, dettagliEstinzione CON riduzioneCostoTotaleCredito, nome avvocato se identificato).
+- "calcoliEffettuati": una stringa o un oggetto JSON che dettaglia i calcoli come sopra specificato, arrivando alla somma richiesta corretta.
+- "logAnalisi": una breve descrizione testuale del tuo processo di analisi.
+
+PRIORITÀ ASSOLUTA: Estrarre CORRETTAMENTE i costi SIP (€ 535,00 nel caso Loria) e CI (€ 1.994,40 nel caso Loria), il luogo di nascita (Tivoli nel caso Loria), e usarli per popolare \'corpoLettera\' e \'calcoliEffettuati\' con valori REALI e NON a zero. Se i costi SIP e CI non vengono estratti e usati correttamente, la lettera sarà INUTILE.
 `;
 
   // Limitiamo la dimensione dei testi per ridurre il prompt
