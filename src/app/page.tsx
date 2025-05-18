@@ -132,14 +132,14 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append('contratto', contract); // Nome corretto per il backend
-      formData.append('conteggio', statement); // Nome corretto per il backend
-      formData.append('templateFile', template);
+      formData.append('contract', contract); // Chiave per il backend
+      formData.append('statement', statement); // Chiave per il backend
+      formData.append('template', template); // Chiave per il backend
       
       console.log("PAGE.TSX - Contratto prima di append:", { name: contract.name, size: contract.size, type: contract.type });
-      console.log("PAGE.TSX - Conteggio prima di append:", { name: statement.name, size: statement.size, type: statement.type });
+      console.log("PAGE.TSX - Conteggio (Statement) prima di append:", { name: statement.name, size: statement.size, type: statement.type });
       console.log("PAGE.TSX - Template prima di append:", { name: template.name, size: template.size, type: template.type });
-      console.log("PAGE.TSX - FormData pronto per invio:", formData.has('contratto'), formData.has('conteggio'), formData.has('templateFile'));
+      console.log("PAGE.TSX - FormData pronto per invio (chiavi backend):", formData.has('contract'), formData.has('statement'), formData.has('template'));
 
       setProgress(10); // Inizio invio
       const res = await fetch('/api/cqs', {
