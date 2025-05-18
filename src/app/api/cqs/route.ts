@@ -152,12 +152,13 @@ OBBIETTIVI PRINCIPALI (in ordine di importanza):
         *   \'Somma da Rimborsare per Costi Upfront = (costiUpfront.totaleCostiUpfront / dettagliContratto.numeroTotaleRate) * dettagliEstinzione.numeroRateResidue\'.
         *   \'Somma da Rimborsare per Premi Assicurativi = (premiAssicurativi.totalePremiAssicurativi / dettagliContratto.numeroTotaleRate) * dettagliEstinzione.numeroRateResidue\'.
         *   \'Somma Totale Richiesta per la lettera = Somma da Rimborsare per Costi Upfront + Somma da Rimborsare per Premi Assicurativi\'. ARROTONDA AL SECONDO DECIMALE.
-    *   La frase "Di conseguenza - al netto dello storno di euro X applicato..." DEVE usare il valore \'dettagliEstinzione.riduzioneCostoTotaleCredito\' (che sarà probabilmente 0.00).
-    *   La frase "...spetta la restituzione di complessivi euro Y" DEVE usare la \'Somma Totale Richiesta per la lettera\' calcolata.
-    *   La frase "Pertanto Vi invito e diffido a restituire... la complessiva somma di euro Y" DEVE usare la stessa \'Somma Totale Richiesta per la lettera\'.
-    *   Citare l\'art. 125-sexies TUB.
-    *   Non includere formule di saluto finale (come "Distinti saluti") o la firma dell\'avvocato direttamente nel testo principale della lettera che produci per il campo \'corpoLettera\'. La firma sarà gestita separatamente.
-2.  **DETTAGLIARE I CALCOLI**: Nel campo \'calcoliEffettuati\' del JSON, fornisci una descrizione chiara di come sei arrivato alla SOMMA TOTALE RICHIESTA, specificando:
+    *   La frase "Di conseguenza - al netto dello storno di euro X applicato..." DEVE usare il valore 'dettagliEstinzione.riduzioneCostoTotaleCredito' (che sarà probabilmente 0.00).
+    *   La frase "...spetta la restituzione di complessivi euro Y" DEVE usare la 'Somma Totale Richiesta per la lettera' calcolata.
+    *   La frase "Pertanto Vi invito e diffido a restituire... la complessiva somma di euro Y" DEVE usare la stessa 'Somma Totale Richiesta per la lettera'.
+    *   Quando indichi la somma totale richiesta (euro Y), NON aggiungere la sua rappresentazione testuale in lettere (es. NON scrivere '(ottocentosessantanove/43)').
+    *   Citare l'art. 125-sexies TUB.
+    *   Non includere formule di saluto finale (come "Distinti saluti") o la firma dell'avvocato direttamente nel testo principale della lettera che produci per il campo 'corpoLettera'. La firma sarà gestita separatamente.
+2.  **DETTAGLIARE I CALCOLI**: Nel campo 'calcoliEffettuati' del JSON, fornisci una descrizione chiara di come sei arrivato alla SOMMA TOTALE RICHIESTA, specificando:
     *   Costi di Intermediazione (CI) considerati: € [valore estratto]
     *   Spese di Istruttoria Pratica (SIP) considerati: € [valore estratto]
     *   Totale Costi Upfront Rimborsabili (CI+SIP): € [somma]
@@ -308,6 +309,75 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
       try {
         const parsedContent = JSON.parse(contentString);
         logMessage("Contenuto del messaggio (contentString) parsato con successo.");
+
+        // --- INIZIO RICALCOLO E SOSTITUZIONE SOMMA RICHIESTA ---
+        let sommaCorrettaStringaIt = "";
+        let valoreErratoNumericoStringaIt = "";
+
+        try {
+          const dati = parsedContent.datiEstratti;
+          const totaleCostiUpfront = parseFloat(dati?.costiUpfront?.totaleCostiUpfront) || 0;
+          const numeroTotaleRate = parseInt(dati?.dettagliContratto?.numeroTotaleRate) || 0;
+          const numeroRateResidue = parseInt(dati?.dettagliEstinzione?.numeroRateResidue) || 0;
+          const totalePremiAssicurativi = parseFloat(dati?.premiAssicurativi?.totalePremiAssicurativi) || 0;
+
+          if (numeroTotaleRate > 0) {
+            const sommaRimborsabileCostiUpfrontNonArr = (totaleCostiUpfront / numeroTotaleRate) * numeroRateResidue;
+            const sommaRimborsabilePremiNonArr = (totalePremiAssicurativi / numeroTotaleRate) * numeroRateResidue;
+            
+            const sommaCorrettaNumerica = parseFloat((sommaRimborsabileCostiUpfrontNonArr + sommaRimborsabilePremiNonArr).toFixed(2));
+            sommaCorrettaStringaIt = sommaCorrettaNumerica.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            // Estrai il valore errato da calcoliEffettuati per la sostituzione nel corpo lettera
+            if (parsedContent.calcoliEffettuati && parsedContent.calcoliEffettuati["Somma Totale Richiesta"]) {
+              const matchErrato = String(parsedContent.calcoliEffettuati["Somma Totale Richiesta"]).match(/[\d.,]+/);
+              if (matchErrato && matchErrato[0]) {
+                valoreErratoNumericoStringaIt = matchErrato[0]; // Es. "869,43" o "1.316,68"
+              }
+            }
+            
+            logMessage("Ricalcolo Somma:", {
+              totaleCostiUpfront, numeroTotaleRate, numeroRateResidue, totalePremiAssicurativi,
+              sommaRimborsabileCostiUpfrontNonArr, sommaRimborsabilePremiNonArr,
+              sommaCorrettaNumerica, sommaCorrettaStringaIt, valoreErratoOriginaleInCalcoli: valoreErratoNumericoStringaIt
+            });
+
+            // Sostituisci nel corpo della lettera
+            if (parsedContent.letteraDiffidaCompleta && parsedContent.letteraDiffidaCompleta.corpoLettera && valoreErratoNumericoStringaIt && valoreErratoNumericoStringaIt !== sommaCorrettaStringaIt) {
+              let corpoLettera = parsedContent.letteraDiffidaCompleta.corpoLettera;
+              const valoreErratoRegExp = new RegExp(escapeRegExp(valoreErratoNumericoStringaIt), 'g');
+              
+              // Sostituisci specificamente nelle frasi target per evitare sostituzioni errate
+              corpoLettera = corpoLettera.replace(new RegExp(`(restituzione di complessivi euro )${escapeRegExp(valoreErratoNumericoStringaIt)}`, 'g'), `$1${sommaCorrettaStringaIt}`);
+              corpoLettera = corpoLettera.replace(new RegExp(`(complessiva somma di euro )${escapeRegExp(valoreErratoNumericoStringaIt)}`, 'g'), `$1${sommaCorrettaStringaIt}`);
+              
+              parsedContent.letteraDiffidaCompleta.corpoLettera = corpoLettera;
+              logMessage("Corpo lettera aggiornato con somma corretta.");
+            } else {
+              logMessage("Non è stato necessario aggiornare il corpo lettera o valore errato non trovato/coincide.", 
+                { valoreErrato: valoreErratoNumericoStringaIt, sommaCorretta: sommaCorrettaStringaIt });
+            }
+
+            // Aggiorna calcoliEffettuati
+            if (parsedContent.calcoliEffettuati) {
+              parsedContent.calcoliEffettuati["Somma Totale Richiesta"] = "€ " + sommaCorrettaStringaIt;
+              // Aggiorna anche la formula per coerenza, se necessario (opzionale, ma buona pratica)
+              parsedContent.calcoliEffettuati["Formula pro rata temporis applicata per costi upfront"] = 
+                `(${totaleCostiUpfront.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2})} / ${numeroTotaleRate}) * ${numeroRateResidue} = ${sommaRimborsabileCostiUpfrontNonArr.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:10})}`;
+              if (totalePremiAssicurativi > 0) {
+                 parsedContent.calcoliEffettuati["Formula pro rata temporis applicata per premi assicurativi"] = 
+                  `(${totalePremiAssicurativi.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2})} / ${numeroTotaleRate}) * ${numeroRateResidue} = ${sommaRimborsabilePremiNonArr.toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:10})}`;
+              }
+              logMessage("CalcoliEffettuati aggiornati con somma corretta.");
+            }
+          } else {
+            logMessage("Numero totale rate è 0, impossibile calcolare pro rata.");
+          }
+        } catch (recalcError) {
+          logMessage("Errore durante il ricalcolo della somma richiesta", { error: recalcError });
+          // Non bloccare l'esecuzione, continua con i valori di Mistral se il ricalcolo fallisce
+        }
+        // --- FINE RICALCOLO E SOSTITUZIONE SOMMA RICHIESTA ---
 
         if (!parsedContent.letteraDiffidaCompleta ||
             typeof parsedContent.letteraDiffidaCompleta !== 'object' ||
