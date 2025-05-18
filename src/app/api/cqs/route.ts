@@ -168,7 +168,7 @@ OBBIETTIVI PRINCIPALI (in ordine di importanza):
     *   Formula pro rata temporis applicata e risultato per premi assicurativi.
     *   Somma Totale Richiesta: € [risultato finale arrotondato]
 
-OUTPUT: Devi restituire un oggetto JSON. 
+OUTPUT: Devi restituire un oggetto JSON.
 L\'oggetto JSON DEVE contenere OBBLIGATORIAMENTE i seguenti campi di primo livello:
 - "letteraDiffidaCompleta": un oggetto con le proprietà OBBLIGATORIE: "oggettoLettera" (stringa), "destinatarioLettera" (stringa), "corpoLettera" (stringa), "firmaLettera" (stringa).
     *   "oggettoLettera": L\'oggetto della lettera (es. "Lettera di diffida per il Sig. Massimo Loria...").
@@ -185,9 +185,9 @@ PRIORITÀ ASSOLUTA: Estrarre CORRETTAMENTE i costi SIP (€ 535,00 nel caso Lori
   // Limitiamo la dimensione dei testi per ridurre il prompt
   const trimmedContractText = trimDocumentText(contractText);
   const trimmedStatementText = trimDocumentText(statementText);
-  const trimmedTemplateText = templateText.length > 5000 ? 
+  const trimmedTemplateText = templateText.length > 5000 ?
     templateText.substring(0, 5000) : templateText;
-    
+
   logMessage("Dimensioni testi ridotte (input per LLM):", {
     contractOriginal: contractText.length,
     contractTrimmed: trimmedContractText.length,
@@ -197,11 +197,9 @@ PRIORITÀ ASSOLUTA: Estrarre CORRETTAMENTE i costi SIP (€ 535,00 nel caso Lori
     templateTrimmed: trimmedTemplateText.length
   });
 
-  // LOG AGGIUNTIVI DEI TESTI TRONCATI
   logMessage("--- DEBUG TESTI TRONCATI (input per LLM) ---");
   logMessage("Testo Contratto TRONCATO (primi 500 char):", trimmedContractText.substring(0,500));
   if (trimmedContractText.length > 500) logMessage("Testo Contratto TRONCATO (...ultimi 500 char):", trimmedContractText.substring(trimmedContractText.length - 500));
-  // LOG COMPLETO DEL TESTO CONTRATTO TRONCATO (TEMPORANEO PER DEBUG)
   logMessage("--- DEBUG: INIZIO TESTO CONTRATTO TRONCATO COMPLETO (PER LLM) ---");
   logMessage(trimmedContractText);
   logMessage("--- DEBUG: FINE TESTO CONTRATTO TRONCATO COMPLETO (PER LLM) ---");
@@ -225,50 +223,48 @@ ${trimmedStatementText || "Contenuto non disponibile."}
 ${trimmedTemplateText || "Contenuto non disponibile."}
 </template_lettera>`;
 
-  logMessage("Dimensioni Prompt per Mistral AI:", { 
-    system: SYSTEM_PROMPT.length, 
+  logMessage("Dimensioni Prompt per Mistral AI:", {
+    system: SYSTEM_PROMPT.length,
     user: userPrompt.length,
     totale: SYSTEM_PROMPT.length + userPrompt.length
   });
-  
-  // LOG AGGIUNTIVO USERPROMPT COMPLETO
+
   logMessage("--- DEBUG USERPROMPT COMPLETO (input per LLM) ---");
   logMessage("User Prompt (primi 1000 char):", userPrompt.substring(0,1000));
   if (userPrompt.length > 1000) {
     logMessage("User Prompt (...continuazione... ultimi 500 char):", userPrompt.substring(userPrompt.length - 500));
   }
-  // Per un debug più approfondito, potresti voler loggare l'intero userPrompt, ma attenzione alle dimensioni dei log.
-  // Esempio: logMessage("User Prompt COMPLETO:", userPrompt);
   logMessage("--- FINE DEBUG USERPROMPT COMPLETO ---");
 
   const CHAT_API_URL = "https://api.mistral.ai/v1/chat/completions";
 
-  const apiRequestBody = {
-    model: "mistral-medium-latest",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
-    max_tokens: 8000,
-    temperature: 0.1
-  };
-
-  logMessage("Invio richiesta a Mistral Chat API...");
-  // Utilizziamo un timeout più stretto (50 secondi) per lasciare tempo di processare la risposta
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort("Timeout interno per Mistral Chat API dopo 50s"), 50000); // Aumentato a 50 secondi
-  
+  const timeoutId = setTimeout(() => {
+    logMessage("Timeout personalizzato per Mistral API raggiunto (50s). Annullamento richiesta...");
+    controller.abort();
+  }, 50000); // 50 secondi
+
   try {
+    logMessage("Invio richiesta a Mistral Chat API...");
     const mistralResponse = await fetch(CHAT_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${MISTRAL_API_KEY}`,
       },
-      body: JSON.stringify(apiRequestBody),
-      signal: controller.signal
+      body: JSON.stringify({
+        model: "mistral-medium-latest",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" }, // Assicurati che il modello supporti questo
+        // max_tokens: 8000, // Considera se questo è necessario o se può essere ridotto
+        // temperature: 0.1, // Valuta se questo è il valore ottimale
+      }),
+      signal: controller.signal,
     });
+
     clearTimeout(timeoutId);
 
     logMessage("Risposta da Mistral Chat API ricevuta", { status: mistralResponse.status });
@@ -279,12 +275,9 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
         status: mistralResponse.status,
         body: errorBody,
       });
-      // Se l'errore è dovuto a un AbortError (anche se catturato qui come !ok), 
-      // il controller.signal.reason potrebbe contenere il messaggio di abort.
-      // Tuttavia, mistralResponse.ok sarà false per errori HTTP, non per AbortError pre-request.
-      // L'AbortError viene catturato nel blocco catch.
       return {
-        error: `Errore dalla Mistral API: ${mistralResponse.status}`,
+        error: `Errore API Mistral: ${mistralResponse.status}`,
+        errorMessage: `L'API di Mistral ha risposto con un errore. Dettagli: ${errorBody}`,
         details: errorBody,
         filesInfo
       };
@@ -292,146 +285,175 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
 
     const result = await mistralResponse.json();
     logMessage("Risultato JSON da Mistral Chat API parsato.");
-
-    const contentString = result.choices[0].message.content;
     
-    // LOG COMPLETO DELLA RISPOSTA JSON DA MISTRAL (TEMPORANEO PER DEBUG)
-    logMessage("--- DEBUG: INIZIO RISPOSTA JSON COMPLETA DA MISTRAL ---");
-    logMessage(contentString);
-    logMessage("--- DEBUG: FINE RISPOSTA JSON COMPLETA DA MISTRAL ---");
+    // Inizio aggiunta log risposta completa da Mistral
+    if (result && result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content) {
+      const contentString = result.choices[0].message.content;
+      logMessage("--- DEBUG: INIZIO RISPOSTA JSON COMPLETA DA MISTRAL --- (da result.choices[0].message.content)");
+      logMessage(contentString);
+      logMessage("--- DEBUG: FINE RISPOSTA JSON COMPLETA DA MISTRAL --- (da result.choices[0].message.content)");
 
-    if (!contentString || contentString.trim() === '') {
-      logMessage("Mistral ha restituito una risposta vuota o solo spazi/tab");
+      if (!contentString || contentString.trim() === '') {
+        logMessage("Mistral ha restituito una risposta vuota o solo spazi/tab nel contentString");
+        return {
+          error: "Mistral ha restituito una risposta vuota o malformata.",
+          errorMessage: "La risposta contiene solo spazi o è vuota. Prova a ridurre la dimensione dei documenti.",
+          details: "Content string from Mistral was empty or whitespace.",
+          filesInfo
+        };
+      }
+
+      logMessage("Primi 100 caratteri del contentString:", contentString.substring(0, 100));
+
+      try {
+        const parsedContent = JSON.parse(contentString);
+        logMessage("Contenuto del messaggio (contentString) parsato con successo.");
+
+        if (!parsedContent.letteraDiffidaCompleta ||
+            typeof parsedContent.letteraDiffidaCompleta !== 'object' ||
+            !parsedContent.letteraDiffidaCompleta.corpoLettera ||
+            parsedContent.letteraDiffidaCompleta.corpoLettera.trim() === "") {
+          logMessage("ATTENZIONE: 'letteraDiffidaCompleta' non è un oggetto valido o 'corpoLettera' è vuoto/mancante. Contenuto grezzo:", contentString);
+        }
+
+        const adaptedResponse = {
+          lettera: typeof parsedContent.letteraDiffidaCompleta === 'string'
+            ? parsedContent.letteraDiffidaCompleta
+            : formatLetter(parsedContent.letteraDiffidaCompleta),
+          calcoli: `CALCOLI ESTRATTI:\n\n${typeof parsedContent.calcoliEffettuati === 'string'
+    ? parsedContent.calcoliEffettuati
+    : JSON.stringify(parsedContent.calcoliEffettuati, null, 2)}\n\nDATI ESTRATTI:\n\n${JSON.stringify(parsedContent.datiEstratti || {}, null, 2)}\n\n${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + (typeof parsedContent.logAnalisi === 'object' ? JSON.stringify(parsedContent.logAnalisi, null, 2) : parsedContent.logAnalisi) : ''}`,
+        };
+        return adaptedResponse;
+      } catch (e) {
+        logMessage("Errore nel parsing del contentString JSON da Mistral", {
+          error: e,
+          contentPreview: contentString.substring(0, 500) // Log più esteso in caso di errore di parsing
+        });
+        return {
+          error: "Errore nel parsing della risposta JSON da Mistral.",
+          errorMessage: "Il formato della risposta dell'IA non è JSON valido.",
+          details: e instanceof Error ? e.message : String(e),
+          rawResponse: contentString.substring(0,1000), // Includi un pezzo della risposta grezza
+          filesInfo
+        };
+      }
+    } else {
+      logMessage("Risposta da Mistral non contiene il formato atteso (choices[0].message.content mancante).");
       return {
-        error: "Mistral ha restituito una risposta vuota o malformata.",
-        details: "La risposta contiene solo spazi o è vuota. Prova a ridurre la dimensione dei documenti.",
+        error: "Formato risposta Mistral inatteso.",
+        errorMessage: "La struttura della risposta dell'IA non è quella prevista.",
+        details: JSON.stringify(result), // Logga l'intero risultato per debug
         filesInfo
       };
     }
-    
-    logMessage("Primi 100 caratteri della risposta:", contentString.substring(0, 100));
-    
-    try {
-      const parsedContent = JSON.parse(contentString);
-      logMessage("Contenuto del messaggio parsato con successo.");
-      
-      // Verifica corretta per letteraDiffidaCompleta come oggetto
-      if (!parsedContent.letteraDiffidaCompleta || 
-          typeof parsedContent.letteraDiffidaCompleta !== 'object' || 
-          !parsedContent.letteraDiffidaCompleta.corpoLettera || 
-          parsedContent.letteraDiffidaCompleta.corpoLettera.trim() === "") {
-        logMessage("ATTENZIONE: 'letteraDiffidaCompleta' non è un oggetto valido o 'corpoLettera' è vuoto/mancante. Contenuto grezzo:", contentString);
-      }
-      
-      // Adattiamo la risposta al formato che si aspetta il frontend
-      const adaptedResponse = {
-        lettera: typeof parsedContent.letteraDiffidaCompleta === 'string' 
-          ? parsedContent.letteraDiffidaCompleta 
-          : formatLetter(parsedContent.letteraDiffidaCompleta),
-        calcoli: `CALCOLI ESTRATTI:
-        
-${typeof parsedContent.calcoliEffettuati === 'string' 
-  ? parsedContent.calcoliEffettuati 
-  : JSON.stringify(parsedContent.calcoliEffettuati, null, 2)}
+    // Fine aggiunta log risposta completa da Mistral
 
-DATI ESTRATTI:
-
-${JSON.stringify(parsedContent.datiEstratti || {}, null, 2)}
-
-${parsedContent.logAnalisi ? '\nNOTE ANALISI:\n' + (typeof parsedContent.logAnalisi === 'object' ? JSON.stringify(parsedContent.logAnalisi, null, 2) : parsedContent.logAnalisi) : ''}`,
-      };
-      
-      return adaptedResponse;
-    } catch (e) {
-      logMessage("Errore nel parsing del contenuto del messaggio JSON da Mistral", { 
-        error: e, 
-        contentPreview: contentString.substring(0, 200)
-      });
-      
-      return {
-        error: "Errore nel parsing della risposta JSON da Mistral.",
-        letteraDiffidaCompleta: "Errore nella generazione della lettera. Si prega di riprovare.",
-        calcoli: "È stato possibile estrarre correttamente i testi dai documenti:\n" +
-                `- Contratto: ${contractText.length} caratteri\n` +
-                `- Conteggio estintivo: ${statementText.length} caratteri\n` +
-                `- Template: ${templateText.length} caratteri\n\n` +
-                "Ma si è verificato un errore nell'elaborazione finale."
-      };
-    }
   } catch (error: any) {
-    clearTimeout(timeoutId); // Assicurati di pulire il timeout
+    clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      logMessage("Chiamata a Mistral Chat API interrotta da AbortController", { reason: controller.signal.reason, error });
+      logMessage("Richiesta a Mistral annullata a causa del timeout personalizzato (50s).");
       return {
-        error: "Timeout durante la comunicazione con l'AI",
-        details: controller.signal.reason || "L'elaborazione AI ha richiesto troppo tempo (timeout interno 50s). Prova con documenti più piccoli o riprova.",
+        error: "Timeout di elaborazione Mistral (limite client 50s)",
+        errorMessage: "La richiesta all'IA per l'analisi dei documenti ha impiegato troppo tempo ed è stata interrotta (50s).",
+        details: "Il server non ha risposto entro il tempo limite impostato dal client.",
         filesInfo
       };
     }
     logMessage("Errore generico durante la chiamata a Mistral Chat API", { error });
     return {
-      error: "Errore imprevisto durante la comunicazione con l'AI",
-      details: error instanceof Error ? error.message : String(error),
+      error: "Errore imprevisto durante l'elaborazione con Mistral",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      details: "Si è verificato un errore non gestito durante la comunicazione con il servizio AI.",
       filesInfo
     };
   }
 }
 
+// Funzione helper per escapare stringhe per RegExp
+function escapeRegExp(string: string): string {
+  return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
 // Funzione per formattare la lettera quando arriva come oggetto
 function formatLetter(letterObj: any): string {
-  if (!letterObj) return "Lettera non disponibile";
-  
-  try {
-    // Se è già una stringa, restituiscila
-    if (typeof letterObj === 'string') return letterObj;
-    
-    // Se è un oggetto, formatta le parti
-    let formattedLetter = '';
-    
-    if (letterObj.intestazione) {
-      formattedLetter += `${letterObj.intestazione}\n\n`;
-    }
-    
-    let corpoDellaLettera = "";
-    if (letterObj.corpo) {
-      // Controlliamo se il corpo termina in modo brusco e lo completiamo
-      corpoDellaLettera = letterObj.corpo;
-      
-      // Se il corpo termina in modo brusco con alcuni pattern comuni, completa la frase
-      if (corpoDellaLettera.endsWith(" convertito")) {
-        corpoDellaLettera += " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.";
-      } else if (corpoDellaLettera.endsWith(" art.") || corpoDellaLettera.endsWith(" Art.")) {
-        corpoDellaLettera += " 125-sexies del Testo Unico Bancario.";
-      } else if (corpoDellaLettera.endsWith(",") || corpoDellaLettera.endsWith(";") || corpoDellaLettera.endsWith(" e")) {
-        corpoDellaLettera += " quanto sopra esposto rappresenta un'evidenza delle violazioni riscontrate.";
-      }
-      
-      formattedLetter += `${corpoDellaLettera}\n\n`;
-    }
-    
-    // Gestione della firma per evitare duplicazioni
-    const salutoStandard = "Distinti saluti";
-    const corpoContieneSaluto = corpoDellaLettera.toLowerCase().includes(salutoStandard.toLowerCase());
+  if (!letterObj || typeof letterObj !== 'object') {
+    logMessage("formatLetter: letterObj non valido o non è un oggetto", letterObj);
+    return "Lettera non disponibile (dati input invalidi per formattazione).";
+  }
 
-    if (letterObj.firma) {
-      // Se la firma fornita dall'AI non inizia già con un saluto, e il corpo non lo contiene, aggiungiamo un saluto standard.
-      // Altrimenti, usiamo la firma così com'è, presumendo che sia completa o che il saluto sia già nel corpo.
-      if (!letterObj.firma.toLowerCase().startsWith(salutoStandard.toLowerCase()) && !corpoContieneSaluto) {
-        formattedLetter += `${salutoStandard},\n\n${letterObj.firma}`;
+  try {
+    const { oggettoLettera, destinatarioLettera, corpoLettera, firmaLettera } = letterObj;
+
+    // Verifica che i campi essenziali ci siano
+    if (!corpoLettera || corpoLettera.trim() === "") {
+      logMessage("formatLetter: corpoLettera da Mistral è mancante o vuoto. La lettera potrebbe essere incompleta o errata.", letterObj);
+      // Restituisce i dati grezzi o una parte per il debug in questo caso critico
+      return `Corpo della lettera mancante o vuoto nella risposta dall'IA. Dati ricevuti: ${JSON.stringify(letterObj, null, 2)}`;
+    }
+    if (!oggettoLettera) logMessage("formatLetter: oggettoLettera da Mistral è mancante.", letterObj);
+    if (!destinatarioLettera) logMessage("formatLetter: destinatarioLettera da Mistral è mancante.", letterObj);
+
+    let finalLetterOutputParts: string[] = [];
+
+    if (oggettoLettera) {
+      // Aggiungi "Oggetto: " solo se non è già presente nel valore restituito da Mistral
+      if (oggettoLettera.toLowerCase().startsWith("oggetto:")) {
+        finalLetterOutputParts.push(oggettoLettera);
       } else {
-        formattedLetter += `${letterObj.firma}`;
-      }
-    } else {
-      // Se l'AI non fornisce una firma e il corpo non contiene già un saluto, aggiungiamo una firma standard completa.
-      if (!corpoContieneSaluto) {
-        formattedLetter += `${salutoStandard},\n\nAvv. _________________\n`;
+        finalLetterOutputParts.push(`Oggetto: ${oggettoLettera}`);
       }
     }
+
+    if (destinatarioLettera) {
+      finalLetterOutputParts.push(destinatarioLettera);
+    }
+
+    let currentCorpo = corpoLettera;
     
-    return formattedLetter.trim(); // Trim per rimuovere eventuali spazi bianchi extra alla fine
+    // Tentativo di pulire il corpo se Mistral ha incluso l'oggetto o il destinatario
+    // nonostante il prompt chieda di ometterli se forniti separatamente.
+    if (oggettoLettera) {
+        const oggettoCompletoPattern = new RegExp(`^(${escapeRegExp(`Oggetto: ${oggettoLettera}`)}|${escapeRegExp(oggettoLettera)})\s*`, 'i');
+        currentCorpo = currentCorpo.replace(oggettoCompletoPattern, "").trimStart();
+    }
+    if (destinatarioLettera) {
+        const destinatarioPattern = new RegExp(`^${escapeRegExp(destinatarioLettera)}\s*`, 'i');
+        currentCorpo = currentCorpo.replace(destinatarioPattern, "").trimStart();
+    }
+    
+    // La logica di "completamento" del corpo, se ancora necessaria, può essere applicata a currentCorpo
+    // Esempio:
+    // if (currentCorpo.endsWith(" convertito")) {
+    //   currentCorpo += " in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.";
+    // }
+
+    finalLetterOutputParts.push(currentCorpo);
+
+    // Aggiungi saluti e firma
+    // Il prompt specifica che corpoLettera non include saluti finali e firmaLettera è solo l'avvocato.
+    finalLetterOutputParts.push("Distinti saluti,");
+
+    if (firmaLettera) {
+      finalLetterOutputParts.push(firmaLettera);
+    } else {
+      logMessage("formatLetter: firmaLettera da Mistral è mancante. Uso placeholder.", letterObj);
+      finalLetterOutputParts.push("Avv. _________________"); // Placeholder
+    }
+    
+    // Assembla le parti finali
+    let result = "";
+    if (finalLetterOutputParts.length > 0) result += finalLetterOutputParts[0]; // Oggetto (o primo elemento disponibile)
+    if (finalLetterOutputParts.length > 1) result += `\n\n${finalLetterOutputParts[1]}`; // Destinatario
+    if (finalLetterOutputParts.length > 2) result += `\n\n${finalLetterOutputParts[2]}`; // Corpo
+    if (finalLetterOutputParts.length > 3) result += `\n\n${finalLetterOutputParts[3]}`; // Saluti ("Distinti saluti,")
+    if (finalLetterOutputParts.length > 4) result += `\n${finalLetterOutputParts[4]}`; // Firma
+
+    return result.trim();
+
   } catch (e) {
-    // In caso di errore, restituisci il JSON stringificato
-    return JSON.stringify(letterObj, null, 2);
+    logMessage("Errore critico durante formattazione lettera", { error: e, letterObj });
+    return `Errore interno durante la formattazione della lettera. Dettagli tecnici: ${e instanceof Error ? e.message : String(e)}\n\nDati grezzi ricevuti:\n${JSON.stringify(letterObj, null, 2)}`;
   }
 }
 
@@ -441,91 +463,56 @@ export async function POST(request: NextRequest) {
 
   if (!MISTRAL_API_KEY) {
     logMessage("MISTRAL_API_KEY non configurata.");
-    return NextResponse.json(
-      { error: "MISTRAL_API_KEY non configurata." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Configurazione API mancante." }, { status: 500 });
   }
 
-    let contractText = "";
-    let statementText = "";
-  let templateText = "";
-  let filesInfo: { contract: string; statement: string; template: string } = {
-    contract: "NON TROVATO",
-    statement: "NON TROVATO",
-    template: "NON TROVATO",
-  };
-
   try {
-      const formData = await request.formData();
+    const formData = await request.formData();
     logMessage("FormData ricevuto");
 
-    const contractFile = formData.get("contratto") as File | null;
-    const statementFile = formData.get("conteggio") as File | null;
-      const templateFile = formData.get("templateFile") as File | null;
+    const contractFile = formData.get("contract") as File | null;
+    const statementFile = formData.get("statement") as File | null;
+    const templateFile = formData.get("template") as File | null;
+    
+    // Store file info for logging in case of error
+    const filesInfo = {
+      contractFile: contractFile ? { name: contractFile.name, size: contractFile.size, type: contractFile.type } : null,
+      statementFile: statementFile ? { name: statementFile.name, size: statementFile.size, type: statementFile.type } : null,
+      templateFile: templateFile ? { name: templateFile.name, size: templateFile.size, type: templateFile.type } : null,
+    };
 
-    // Fase 1: Estrazione testi (questa è la parte veloce)
-      if (contractFile) {
-      filesInfo.contract = `${contractFile.name} (${contractFile.size} bytes)`;
-      logMessage("API - Contract File Trovato:", filesInfo.contract);
-      contractText = await extractTextWithMistralOcr(contractFile, MISTRAL_API_KEY);
-      if (!contractText || contractText.startsWith("Errore:")) {
-        logMessage("Fallimento estrazione testo contratto con Mistral OCR.", contractText);
-      }
-    } else {
-      logMessage("API - Contract File: NON TROVATO");
-      }
-
-      if (statementFile) {
-      filesInfo.statement = `${statementFile.name} (${statementFile.size} bytes)`;
-      logMessage("API - Statement File Trovato:", filesInfo.statement);
-      statementText = await extractTextFromPDF(statementFile);
-      } else {
-      logMessage("API - Statement File: NON TROVATO");
-      }
-      
-      if (templateFile) {
-      filesInfo.template = `${templateFile.name} (${templateFile.size} bytes)`;
-      logMessage("API - Template File Trovato:", filesInfo.template);
-      if (templateFile.type === "application/pdf") {
-        logMessage("Estrazione testo da template PDF...");
-        templateText = await extractTextFromPDF(templateFile);
-      } else if (templateFile.name.toLowerCase().endsWith(".doc")) {
-        logMessage("Rilevato template .doc (formato Word 97-2003). Questo formato non è direttamente leggibile come testo.");
-        templateText = "FORMATO TEMPLATE .DOC NON SUPPORTATO DIRETTAMENTE. Si prega di convertire il template in formato .txt, .md (Markdown), o .pdf e ricaricarlo. Il contenuto del template originale .doc non può essere utilizzato.";
-      } else if (templateFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") { // DOCX
-        logMessage("Estrazione testo da template DOCX...");
-        try {
-            templateText = await templateFile.text(); 
-            // Controllo euristico per contenuto sospetto/binario (può capitare se un .doc è mascherato da .docx o per encoding strani)
-            if (templateText.includes("\uFFFD") || templateText.substring(0,100).replace(/[\x00-\x1F\x7F-\x9F]/g, '').length < 50) {
-                logMessage("Lettura template DOCX come testo ha prodotto output sospetto/binario. Placeholder usato.");
-                templateText = "Contenuto template DOCX non correttamente leggibile come testo semplice. Provare a salvare come .txt, .md o .pdf.";
-            }
-        } catch (e) {
-            logMessage("Errore lettura template DOCX come testo", e);
-            templateText = "Errore lettura template DOCX";
-        }
-      } else { // Assumiamo .txt, .md o altro formato testuale semplice
-        logMessage("Lettura template come testo semplice (es. .txt, .md)...");
-        try {
-            templateText = await templateFile.text();
-        } catch (e) {
-            logMessage("Errore lettura template come testo", e);
-            templateText = "Errore lettura template";
-        }
-      }
-      if (!templateText) {
-        logMessage("Estrazione/Lettura testo template fallita o ha prodotto testo vuoto.");
-        templateText = "Template non leggibile o vuoto.";
-      }
-    } else {
-      logMessage("API - Template File: NON TROVATO");
-      templateText = "Template file non fornito."; // Placeholder se il file non è proprio arrivato
+    if (!contractFile) {
+      logMessage("File del contratto mancante.");
+      return NextResponse.json({ error: "File del contratto mancante." }, { status: 400 });
     }
-    logMessage("Testo estratto per il template (primi 200 char):", templateText.substring(0,200));
+    if (!statementFile) {
+      logMessage("File del conteggio estintivo mancante.");
+      return NextResponse.json({ error: "File del conteggio estintivo mancante." }, { status: 400 });
+    }
+    if (!templateFile) {
+      logMessage("File del template mancante.");
+      return NextResponse.json({ error: "File del template mancante." }, { status: 400 });
+    }
 
-    // LOG AGGIUNTIVI PRIMA DI PROCESSWITHMISTRALCHAT
+    logMessage("API - Contract File Trovato:", filesInfo.contractFile);
+    // Usa Mistral OCR per il contratto
+    // const contractText = await extractTextFromPDF(contractFile); // Vecchio metodo
+    const contractText = await extractTextWithMistralOcr(contractFile, MISTRAL_API_KEY);
+    if (contractText.startsWith("Errore durante l'OCR")) {
+        // Se l'OCR fallisce, ritorna l'errore specifico
+        return NextResponse.json({ error: contractText, details: "OCR fallito per il file del contratto" }, { status: 500 });
+    }
+
+
+    logMessage("API - Statement File Trovato:", filesInfo.statementFile);
+    const statementText = await extractTextFromPDF(statementFile);
+
+    logMessage("API - Template File Trovato:", filesInfo.templateFile);
+    logMessage("Estrazione testo da template PDF...");
+    const templateText = await extractTextFromPDF(templateFile);
+    logMessage("Testo estratto per il template (primi 200 char):", templateText.substring(0, 200));
+    
+    // DEBUG Log per i testi pre-troncamento
     logMessage("--- DEBUG TESTI PRE-TRONCAMENTO (input per processWithMistralChat) ---");
     logMessage("Testo Contratto (primi 500 char):", contractText.substring(0,500));
     if (contractText.length > 500) logMessage("Testo Contratto (...ultimi 500 char):", contractText.substring(contractText.length - 500));
@@ -535,77 +522,41 @@ export async function POST(request: NextRequest) {
     if (templateText.length > 500) logMessage("Testo Template (...ultimi 500 char):", templateText.substring(templateText.length - 500));
     logMessage("--- FINE DEBUG TESTI PRE-TRONCAMENTO ---");
 
-    logMessage("Testo estratto per il contratto (primi 200 char):", contractText.substring(0,200));
-    logMessage("Testo estratto per il conteggio (primi 200 char):", statementText.substring(0,200));
-    // --- FINE SEZIONE CRITICA PER ESTRAZIONE TESTO ---
 
+    // Log riepilogativo delle lunghezze prima di chiamare processWithMistralChat
+    logMessage("Testo estratto per il contratto (primi 200 char):", contractText.substring(0, 200));
+    logMessage("Testo estratto per il conteggio (primi 200 char):", statementText.substring(0, 200));
     logMessage("Riepilogo estrazione testi:", {
-      contractTextLength: contractText.length,
-      statementTextLength: statementText.length,
-      templateTextLength: templateText.length,
+        contractTextLength: contractText.length,
+        statementTextLength: statementText.length,
+        templateTextLength: templateText.length
     });
 
-    if (!contractText && !statementText && !templateText) {
-      logMessage("Nessun testo estratto dai file forniti.");
-      return NextResponse.json(
-        {
-          error: "Nessun testo è stato estratto dai file. Assicurati di aver caricato i file corretti.",
-          filesInfo,
-        },
-        { status: 400 }
-      );
-    }
+    logMessage("Inizio elaborazione con Mistral...");
+    const result = await processWithMistralChat(contractText, statementText, templateText, MISTRAL_API_KEY, filesInfo);
     
-    // Fase 2: Elaborazione con Mistral (questa è la parte lenta)
-    // Implementiamo un timeout di sicurezza per questa fase
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // Timeout dopo 45 secondi
-    
-    try {
-      logMessage("Inizio elaborazione con Mistral...");
-      
-      // Usiamo una Promise.race per garantire il timeout
-      const result = await Promise.race([
-        processWithMistralChat(contractText, statementText, templateText, MISTRAL_API_KEY, filesInfo),
-        new Promise<any>((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout di elaborazione Mistral")), 45000);
-        })
-      ]);
-      
-      clearTimeout(timeoutId);
-      
-      // Se è un errore, restituisci un messaggio appropriato
-      if (result.error) {
-        return NextResponse.json(result, { status: 200 });
-      }
-      
-      return NextResponse.json(result, { status: 200 });
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      logMessage("Errore durante l'elaborazione con Mistral", error);
-      
-      return NextResponse.json({
-        error: "Si è verificato un timeout durante l'elaborazione.",
-        calcoli: "È stato possibile estrarre correttamente i testi dai documenti:\n" +
-                `- Contratto: ${contractText.length} caratteri\n` +
-                `- Conteggio estintivo: ${statementText.length} caratteri\n` +
-                `- Template: ${templateText.length} caratteri\n\n` +
-                "Ma l'elaborazione è stata interrotta per timeout. I documenti sono troppo complessi per l'analisi nel tempo disponibile.",
-        letteraDiffidaCompleta: "Non è stato possibile generare la lettera a causa del timeout."
-      }, { status: 200 });
+    // Controlla se il risultato è un errore specifico di timeout o altro errore da processWithMistralChat
+    if (result && result.error) {
+        logMessage(result.error, result.errorMessage); // Logga l'errore specifico
+        // Puoi decidere di mappare a un codice di stato HTTP specifico se necessario
+        // es. if (result.error.includes("Timeout")) return NextResponse.json(result, { status: 504 }); // Gateway Timeout
+        return NextResponse.json(result, { status: 500 });
     }
 
-  } catch (error) {
-    logMessage("Errore generico nella funzione POST", error);
-    const errorMessage = error instanceof Error ? error.message : "Errore sconosciuto";
-    return NextResponse.json(
-      { error: "Errore interno del server.", details: errorMessage, filesInfo },
-      { status: 500 }
-    );
+    logMessage("Elaborazione con Mistral completata con successo.");
+    return NextResponse.json(result);
+
+  } catch (error: any) {
+    logMessage("Errore API CQS:", error.message || error);
+    // Logga anche lo stack trace se disponibile e l'ambiente è di sviluppo/staging
+    if (process.env.NODE_ENV !== 'production' && error.stack) {
+      logMessage("Stack trace errore API CQS:", error.stack);
+    }
+    // Fornisci un messaggio di errore generico al client per motivi di sicurezza
+    return NextResponse.json({ error: "Errore interno del server durante l'elaborazione della richiesta.", details: error.message }, { status: 500 });
   }
-} 
+}
 
-// GET handler per testare se l'API è raggiungibile
 export async function GET() {
   return NextResponse.json({ message: "API CQS è attiva" });
 }
