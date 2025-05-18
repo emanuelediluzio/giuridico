@@ -201,6 +201,10 @@ PRIORITÀ ASSOLUTA: Estrarre CORRETTAMENTE i costi SIP (€ 535,00 nel caso Lori
   logMessage("--- DEBUG TESTI TRONCATI (input per LLM) ---");
   logMessage("Testo Contratto TRONCATO (primi 500 char):", trimmedContractText.substring(0,500));
   if (trimmedContractText.length > 500) logMessage("Testo Contratto TRONCATO (...ultimi 500 char):", trimmedContractText.substring(trimmedContractText.length - 500));
+  // LOG COMPLETO DEL TESTO CONTRATTO TRONCATO (TEMPORANEO PER DEBUG)
+  logMessage("--- DEBUG: INIZIO TESTO CONTRATTO TRONCATO COMPLETO (PER LLM) ---");
+  logMessage(trimmedContractText);
+  logMessage("--- DEBUG: FINE TESTO CONTRATTO TRONCATO COMPLETO (PER LLM) ---");
   logMessage("Testo Conteggio TRONCATO (primi 500 char):", trimmedStatementText.substring(0,500));
   if (trimmedStatementText.length > 500) logMessage("Testo Conteggio TRONCATO (...ultimi 500 char):", trimmedStatementText.substring(trimmedStatementText.length - 500));
   logMessage("Testo Template TRONCATO (primi 500 char):", trimmedTemplateText.substring(0,500));
@@ -291,6 +295,11 @@ ${trimmedTemplateText || "Contenuto non disponibile."}
 
     const contentString = result.choices[0].message.content;
     
+    // LOG COMPLETO DELLA RISPOSTA JSON DA MISTRAL (TEMPORANEO PER DEBUG)
+    logMessage("--- DEBUG: INIZIO RISPOSTA JSON COMPLETA DA MISTRAL ---");
+    logMessage(contentString);
+    logMessage("--- DEBUG: FINE RISPOSTA JSON COMPLETA DA MISTRAL ---");
+
     if (!contentString || contentString.trim() === '') {
       logMessage("Mistral ha restituito una risposta vuota o solo spazi/tab");
       return {
