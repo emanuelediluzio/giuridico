@@ -435,7 +435,7 @@ function formatLetter(letterObj: any): string {
     finalLetterOutputParts.push("Distinti saluti,");
 
     if (firmaLettera) {
-      finalLetterOutputParts.push(firmaLettera);
+      finalLetterOutputParts.push(firmaLettera.replace(/\s*,$/, "")); // Rimuove virgola e spazio alla fine, se presenti
     } else {
       logMessage("formatLetter: firmaLettera da Mistral è mancante. Uso placeholder.", letterObj);
       finalLetterOutputParts.push("Avv. _________________"); // Placeholder
