@@ -3,16 +3,22 @@ import React, { useState } from 'react';
 // import XIcon from '@/assets/icons/x.svg';
 
 interface NavbarProps {
-  currentScreen?: 'home' | 'rimborso';
-  onScreenChange?: (screen: 'home' | 'rimborso') => void;
+  currentScreen?: 'home' | 'rimborso' | 'chat-ai';
+  onScreenChange?: (screen: 'home' | 'rimborso' | 'chat-ai') => void;
 }
 
 export default function Navbar({ currentScreen = 'home', onScreenChange }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleNavigate = (screen: 'home' | 'rimborso') => {
+  const handleNavigate = (screen: 'home' | 'rimborso' | 'chat-ai') => {
     if (onScreenChange) {
       onScreenChange(screen);
+      setMobileMenuOpen(false);
+    } else {
+      // Navigazione client-side se non viene gestita dal parent
+      if (screen === 'home') window.location.href = '/';
+      else if (screen === 'rimborso') window.location.href = '/rimborso';
+      else if (screen === 'chat-ai') window.location.href = '/chat-ai';
       setMobileMenuOpen(false);
     }
   };
@@ -55,6 +61,16 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
             }`}
           >
             Calcolo Rimborso
+          </button>
+          <button
+            onClick={() => handleNavigate('chat-ai')}
+            className={`px-5 py-2.5 rounded-xl transition-all duration-200 font-medium ${
+              currentScreen === 'chat-ai' 
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            Chat AI
           </button>
         </div>
 
@@ -99,6 +115,16 @@ export default function Navbar({ currentScreen = 'home', onScreenChange }: Navba
               }`}
             >
               Calcolo Rimborso
+            </button>
+            <button
+              onClick={() => handleNavigate('chat-ai')}
+              className={`block w-full text-left px-5 py-3 rounded-xl transition-all duration-200 font-medium ${
+                currentScreen === 'chat-ai' 
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              Chat AI
             </button>
           </div>
         </div>
