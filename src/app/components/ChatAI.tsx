@@ -39,16 +39,29 @@ export default function ChatAI() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [...msgs, nuovoMessaggio] })
+        body: JSON.stringify({ 
+          messages: [...msgs, nuovoMessaggio]
+        })
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Errore nella comunicazione con il server');
+      }
+      
       const data = await res.json();
       const risposta = data.choices?.[0]?.message?.content || "[Nessuna risposta dal modello]";
       setMessages(msgs => [...msgs, { role: "assistant", content: risposta }]);
     } catch (err) {
-      setMessages(msgs => [...msgs, { role: "assistant", content: "[Errore di rete o server]" }]);
+      console.error('Errore durante la chat:', err);
+      setMessages(msgs => [...msgs, { 
+        role: "assistant", 
+        content: "Mi dispiace, si è verificato un errore durante l'elaborazione della tua richiesta. Riprova tra qualche istante." 
+      }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
-    setLoading(false);
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   }
 
   return (

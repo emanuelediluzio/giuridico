@@ -1,30 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { messages, model = 'nousresearch/deephermes-3-mistral-24b-preview' } = await req.json();
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key mancante' }, { status: 500 });
-  }
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const { messages } = await req.json();
+    
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json({ error: 'Formato messaggi non valido' }, { status: 400 });
+    }
+
+    const apiKey = process.env.MIXTRAL_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key mancante' }, { status: 500 });
+    }
+
+    const res = await fetch('https://api.mixtral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
+        model: 'mixtral-8x7b-instruct',
         messages,
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     });
+
     if (!res.ok) {
-      const err = await res.text();
-      return NextResponse.json({ error: err }, { status: res.status });
+      const errorData = await res.json().catch(() => ({ error: 'Errore sconosciuto' }));
+      console.error('Errore API:', errorData);
+      return NextResponse.json({ error: errorData.error || 'Errore nella comunicazione con il modello' }, { status: res.status });
     }
+
     const data = await res.json();
     return NextResponse.json(data);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('Errore server:', e);
+    return NextResponse.json({ error: e.message || 'Errore interno del server' }, { status: 500 });
   }
 } 
