@@ -1,0 +1,39 @@
+export async function processWithMistralChat(systemPrompt: string, userPrompt: string): Promise<any> {
+  try {
+    const apiKey = process.env.MIXTRAL_API_KEY;
+    if (!apiKey) {
+      throw new Error('API key mancante');
+    }
+
+    const response = await fetch('https://api.mixtral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'mixtral-8x7b-instruct',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
+      throw new Error(errorData.error || 'Errore nella comunicazione con il modello');
+    }
+
+    const data = await response.json();
+    return {
+      lettera: data.choices[0].message.content,
+      calcoli: null // Per ora non restituiamo calcoli
+    };
+  } catch (error) {
+    console.error('Errore durante l\'elaborazione con Mistral:', error);
+    throw error;
+  }
+} 
