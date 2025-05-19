@@ -21,6 +21,7 @@ const ReactQuill = dynamic(() => import('react-quill-new'), {
 import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di ReactQuill
 
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
+const DownloadWordButton = dynamic(() => import('./components/DownloadWordButton'), { ssr: false });
 
 // Interfaccia per i dati del risultato
 interface ResultData {
@@ -62,7 +63,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
-  const [mainScreen, setMainScreen] = useState<'home' | 'rimborso'>('home');
+  const [mainScreen, setMainScreen] = useState<'home' | 'rimborso' | 'chat-ai'>("home");
 
   const [letterContent, setLetterContent] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -210,43 +211,49 @@ export default function Home() {
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
           
           {isEditing ? (
-            // @ts-ignore // Rimosso per ora per vedere l'errore di tipo effettivo se presente
-            <ReactQuill 
-              theme="snow" 
-              value={letterContent} 
-              onChange={setLetterContent} 
-              modules={{
-                toolbar: [
-                  [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
-                  [{size: []}],
-                  ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-                  [{'list': 'ordered'}, {'list': 'bullet'}, 
-                   {'indent': '-1'}, {'indent': '+1'}],
-                  ['link', /*'image', 'video'*/], // Rimosso image e video per semplicità
-                  ['clean'],
-                  [{ 'align': [] }], // Aggiunto controllo allineamento
-                  [{ 'color': [] }, { 'background': [] }], // Aggiunto controllo colori
-                ],
-              }}
-              formats={[
-                'header', 'font', 'size',
-                'bold', 'italic', 'underline', 'strike', 'blockquote',
-                'list', 'bullet', 'indent',
-                'link', /*'image', 'video',*/
-                'align', 'color', 'background' // Aggiunto align, color, background
-              ]}
-              className="mb-4 bg-white" // Aggiunto bg-white per contrasto se necessario
-              style={{ height: '400px', marginBottom: '50px' }} // Aggiunto stile per altezza e margine inferiore per la toolbar
-            />
+            // @ts-ignore
+            <div className="mb-4">
+              <ReactQuill 
+                theme="snow" 
+                value={letterContent} 
+                onChange={setLetterContent} 
+                modules={{
+                  toolbar: [
+                    [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
+                    [{size: []}],
+                    ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                    [{'list': 'ordered'}, {'list': 'bullet'}, 
+                     {'indent': '-1'}, {'indent': '+1'}],
+                    ['link'],
+                    ['clean'],
+                    [{ 'align': [] }],
+                    [{ 'color': [] }, { 'background': [] }],
+                  ],
+                }}
+                formats={[
+                  'header', 'font', 'size',
+                  'bold', 'italic', 'underline', 'strike', 'blockquote',
+                  'list', 'bullet', 'indent',
+                  'link',
+                  'align', 'color', 'background'
+                ]}
+                className="bg-white rounded-xl border border-slate-300 shadow-sm resize-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
+                style={{ minHeight: '250px', maxHeight: '500px', marginBottom: '0', overflowY: 'auto' }}
+              />
+            </div>
           ) : (
             <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
               {letterContent}
             </pre>
           )}
-          <div className="flex space-x-4">
+          <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0 mt-4">
             <DownloadPDFButton 
-              content={letterContent} // Usa letterContent (potenzialmente modificato)
+              content={letterContent} 
               fileName="lettera_diffida.pdf" 
+            />
+            <DownloadWordButton 
+              content={letterContent} 
+              fileName="lettera_diffida.docx" 
             />
             <button 
               onClick={() => setIsEditing(!isEditing)}
