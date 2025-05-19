@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import pdfParse from "pdf-parse";
+import { extractTextFromPDF } from '../process_pdf';
+import { processWithMistralChat } from '../process_pdf/mistral';
 
-export const maxDuration = 55; // Vercel Hobby plan max duration
+export const maxDuration = 300; // Aumento il timeout a 5 minuti
 
 const logMessage = (message: string, data?: any) => {
   // Basic logger, replace with a more robust solution in production
@@ -527,103 +529,132 @@ function formatLetter(letterObj: any): string {
   }
 }
 
-export async function POST(request: NextRequest) {
-  logMessage("Ricevuta richiesta POST");
-  const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-
-  if (!MISTRAL_API_KEY) {
-    logMessage("MISTRAL_API_KEY non configurata.");
-    return NextResponse.json({ error: "Configurazione API mancante." }, { status: 500 });
-  }
-
+export async function POST(req: NextRequest) {
+  console.log("[API CQS] Ricevuta richiesta POST");
+  
   try {
-    const formData = await request.formData();
-    logMessage("FormData ricevuto");
+    const formData = await req.formData();
+    console.log("[API CQS] FormData ricevuto");
 
-    const contractFile = formData.get("contract") as File | null;
-    const statementFile = formData.get("statement") as File | null;
-    const templateFile = formData.get("template") as File | null;
+    // Estrazione dei file
+    const contractFile = formData.get('contract') as File;
+    const statementFile = formData.get('statement') as File;
+    const templateFile = formData.get('template') as File;
+
+    if (!contractFile || !statementFile || !templateFile) {
+      return NextResponse.json({ error: 'File mancanti' }, { status: 400 });
+    }
+
+    // Estrazione testo dal contratto con Mistral OCR
+    console.log("[API CQS] API - Contract File Trovato:", { 
+      name: contractFile.name, 
+      size: contractFile.size, 
+      type: contractFile.type 
+    });
+    console.log("[API CQS] Inizio estrazione testo da PDF con Mistral OCR", { 
+      name: contractFile.name, 
+      size: contractFile.size, 
+      type: contractFile.type 
+    });
+    const contractText = await extractTextFromPDF(contractFile, true);
+    console.log("[API CQS] Testo estratto con Mistral OCR", { length: contractText.length });
+
+    // Estrazione testo dal conteggio con pdf-parse
+    console.log("[API CQS] API - Statement File Trovato:", { 
+      name: statementFile.name, 
+      size: statementFile.size, 
+      type: statementFile.type 
+    });
+    console.log("[API CQS] Inizio estrazione testo da PDF con pdf-parse", { 
+      name: statementFile.name, 
+      size: statementFile.size, 
+      type: statementFile.type 
+    });
+    const statementText = await extractTextFromPDF(statementFile, false);
+    console.log("[API CQS] Testo estratto con pdf-parse", { length: statementText.length });
+
+    // Estrazione testo dal template
+    console.log("[API CQS] API - Template File Trovato:", {
+      name: templateFile.name,
+      size: templateFile.size,
+      type: templateFile.type
+    });
+    console.log("[API CQS] Estrazione testo da template PDF...");
+    console.log("[API CQS] Inizio estrazione testo da PDF con pdf-parse", {
+      name: templateFile.name,
+      size: templateFile.size,
+      type: templateFile.type
+    });
+    const templateText = await extractTextFromPDF(templateFile, false);
+    console.log("[API CQS] Testo estratto con pdf-parse", { length: templateText.length });
+    console.log("[API CQS] Testo estratto per il template (primi 200 char):", templateText.substring(0, 200));
+
+    // Debug dei testi pre-troncamento
+    console.log("[API CQS] --- DEBUG TESTI PRE-TRONCAMENTO (input per processWithMistralChat) ---");
+    console.log("[API CQS] Testo Contratto (primi 500 char):", contractText.substring(0, 500));
+    console.log("[API CQS] Testo Contratto (...ultimi 500 char):", contractText.substring(contractText.length - 500));
+    console.log("[API CQS] Testo Conteggio (primi 500 char):", statementText.substring(0, 500));
+    console.log("[API CQS] Testo Conteggio (...ultimi 500 char):", statementText.substring(statementText.length - 500));
+    console.log("[API CQS] Testo Template (primi 500 char):", templateText.substring(0, 500));
+    console.log("[API CQS] Testo Template (...ultimi 500 char):", templateText.substring(templateText.length - 500));
+    console.log("[API CQS] --- FINE DEBUG TESTI PRE-TRONCAMENTO ---");
+
+    // Troncamento dei testi per evitare prompt troppo lunghi
+    const MAX_LENGTH = 15000; // Ridotto il limite per evitare timeout
+    const truncatedContractText = contractText.length > MAX_LENGTH 
+      ? contractText.substring(0, MAX_LENGTH) + "\n[...testo omesso per limitazioni di dimensione...]\n" + contractText.substring(contractText.length - MAX_LENGTH)
+      : contractText;
     
-    // Store file info for logging in case of error
-    const filesInfo = {
-      contractFile: contractFile ? { name: contractFile.name, size: contractFile.size, type: contractFile.type } : null,
-      statementFile: statementFile ? { name: statementFile.name, size: statementFile.size, type: statementFile.type } : null,
-      templateFile: templateFile ? { name: templateFile.name, size: templateFile.size, type: templateFile.type } : null,
-    };
+    const truncatedStatementText = statementText.length > MAX_LENGTH
+      ? statementText.substring(0, MAX_LENGTH) + "\n[...testo omesso per limitazioni di dimensione...]\n" + statementText.substring(statementText.length - MAX_LENGTH)
+      : statementText;
 
-    if (!contractFile) {
-      logMessage("File del contratto mancante.");
-      return NextResponse.json({ error: "File del contratto mancante." }, { status: 400 });
-    }
-    if (!statementFile) {
-      logMessage("File del conteggio estintivo mancante.");
-      return NextResponse.json({ error: "File del conteggio estintivo mancante." }, { status: 400 });
-    }
-    if (!templateFile) {
-      logMessage("File del template mancante.");
-      return NextResponse.json({ error: "File del template mancante." }, { status: 400 });
-    }
+    // Debug dei testi troncati
+    console.log("[API CQS] --- DEBUG TESTI TRONCATI (input per LLM) ---");
+    console.log("[API CQS] Testo Contratto TRONCATO (primi 500 char):", truncatedContractText.substring(0, 500));
+    console.log("[API CQS] Testo Contratto TRONCATO (...ultimi 500 char):", truncatedContractText.substring(truncatedContractText.length - 500));
+    console.log("[API CQS] Testo Conteggio TRONCATO (primi 500 char):", truncatedStatementText.substring(0, 500));
+    console.log("[API CQS] Testo Conteggio TRONCATO (...ultimi 500 char):", truncatedStatementText.substring(truncatedStatementText.length - 500));
+    console.log("[API CQS] Testo Template TRONCATO (primi 500 char):", templateText.substring(0, 500));
+    console.log("[API CQS] Testo Template TRONCATO (...ultimi 500 char):", templateText.substring(templateText.length - 500));
+    console.log("[API CQS] --- FINE DEBUG TESTI TRONCATI ---");
 
-    logMessage("API - Contract File Trovato:", filesInfo.contractFile);
-    // Usa Mistral OCR per il contratto
-    // const contractText = await extractTextFromPDF(contractFile); // Vecchio metodo
-    const contractText = await extractTextWithMistralOcr(contractFile, MISTRAL_API_KEY);
-    if (contractText.startsWith("Errore durante l'OCR")) {
-        // Se l'OCR fallisce, ritorna l'errore specifico
-        return NextResponse.json({ error: contractText, details: "OCR fallito per il file del contratto" }, { status: 500 });
-    }
+    // Calcolo dimensioni del prompt
+    const systemPrompt = "Sei un assistente legale esperto in diritto bancario e finanziario. Il tuo compito è analizzare i documenti forniti e generare una lettera di diffida professionale e accurata.";
+    const userPrompt = `Analizza questi documenti e genera la lettera di diffida:
 
+<contratto_cqs>
+${truncatedContractText}
+</contratto_cqs>
 
-    logMessage("API - Statement File Trovato:", filesInfo.statementFile);
-    const statementText = await extractTextFromPDF(statementFile);
+<conteggio_estintivo>
+${truncatedStatementText}
+</conteggio_estintivo>
 
-    logMessage("API - Template File Trovato:", filesInfo.templateFile);
-    logMessage("Estrazione testo da template PDF...");
-    const templateText = await extractTextFromPDF(templateFile);
-    logMessage("Testo estratto per il template (primi 200 char):", templateText.substring(0, 200));
-    
-    // DEBUG Log per i testi pre-troncamento
-    logMessage("--- DEBUG TESTI PRE-TRONCAMENTO (input per processWithMistralChat) ---");
-    logMessage("Testo Contratto (primi 500 char):", contractText.substring(0,500));
-    if (contractText.length > 500) logMessage("Testo Contratto (...ultimi 500 char):", contractText.substring(contractText.length - 500));
-    logMessage("Testo Conteggio (primi 500 char):", statementText.substring(0,500));
-    if (statementText.length > 500) logMessage("Testo Conteggio (...ultimi 500 char):", statementText.substring(statementText.length - 500));
-    logMessage("Testo Template (primi 500 char):", templateText.substring(0,500));
-    if (templateText.length > 500) logMessage("Testo Template (...ultimi 500 char):", templateText.substring(templateText.length - 500));
-    logMessage("--- FINE DEBUG TESTI PRE-TRONCAMENTO ---");
+<template_lettera>
+${templateText}
+</template_lettera>`;
 
-
-    // Log riepilogativo delle lunghezze prima di chiamare processWithMistralChat
-    logMessage("Testo estratto per il contratto (primi 200 char):", contractText.substring(0, 200));
-    logMessage("Testo estratto per il conteggio (primi 200 char):", statementText.substring(0, 200));
-    logMessage("Riepilogo estrazione testi:", {
-        contractTextLength: contractText.length,
-        statementTextLength: statementText.length,
-        templateTextLength: templateText.length
+    console.log("[API CQS] Dimensioni Prompt per Mistral AI:", { 
+      system: systemPrompt.length, 
+      user: userPrompt.length, 
+      totale: systemPrompt.length + userPrompt.length 
     });
 
-    logMessage("Inizio elaborazione con Mistral...");
-    const result = await processWithMistralChat(contractText, statementText, templateText, MISTRAL_API_KEY, filesInfo);
-    
-    // Controlla se il risultato è un errore specifico di timeout o altro errore da processWithMistralChat
-    if (result && result.error) {
-        logMessage(result.error, result.errorMessage); // Logga l'errore specifico
-        // Puoi decidere di mappare a un codice di stato HTTP specifico se necessario
-        // es. if (result.error.includes("Timeout")) return NextResponse.json(result, { status: 504 }); // Gateway Timeout
-        return NextResponse.json(result, { status: 500 });
-    }
+    // Debug del prompt completo
+    console.log("[API CQS] --- DEBUG USERPROMPT COMPLETO (input per LLM) ---");
+    console.log("[API CQS] User Prompt (primi 1000 char):", userPrompt.substring(0, 1000));
+    console.log("[API CQS] User Prompt (...continuazione... ultimi 500 char):", userPrompt.substring(userPrompt.length - 500));
+    console.log("[API CQS] --- FINE DEBUG USERPROMPT COMPLETO ---");
 
-    logMessage("Elaborazione con Mistral completata con successo.");
+    console.log("[API CQS] Invio richiesta a Mistral Chat API...");
+    const result = await processWithMistralChat(systemPrompt, userPrompt);
+    console.log("[API CQS] Risposta ricevuta da Mistral Chat API");
+
     return NextResponse.json(result);
-
-  } catch (error: any) {
-    logMessage("Errore API CQS:", error.message || error);
-    // Logga anche lo stack trace se disponibile e l'ambiente è di sviluppo/staging
-    if (process.env.NODE_ENV !== 'production' && error.stack) {
-      logMessage("Stack trace errore API CQS:", error.stack);
-    }
-    // Fornisci un messaggio di errore generico al client per motivi di sicurezza
-    return NextResponse.json({ error: "Errore interno del server durante l'elaborazione della richiesta.", details: error.message }, { status: 500 });
+  } catch (error) {
+    console.error("[API CQS] Errore:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Errore sconosciuto' }, { status: 500 });
   }
 }
 
