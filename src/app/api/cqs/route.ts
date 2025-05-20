@@ -3,7 +3,7 @@ import pdfParse from "pdf-parse";
 import { extractTextFromPDF } from '../process_pdf';
 import { processWithMistralChat } from '../process_pdf/mistral';
 
-export const maxDuration = 300; // Aumento il timeout a 5 minuti
+export const maxDuration = 60; // Imposto il timeout massimo consentito da Vercel piano hobby
 
 const logMessage = (message: string, data?: any) => {
   // Basic logger, replace with a more robust solution in production
