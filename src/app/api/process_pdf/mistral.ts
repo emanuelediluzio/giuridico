@@ -12,7 +12,7 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistral-8x7b-instruct',
+        model: 'mistral-small-latest',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
