@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const job = JSON.parse(jobData as string);
+    // Se è già un oggetto, usalo direttamente, altrimenti fai il parse
+    const job = typeof jobData === "string" ? JSON.parse(jobData) : jobData;
     
     return NextResponse.json(job);
 
