@@ -117,65 +117,42 @@ export default function Home() {
     }
   }, [result]);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contract || !statement || !template) {
-      setError("Assicurati di aver caricato tutti e tre i file.");
+      setError('Per favore, carica tutti i file richiesti');
       return;
     }
 
     setIsLoading(true);
-    setProgress(0);
     setError(null);
-    setResult(null);
-    setLetterContent('');
-    setIsEditing(false);
+    setProgress(0);
 
     try {
       const formData = new FormData();
-      formData.append('contract', contract); // Chiave per il backend
-      formData.append('statement', statement); // Chiave per il backend
-      formData.append('template', template); // Chiave per il backend
-      
-      console.log("PAGE.TSX - Contratto prima di append:", { name: contract.name, size: contract.size, type: contract.type });
-      console.log("PAGE.TSX - Conteggio (Statement) prima di append:", { name: statement.name, size: statement.size, type: statement.type });
-      console.log("PAGE.TSX - Template prima di append:", { name: template.name, size: template.size, type: template.type });
-      console.log("PAGE.TSX - FormData pronto per invio (chiavi backend):", formData.has('contract'), formData.has('statement'), formData.has('template'));
+      formData.append('contract', contract);
+      formData.append('statement', statement);
+      formData.append('template', template);
 
-      setProgress(10); // Inizio invio
-      const res = await fetch('/api/cqs', {
+      const response = await fetch('/api/process_direct', {
         method: 'POST',
-        body: formData,
+        body: formData
       });
-      
-      setProgress(50); // Risposta ricevuta, in attesa di parsing
 
-      if (!res.ok) {
-        let errorData;
-        const resClone = res.clone(); // Clona la risposta per poterla leggere più volte
-        try {
-          errorData = await res.json(); // Primo tentativo di lettura del corpo
-        } catch (jsonError) {
-          try {
-            const errorText = await resClone.text(); // Secondo tentativo sul clone
-            throw new Error(errorText || `Errore dal server: ${res.status} ${res.statusText}`);
-          } catch (textError) {
-            // Se entrambi i tentativi di lettura del corpo falliscono, solleva un errore generico
-            throw new Error(`Errore dal server: ${res.status} ${res.statusText}. Impossibile leggere il corpo della risposta.`);
-          }
-        }
-        // Se res.json() ha avuto successo, ma errorData.error non è definito, usa un messaggio generico.
-        throw new Error(errorData?.error || `Errore durante l'elaborazione della richiesta: ${res.status} ${res.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore durante l\'elaborazione dei file');
       }
 
-      const data: ResultData = await res.json();
-      setResult(data); // Questo triggererà l'useEffect per impostare letterContent
+      const data = await response.json();
+      setResult(data);
+      setProgress(100);
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch (error) {
+      console.error('Errore:', error);
+      setError(error instanceof Error ? error.message : 'Errore sconosciuto');
     } finally {
       setIsLoading(false);
-      setProgress(100);
     }
   };
 
