@@ -23,7 +23,14 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
+      const errorText = await response.text();
+      console.error('Errore dettagliato Mistral:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
       throw new Error(errorData.error || 'Errore nella comunicazione con il modello');
     }
 
