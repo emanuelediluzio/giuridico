@@ -10,20 +10,6 @@ const logMessage = (message: string, data?: any) => {
   console.log(`[API CQS] ${message}`, data || ""); 
 };
 
-// Helper function to extract text from a PDF using pdf-parse
-async function extractTextFromPDF(file: File): Promise<string> {
-  try {
-    logMessage("Inizio estrazione testo da PDF con pdf-parse", { name: file.name, size: file.size, type: file.type });
-  const arrayBuffer = await file.arrayBuffer();
-    const data = await pdfParse(Buffer.from(arrayBuffer));
-    logMessage("Testo estratto con pdf-parse", { length: data.text.length });
-    return data.text;
-  } catch (error) {
-    logMessage("Errore durante estrazione testo da PDF con pdf-parse", error);
-    return ""; // Return empty string or handle error as needed
-  }
-}
-
 // Updated function to extract text from a PDF using Mistral OCR API
 async function extractTextWithMistralOcr(file: File, apiKey: string): Promise<string> {
   if (!file) {
