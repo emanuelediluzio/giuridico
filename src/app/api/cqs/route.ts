@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     console.log("[API CQS] --- FINE DEBUG TESTI PRE-TRONCAMENTO ---");
 
     // Troncamento dei testi per evitare prompt troppo lunghi
-    const MAX_LENGTH = 15000; // Ridotto il limite per evitare timeout
+    const MAX_LENGTH = 6000; // Ridotto drasticamente per evitare errori API Mistral (limite token)
     const truncatedContractText = contractText.length > MAX_LENGTH 
       ? contractText.substring(0, MAX_LENGTH) + "\n[...testo omesso per limitazioni di dimensione...]\n" + contractText.substring(contractText.length - MAX_LENGTH)
       : contractText;
@@ -170,14 +170,19 @@ export async function POST(req: NextRequest) {
       ? statementText.substring(0, MAX_LENGTH) + "\n[...testo omesso per limitazioni di dimensione...]\n" + statementText.substring(statementText.length - MAX_LENGTH)
       : statementText;
 
+    // Limita anche il template a 2000 caratteri
+    const truncatedTemplateText = templateText.length > 2000
+      ? templateText.substring(0, 2000) + "\n[...testo omesso per limitazioni di dimensione...]\n"
+      : templateText;
+
     // Debug dei testi troncati
     console.log("[API CQS] --- DEBUG TESTI TRONCATI (input per LLM) ---");
     console.log("[API CQS] Testo Contratto TRONCATO (primi 500 char):", truncatedContractText.substring(0, 500));
     console.log("[API CQS] Testo Contratto TRONCATO (...ultimi 500 char):", truncatedContractText.substring(truncatedContractText.length - 500));
     console.log("[API CQS] Testo Conteggio TRONCATO (primi 500 char):", truncatedStatementText.substring(0, 500));
     console.log("[API CQS] Testo Conteggio TRONCATO (...ultimi 500 char):", truncatedStatementText.substring(truncatedStatementText.length - 500));
-    console.log("[API CQS] Testo Template TRONCATO (primi 500 char):", templateText.substring(0, 500));
-    console.log("[API CQS] Testo Template TRONCATO (...ultimi 500 char):", templateText.substring(templateText.length - 500));
+    console.log("[API CQS] Testo Template TRONCATO (primi 500 char):", truncatedTemplateText.substring(0, 500));
+    console.log("[API CQS] Testo Template TRONCATO (...ultimi 500 char):", truncatedTemplateText.substring(truncatedTemplateText.length - 500));
     console.log("[API CQS] --- FINE DEBUG TESTI TRONCATI ---");
 
     // Calcolo dimensioni del prompt
@@ -193,7 +198,7 @@ ${truncatedStatementText}
 </conteggio_estintivo>
 
 <template_lettera>
-${templateText}
+${truncatedTemplateText}
 </template_lettera>`;
 
     console.log("[API CQS] Dimensioni Prompt per Mistral AI:", { 
