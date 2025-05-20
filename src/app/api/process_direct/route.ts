@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processFilesDirectly } from "../process_pdf/direct_process";
 
-export const maxDuration = 300; // Aumentiamo il timeout a 5 minuti dato che potrebbe richiedere più tempo
+export const maxDuration = 60; // Impostato al massimo consentito per il piano Hobby di Vercel
 
 export async function POST(req: NextRequest) {
   console.log("[API Direct Process] Ricevuta richiesta POST");
