@@ -13,14 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'API key mancante' }, { status: 500 });
     }
 
-    const res = await fetch('https://api.mixtral.ai/v1/chat/completions', {
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-instruct',
+        model: 'mistral-8x7b-instruct',
         messages,
         temperature: 0.7,
         max_tokens: 1000,

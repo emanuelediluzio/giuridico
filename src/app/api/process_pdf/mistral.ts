@@ -5,14 +5,14 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
       throw new Error('API key mancante');
     }
 
-    const response = await fetch('https://api.mixtral.ai/v1/chat/completions', {
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-instruct',
+        model: 'mistral-8x7b-instruct',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
