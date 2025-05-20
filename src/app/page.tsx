@@ -134,7 +134,8 @@ export default function Home() {
       formData.append('statement', statement);
       formData.append('template', template);
 
-      const response = await fetch('/api/process_direct', {
+      // Invia i file per l'elaborazione asincrona
+      const response = await fetch('/api/process_async', {
         method: 'POST',
         body: formData
       });
@@ -144,14 +145,38 @@ export default function Home() {
         throw new Error(errorData.error || 'Errore durante l\'elaborazione dei file');
       }
 
-      const data = await response.json();
-      setResult(data);
-      setProgress(100);
+      const { jobId } = await response.json();
+      
+      // Polling dello stato del job
+      const checkStatus = async () => {
+        const statusResponse = await fetch(`/api/process_async/status/${jobId}`);
+        const statusData = await statusResponse.json();
+
+        if (statusData.status === 'completed') {
+          setResult(statusData.result);
+          setProgress(100);
+          setIsLoading(false);
+        } else if (statusData.status === 'failed') {
+          throw new Error(statusData.error || 'Errore durante l\'elaborazione');
+        } else {
+          // Aggiorna la progress bar in base allo stato
+          if (statusData.status === 'pending') {
+            setProgress(20);
+          } else if (statusData.status === 'processing') {
+            setProgress(60);
+          }
+          
+          // Continua il polling
+          setTimeout(checkStatus, 2000);
+        }
+      };
+
+      // Avvia il polling
+      checkStatus();
 
     } catch (error) {
       console.error('Errore:', error);
       setError(error instanceof Error ? error.message : 'Errore sconosciuto');
-    } finally {
       setIsLoading(false);
     }
   };
