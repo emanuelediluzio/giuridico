@@ -108,11 +108,7 @@ export default function Home() {
         pdfToSingleJpegBase64(template),
       ]);
 
-      // Estrai anche il testo dal template (per prompt)
-      const { extractTextFromPDF } = await import('./components/PDFTextExtractor');
-      const templateText = await extractTextFromPDF(template);
-
-      // Invia le immagini e il testo al backend
+      // Invia solo le immagini al backend
       const response = await fetch("/api/process_nvidia", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +116,6 @@ export default function Home() {
           contractImg,
           statementImg,
           templateImg,
-          templateText,
         }),
       });
 

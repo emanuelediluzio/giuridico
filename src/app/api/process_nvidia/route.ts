@@ -4,27 +4,14 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    const { contractImg, statementImg, templateImg, templateText } = await req.json();
+    const { contractImg, statementImg, templateImg } = await req.json();
 
-    if (!contractImg || !statementImg || !templateImg || !templateText) {
-      return NextResponse.json({ error: "Immagini o testo mancanti" }, { status: 400 });
+    if (!contractImg || !statementImg || !templateImg) {
+      return NextResponse.json({ error: "Immagini mancanti" }, { status: 400 });
     }
 
-    // Costruisci il prompt per NVIDIA
-    const prompt = `Analizza le seguenti immagini di documenti e genera una lettera formale basata sul template fornito (testo template in fondo):
-
-1. Prima immagine: Contratto
-2. Seconda immagine: Conteggio estintivo
-3. Terza immagine: Template
-
-TEMPLATE (testo):
-${templateText}
-
-Genera una lettera formale in italiano che:
-1. Segua il formato del template
-2. Includa le informazioni rilevanti dal contratto e dalla dichiarazione
-3. Mantenga un tono professionale e formale
-4. Sia grammaticalmente corretta e ben strutturata`;
+    // Prompt minimale per NVIDIA
+    const prompt = `Analizza le seguenti immagini di documenti (contratto, conteggio estintivo, template) e genera una lettera formale seguendo il template fornito. La risposta deve essere solo la lettera generata, senza commenti aggiuntivi.`;
 
     // Prepara le immagini per NVIDIA API (base64 senza header)
     function stripBase64Header(dataUrl: string) {
