@@ -99,13 +99,17 @@ export default function Home() {
     setError(null);
 
     try {
-      // Import dinamico della funzione client-side
-      const { extractTextFromPDF } = await import('./components/pdfTextExtractClient');
-      const [contractText, statementText, templateText] = await Promise.all([
-        extractTextFromPDF(contract),
-        extractTextFromPDF(statement),
-        extractTextFromPDF(template),
-      ]);
+      let contractText = '';
+      let statementText = '';
+      let templateText = '';
+      if (typeof window !== 'undefined') {
+        const { extractTextFromPDF } = await import('./components/PDFTextExtractor');
+        [contractText, statementText, templateText] = await Promise.all([
+          extractTextFromPDF(contract),
+          extractTextFromPDF(statement),
+          extractTextFromPDF(template),
+        ]);
+      }
 
       // Invia solo il testo al backend
       const response = await fetch("/api/process_nvidia", {
