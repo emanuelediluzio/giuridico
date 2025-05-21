@@ -99,25 +99,27 @@ export default function Home() {
     setError(null);
 
     try {
-      let contractText = '';
-      let statementText = '';
-      let templateText = '';
-      if (typeof window !== 'undefined') {
-        const { extractTextFromPDF } = await import('./components/PDFTextExtractor');
-        [contractText, statementText, templateText] = await Promise.all([
-          extractTextFromPDF(contract),
-          extractTextFromPDF(statement),
-          extractTextFromPDF(template),
-        ]);
-      }
+      // Import dinamico della funzione di conversione PDF->JPEG
+      const { pdfToSingleJpegBase64 } = await import('./components/PDFToJpeg');
+      // Converte i 3 PDF in immagini JPEG base64
+      const [contractImg, statementImg, templateImg] = await Promise.all([
+        pdfToSingleJpegBase64(contract),
+        pdfToSingleJpegBase64(statement),
+        pdfToSingleJpegBase64(template),
+      ]);
 
-      // Invia solo il testo al backend
+      // Estrai anche il testo dal template (per prompt)
+      const { extractTextFromPDF } = await import('./components/PDFTextExtractor');
+      const templateText = await extractTextFromPDF(template);
+
+      // Invia le immagini e il testo al backend
       const response = await fetch("/api/process_nvidia", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contractText,
-          statementText,
+          contractImg,
+          statementImg,
+          templateImg,
           templateText,
         }),
       });

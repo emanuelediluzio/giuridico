@@ -4,22 +4,20 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    const { contractText, statementText, templateText } = await req.json();
+    const { contractImg, statementImg, templateImg, templateText } = await req.json();
 
-    if (!contractText || !statementText || !templateText) {
-      return NextResponse.json({ error: "Testo mancante" }, { status: 400 });
+    if (!contractImg || !statementImg || !templateImg || !templateText) {
+      return NextResponse.json({ error: "Immagini o testo mancanti" }, { status: 400 });
     }
 
     // Costruisci il prompt per NVIDIA
-    const prompt = `Analizza i seguenti documenti e genera una lettera formale basata sul template fornito:
+    const prompt = `Analizza le seguenti immagini di documenti e genera una lettera formale basata sul template fornito (testo template in fondo):
 
-CONTRATTO:
-${contractText}
+1. Prima immagine: Contratto
+2. Seconda immagine: Conteggio estintivo
+3. Terza immagine: Template
 
-DICHIARAZIONE:
-${statementText}
-
-TEMPLATE:
+TEMPLATE (testo):
 ${templateText}
 
 Genera una lettera formale in italiano che:
@@ -28,7 +26,13 @@ Genera una lettera formale in italiano che:
 3. Mantenga un tono professionale e formale
 4. Sia grammaticalmente corretta e ben strutturata`;
 
-    // Chiamata a NVIDIA API
+    // Prepara le immagini per NVIDIA API (base64 senza header)
+    function stripBase64Header(dataUrl: string) {
+      return dataUrl.replace(/^data:image\/jpeg;base64,/, "");
+    }
+    const images = [contractImg, statementImg, templateImg].map(stripBase64Header);
+
+    // Chiamata a NVIDIA API (modello gemma-3-27b-it)
     const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -36,15 +40,16 @@ Genera una lettera formale in italiano che:
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "meta/llama-4-maverick-17b-128e-instruct",
+        model: "google/gemma-3-27b-it",
         messages: [
-          { 
-            role: "system", 
+          {
+            role: "system",
             content: "Sei un assistente AI specializzato nella redazione di lettere formali in italiano. La tua risposta deve essere solo la lettera generata, senza commenti aggiuntivi."
           },
-          { 
-            role: "user", 
-            content: prompt 
+          {
+            role: "user",
+            content: prompt,
+            images: images
           }
         ],
         max_tokens: 2048,
@@ -56,7 +61,6 @@ Genera una lettera formale in italiano che:
     try {
       data = await response.json();
     } catch (jsonErr) {
-      // Se non è JSON, logga il testo e restituisci errore chiaro
       const text = await response.text();
       console.error("Risposta non JSON da NVIDIA:", text);
       if (text.includes('timeout') || text.includes('timed out')) {
@@ -91,7 +95,6 @@ Genera una lettera formale in italiano che:
     return NextResponse.json({ result: generatedLetter });
 
   } catch (error) {
-    // Gestione timeout Vercel
     if ((error as Error).message?.includes('timed out')) {
       return NextResponse.json(
         { error: "Timeout: la generazione ha impiegato troppo tempo. Riprova con documenti più piccoli o riprova più tardi." },
