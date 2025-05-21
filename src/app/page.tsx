@@ -42,9 +42,9 @@ export default function Home() {
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Accetta solo immagini JPEG
-      if (!file.type.startsWith('image/jpeg')) {
-        setError('Carica solo immagini JPEG (usa il convertitore PDF→JPEG se necessario)');
+      // Accetta solo PDF
+      if (file.type !== 'application/pdf') {
+        setError('Carica solo file PDF');
         return;
       }
       setter(file);
@@ -97,7 +97,7 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contract || !statement || !template) {
-      setError("Per favore carica tutte le immagini richieste");
+      setError("Per favore carica tutti i PDF richiesti");
       return;
     }
 
@@ -105,38 +105,10 @@ export default function Home() {
     setError(null);
 
     try {
-      // Leggi le immagini come base64
-      const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const [contractImg, statementImg, templateImg] = await Promise.all([
-        toBase64(contract),
-        toBase64(statement),
-        toBase64(template),
-      ]);
-
-      // Invia solo le immagini al backend
-      const response = await fetch("/api/process_nvidia", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contractImg,
-          statementImg,
-          templateImg,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Errore nella generazione della lettera");
-      }
-
-      const data = await response.json();
-      setLetterContent(data.result);
-      setIsEditing(true);
+      // Invia i PDF al backend (o mostra istruzioni per la conversione)
+      setError('I PDF verranno convertiti in immagini tramite uno script esterno prima di essere processati.');
+      setIsLoading(false);
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore nella generazione della lettera");
     } finally {
@@ -315,7 +287,7 @@ export default function Home() {
                     <input 
                       type="file" 
                       id="contract" 
-                      accept="image/jpeg" 
+                      accept="application/pdf" 
                       onChange={handleFileChange(setContract)} 
                       className="input-lexa"
                     />
@@ -327,7 +299,7 @@ export default function Home() {
                     <input 
                       type="file" 
                       id="statement" 
-                      accept="image/jpeg" 
+                      accept="application/pdf" 
                       onChange={handleFileChange(setStatement)} 
                       className="input-lexa"
                     />
@@ -339,7 +311,7 @@ export default function Home() {
                     <input 
                       type="file" 
                       id="template" 
-                      accept="image/jpeg" 
+                      accept="application/pdf" 
                       onChange={handleFileChange(setTemplate)} 
                       className="input-lexa"
                     />
