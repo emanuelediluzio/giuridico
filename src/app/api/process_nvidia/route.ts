@@ -1,48 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as pdfjs from "pdfjs-dist";
 
 export const maxDuration = 60;
 
-async function extractTextFromPDF(pdfBuffer: ArrayBuffer): Promise<string> {
-  const pdf = await pdfjs.getDocument({ data: pdfBuffer }).promise;
-  let fullText = "";
-  
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item: any) => item.str)
-      .join(" ");
-    fullText += pageText + "\n";
-  }
-  
-  return fullText;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const contract = formData.get("contract") as File;
-    const statement = formData.get("statement") as File;
-    const template = formData.get("template") as File;
+    const { contractText, statementText, templateText } = await req.json();
 
-    if (!contract || !statement || !template) {
-      return NextResponse.json({ error: "File mancanti" }, { status: 400 });
+    if (!contractText || !statementText || !templateText) {
+      return NextResponse.json({ error: "Testo mancante" }, { status: 400 });
     }
-
-    // Leggi i file come buffer
-    const [contractBuf, statementBuf, templateBuf] = await Promise.all([
-      contract.arrayBuffer(),
-      statement.arrayBuffer(),
-      template.arrayBuffer(),
-    ]);
-
-    // Estrai il testo dai PDF
-    const [contractText, statementText, templateText] = await Promise.all([
-      extractTextFromPDF(contractBuf),
-      extractTextFromPDF(statementBuf),
-      extractTextFromPDF(templateBuf),
-    ]);
 
     // Costruisci il prompt per NVIDIA
     const prompt = `Analizza i seguenti documenti e genera una lettera formale basata sul template fornito:

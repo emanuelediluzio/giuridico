@@ -1,8 +1,6 @@
 "use client";
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-// import { extractTextFromPDF } from './components/pdfTextExtractClient'; // Client-side extraction rimosso
 import dynamic from 'next/dynamic';
-// import ChatAI from './components/ChatAI'; // Rimosso perché non più utilizzato
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import "@fontsource/inter/400.css";
@@ -30,30 +28,25 @@ interface ResultData {
   // Campi rimossi: rimborso, quotaNonGoduta, totaleCosti, durataTotale, durataResidua, storno, dettaglioCosti, nomeCliente, dataChiusura, message, pdfProcessingDisabled
 }
 
-/* Commentiamo questa funzione per ora, il backend gestisce l'estrazione
-async function extractTextFromFile(file: File): Promise<string> {
-  if (file.type === 'application/pdf') {
-    return extractTextFromPDF(file);
-  } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    // Estraggo testo DOCX lato client solo se hai una libreria JS, altrimenti invio il file come base64
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  } else if (file.type === 'text/plain') {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
-  } else {
-    throw new Error('Formato file non supportato');
+import * as pdfjsLib from 'pdfjs-dist/build/pdf';
+// @ts-ignore
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
+// @ts-ignore
+(pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+// Funzione per estrarre testo da un file PDF lato client
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(' ');
+    fullText += pageText + '\n';
   }
+  return fullText;
 }
-*/
 
 export default function Home() {
   const [contract, setContract] = useState<File | null>(null);
@@ -126,14 +119,22 @@ export default function Home() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("contract", contract);
-      formData.append("statement", statement);
-      formData.append("template", template);
+      // Estrai testo dai PDF lato client
+      const [contractText, statementText, templateText] = await Promise.all([
+        extractTextFromPDF(contract),
+        extractTextFromPDF(statement),
+        extractTextFromPDF(template),
+      ]);
 
+      // Invia solo il testo al backend
       const response = await fetch("/api/process_nvidia", {
         method: "POST",
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contractText,
+          statementText,
+          templateText,
+        }),
       });
 
       if (!response.ok) {
