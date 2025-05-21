@@ -118,39 +118,35 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contract || !statement || !template) {
-      setError('Per favore, carica tutti i file richiesti');
+      setError("Per favore carica tutti i file richiesti");
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setResult(null);
-    setLetterContent('');
-    setIsEditing(false);
 
     try {
       const formData = new FormData();
-      formData.append('contract', contract);
-      formData.append('statement', statement);
-      formData.append('template', template);
+      formData.append("contract", contract);
+      formData.append("statement", statement);
+      formData.append("template", template);
 
-      // Invia i file direttamente a Gemini
-      const response = await fetch('/api/process_gemini', {
-        method: 'POST',
-        body: formData
+      const response = await fetch("/api/process_nvidia", {
+        method: "POST",
+        body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Errore durante l\'elaborazione dei file');
+        const error = await response.json();
+        throw new Error(error.error || "Errore nella generazione della lettera");
       }
 
       const data = await response.json();
-      setResult({ lettera: data.lettera });
-      setLetterContent(data.lettera);
-      setIsLoading(false);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Errore sconosciuto');
+      setLetterContent(data.result);
+      setIsEditing(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore nella generazione della lettera");
+    } finally {
       setIsLoading(false);
     }
   };
