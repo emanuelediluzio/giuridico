@@ -105,12 +105,38 @@ export default function Home() {
     setError(null);
 
     try {
-      // Invia i PDF al backend (o mostra istruzioni per la conversione)
-      setError('I PDF verranno convertiti in immagini tramite uno script esterno prima di essere processati.');
-      setIsLoading(false);
-      return;
+      if (typeof window !== 'undefined') {
+        const { pdfToSingleJpegBase64 } = await import('./components/PDFToJpeg');
+        const [contractImg, statementImg, templateImg] = await Promise.all([
+          pdfToSingleJpegBase64(contract),
+          pdfToSingleJpegBase64(statement),
+          pdfToSingleJpegBase64(template),
+        ]);
+
+        const response = await fetch("/api/process_nvidia", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contractImg,
+            statementImg,
+            templateImg,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Errore nella generazione della lettera");
+        }
+
+        const data = await response.json();
+        // setResult({ lettera: data.result }); // Aggiorna lo stato result per far scattare useEffect
+        setLetterContent(data.result); // Imposta direttamente letterContent se non serve useEffect complesso
+        setIsEditing(true);
+      } else {
+        throw new Error("Operazione di conversione PDF supportata solo lato client.");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore nella generazione della lettera");
+      setError(err instanceof Error ? err.message : "Errore sconosciuto durante l\'elaborazione");
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +151,7 @@ export default function Home() {
       return (
         <div className="mt-6 p-4 border border-blue-300 rounded-lg bg-blue-50">
           <p className="text-blue-700 font-semibold">Caricamento in corso...</p>
+          <p className="text-blue-600 text-sm">Conversione PDF in immagini e invio al server...</p>
         </div>
       );
     }
@@ -138,7 +165,7 @@ export default function Home() {
       );
     }
 
-    if (result && letterContent) { // Mostra solo se abbiamo result e letterContent
+    if (letterContent) { // Mostra solo se abbiamo letterContent
       return (
         <div className="mt-8 p-6 border border-gray-300 rounded-lg shadow-lg bg-white">
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
@@ -253,22 +280,22 @@ export default function Home() {
                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="font-bold text-lg">1</span>
                     </div>
-                    <h3 className="text-lg font-bold mb-2 text-slate-800">Carica i documenti</h3>
-                    <p className="text-slate-600">Carica contratto, conteggio estintivo e template per la lettera di rimborso.</p>
+                    <h3 className="text-lg font-bold mb-2 text-slate-800">Carica i documenti PDF</h3>
+                    <p className="text-slate-600">Carica contratto, conteggio estintivo e template PDF.</p>
                   </div>
                   <div className="p-6 bg-blue-50 rounded-xl">
                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="font-bold text-lg">2</span>
                     </div>
-                    <h3 className="text-lg font-bold mb-2 text-slate-800">Analisi automatica</h3>
-                    <p className="text-slate-600">Lexa estrae informazioni rilevanti e calcola il rimborso dovuto.</p>
+                    <h3 className="text-lg font-bold mb-2 text-slate-800">Conversione e Analisi</h3>
+                    <p className="text-slate-600">I PDF vengono convertiti in immagini e analizzati dall'AI.</p>
                   </div>
                   <div className="p-6 bg-blue-50 rounded-xl">
                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="font-bold text-lg">3</span>
                     </div>
                     <h3 className="text-lg font-bold mb-2 text-slate-800">Risultato immediato</h3>
-                    <p className="text-slate-600">Ottieni importo del rimborso e lettera già pronta in formato PDF.</p>
+                    <p className="text-slate-600">Ottieni la lettera di diffida generata e pronta per essere modificata.</p>
                   </div>
                 </div>
               </div>
@@ -279,11 +306,11 @@ export default function Home() {
         {mainScreen === 'rimborso' && (
           <div className="container-lexa max-w-4xl animate-fade-in">
             <div className="card-lexa">
-              <h2 className="mb-6 text-center">Calcolo Rimborso Cessione del Quinto</h2>
-              {!result ? (
+              <h2 className="mb-6 text-center">Genera Lettera di Diffida da PDF</h2>
+              {!letterContent && !isLoading && (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="contract" className="block text-slate-700 font-medium mb-2">Contratto di finanziamento</label>
+                    <label htmlFor="contract" className="block text-slate-700 font-medium mb-2">Contratto (PDF)</label>
                     <input 
                       type="file" 
                       id="contract" 
@@ -291,11 +318,11 @@ export default function Home() {
                       onChange={handleFileChange(setContract)} 
                       className="input-lexa"
                     />
-                    <p className="mt-1 text-sm text-slate-500">Carica il contratto di cessione del quinto</p>
+                    <p className="mt-1 text-sm text-slate-500">Carica il contratto di cessione del quinto in formato PDF.</p>
                   </div>
                   
                   <div>
-                    <label htmlFor="statement" className="block text-slate-700 font-medium mb-2">Conteggio estintivo</label>
+                    <label htmlFor="statement" className="block text-slate-700 font-medium mb-2">Conteggio Estintivo (PDF)</label>
                     <input 
                       type="file" 
                       id="statement" 
@@ -303,11 +330,11 @@ export default function Home() {
                       onChange={handleFileChange(setStatement)} 
                       className="input-lexa"
                     />
-                    <p className="mt-1 text-sm text-slate-500">Carica il conteggio estintivo rilasciato dalla finanziaria</p>
+                    <p className="mt-1 text-sm text-slate-500">Carica il conteggio estintivo rilasciato dalla finanziaria in PDF.</p>
                   </div>
                   
                   <div>
-                    <label htmlFor="template" className="block text-slate-700 font-medium mb-2">Template per la lettera</label>
+                    <label htmlFor="template" className="block text-slate-700 font-medium mb-2">Template Lettera (PDF)</label>
                     <input 
                       type="file" 
                       id="template" 
@@ -315,10 +342,10 @@ export default function Home() {
                       onChange={handleFileChange(setTemplate)} 
                       className="input-lexa"
                     />
-                    <p className="mt-1 text-sm text-slate-500">Carica il template per la lettera di richiesta rimborso</p>
+                    <p className="mt-1 text-sm text-slate-500">Carica il template per la lettera di richiesta rimborso in PDF.</p>
                   </div>
                   
-                  {error && (
+                  {error && !isLoading && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                       {error}
                     </div>
@@ -336,17 +363,14 @@ export default function Home() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Calcolo in corso...
+                          Elaborazione in corso...
                         </div>
-                      ) : 'Calcola Rimborso'}
+                      ) : 'Genera Lettera'}
                     </button>
                   </div>
                 </form>
-              ) : (
-                <div className="animate-fade-in">
-                  {renderLoadingOrResult()}
-                </div>
               )}
+              {renderLoadingOrResult()}
             </div>
           </div>
         )}
