@@ -41,11 +41,17 @@ export default function Home() {
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setter(e.target.files[0]);
-      setError(null); // Pulisce l'errore quando un file viene cambiato/aggiunto
-      setResult(null); // Pulisce i risultati precedenti
-      setLetterContent(''); // Resetta il contenuto della lettera
-      setIsEditing(false); // Esci dalla modalità modifica
+      const file = e.target.files[0];
+      // Accetta solo immagini JPEG
+      if (!file.type.startsWith('image/jpeg')) {
+        setError('Carica solo immagini JPEG (usa il convertitore PDF→JPEG se necessario)');
+        return;
+      }
+      setter(file);
+      setError(null);
+      setResult(null);
+      setLetterContent('');
+      setIsEditing(false);
     }
   };
 
@@ -91,7 +97,7 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contract || !statement || !template) {
-      setError("Per favore carica tutti i file richiesti");
+      setError("Per favore carica tutte le immagini richieste");
       return;
     }
 
@@ -99,13 +105,17 @@ export default function Home() {
     setError(null);
 
     try {
-      // Import dinamico della funzione di conversione PDF->JPEG
-      const { pdfToSingleJpegBase64 } = await import('./components/PDFToJpeg');
-      // Converte i 3 PDF in immagini JPEG base64
+      // Leggi le immagini come base64
+      const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       const [contractImg, statementImg, templateImg] = await Promise.all([
-        pdfToSingleJpegBase64(contract),
-        pdfToSingleJpegBase64(statement),
-        pdfToSingleJpegBase64(template),
+        toBase64(contract),
+        toBase64(statement),
+        toBase64(template),
       ]);
 
       // Invia solo le immagini al backend
@@ -305,7 +315,7 @@ export default function Home() {
                     <input 
                       type="file" 
                       id="contract" 
-                      accept=".pdf,.docx,.txt" 
+                      accept="image/jpeg" 
                       onChange={handleFileChange(setContract)} 
                       className="input-lexa"
                     />
@@ -317,7 +327,7 @@ export default function Home() {
                     <input 
                       type="file" 
                       id="statement" 
-                      accept=".pdf,.docx,.txt" 
+                      accept="image/jpeg" 
                       onChange={handleFileChange(setStatement)} 
                       className="input-lexa"
                     />
@@ -329,7 +339,7 @@ export default function Home() {
                     <input 
                       type="file" 
                       id="template" 
-                      accept=".pdf,.docx,.txt,.doc" 
+                      accept="image/jpeg" 
                       onChange={handleFileChange(setTemplate)} 
                       className="input-lexa"
                     />
