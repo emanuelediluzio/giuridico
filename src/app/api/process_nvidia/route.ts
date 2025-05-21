@@ -52,16 +52,33 @@ Genera una lettera formale in italiano che:
       })
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Errore NVIDIA API:", error);
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonErr) {
+      // Se non è JSON, logga il testo e restituisci errore chiaro
+      const text = await response.text();
+      console.error("Risposta non JSON da NVIDIA:", text);
+      if (text.includes('timeout') || text.includes('timed out')) {
+        return NextResponse.json(
+          { error: "Timeout: la generazione ha impiegato troppo tempo. Riprova con documenti più piccoli o riprova più tardi." },
+          { status: 504 }
+        );
+      }
       return NextResponse.json(
-        { error: "Errore nella generazione della lettera" },
+        { error: `Errore NVIDIA: ${text}` },
         { status: 500 }
       );
     }
 
-    const data = await response.json();
+    if (!response.ok) {
+      console.error("Errore NVIDIA API:", data);
+      return NextResponse.json(
+        { error: data.error?.message || "Errore nella generazione della lettera" },
+        { status: 500 }
+      );
+    }
+
     const generatedLetter = data.choices?.[0]?.message?.content;
 
     if (!generatedLetter) {
@@ -74,6 +91,13 @@ Genera una lettera formale in italiano che:
     return NextResponse.json({ result: generatedLetter });
 
   } catch (error) {
+    // Gestione timeout Vercel
+    if ((error as Error).message?.includes('timed out')) {
+      return NextResponse.json(
+        { error: "Timeout: la generazione ha impiegato troppo tempo. Riprova con documenti più piccoli o riprova più tardi." },
+        { status: 504 }
+      );
+    }
     console.error("Errore:", error);
     return NextResponse.json(
       { error: "Errore interno del server" },
