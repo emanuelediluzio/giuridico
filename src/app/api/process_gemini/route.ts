@@ -21,8 +21,12 @@ export async function POST(req: NextRequest) {
       template.arrayBuffer(),
     ]);
 
-    // Inizializza Gemini
-    const genAI = new GoogleGenerativeAI("AIzaSyC3pH12fuAhqq5itHMxedzOJ1nQ5vw0osQ");
+    // Inizializza Gemini usando la variabile d'ambiente
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "API key Gemini non configurata" }, { status: 500 });
+    }
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
     // Prompt
