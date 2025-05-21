@@ -63,6 +63,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
+  const [progressStep, setProgressStep] = useState<string>("");
   const [mainScreen, setMainScreen] = useState<'home' | 'rimborso' | 'chat-ai'>("home");
 
   const [letterContent, setLetterContent] = useState<string>('');
@@ -155,17 +156,14 @@ export default function Home() {
         if (statusData.status === 'completed') {
           setResult(statusData.result);
           setProgress(100);
+          setProgressStep('Completato');
           setIsLoading(false);
         } else if (statusData.status === 'failed') {
           throw new Error(statusData.error || 'Errore durante l\'elaborazione');
         } else {
-          // Aggiorna la progress bar in base allo stato
-          if (statusData.status === 'pending') {
-            setProgress(20);
-          } else if (statusData.status === 'processing') {
-            setProgress(60);
-          }
-          
+          // Aggiorna la progress bar in base allo stato reale
+          setProgress(statusData.progress || 0);
+          setProgressStep(statusData.step || '');
           // Continua il polling
           setTimeout(checkStatus, 2000);
         }
@@ -193,7 +191,7 @@ export default function Home() {
           <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
             <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
           </div>
-          <p className="text-sm text-blue-600 mt-1">{progress}%</p>
+          <p className="text-sm text-blue-600 mt-1">{progress}% {progressStep && (<span>- {progressStep}</span>)}</p>
         </div>
       );
     }

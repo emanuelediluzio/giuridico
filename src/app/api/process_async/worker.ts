@@ -19,6 +19,8 @@ async function processJob(jobId: string) {
     
     // Aggiorna lo stato del job
     job.status = 'processing';
+    job.progress = 10;
+    job.step = 'Conversione file base64';
     await redis.set(`job:${jobId}`, JSON.stringify(job));
 
     // Converti i file base64 in File objects
@@ -26,11 +28,24 @@ async function processJob(jobId: string) {
     const statementFile = base64ToFile(job.files.statement, 'statement.pdf');
     const templateFile = base64ToFile(job.files.template, 'template.pdf');
 
-    // Elabora i file
+    job.progress = 30;
+    job.step = 'Preparazione prompt AI';
+    await redis.set(`job:${jobId}`, JSON.stringify(job));
+
+    // Elabora i file (chiamata API Mistral)
+    job.progress = 60;
+    job.step = 'Chiamata API Mistral';
+    await redis.set(`job:${jobId}`, JSON.stringify(job));
     const result = await processFilesDirectly(contractFile, statementFile, templateFile);
+
+    job.progress = 90;
+    job.step = 'Parsing risposta AI';
+    await redis.set(`job:${jobId}`, JSON.stringify(job));
 
     // Aggiorna il job con il risultato
     job.status = 'completed';
+    job.progress = 100;
+    job.step = 'Completato';
     job.result = result;
     job.completedAt = new Date().toISOString();
     await redis.set(`job:${jobId}`, JSON.stringify(job));
@@ -43,6 +58,8 @@ async function processJob(jobId: string) {
     if (jobData) {
       const job = JSON.parse(jobData as string);
       job.status = 'failed';
+      job.progress = 100;
+      job.step = 'Errore';
       job.error = error instanceof Error ? error.message : 'Errore sconosciuto';
       job.failedAt = new Date().toISOString();
       await redis.set(`job:${jobId}`, JSON.stringify(job));
