@@ -28,27 +28,6 @@ interface ResultData {
   // Campi rimossi: rimborso, quotaNonGoduta, totaleCosti, durataTotale, durataResidua, storno, dettaglioCosti, nomeCliente, dataChiusura, message, pdfProcessingDisabled
 }
 
-// Funzione per estrarre testo da un file PDF lato client
-async function extractTextFromPDF(file: File): Promise<string> {
-  // Import dinamico SOLO lato client
-  const pdfjsLib = await import('pdfjs-dist/build/pdf');
-  // @ts-ignore
-  const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
-  // @ts-ignore
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker.default || pdfjsWorker;
-
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let fullText = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item: any) => item.str).join(' ');
-    fullText += pageText + '\n';
-  }
-  return fullText;
-}
-
 export default function Home() {
   const [contract, setContract] = useState<File | null>(null);
   const [statement, setStatement] = useState<File | null>(null);
@@ -120,7 +99,8 @@ export default function Home() {
     setError(null);
 
     try {
-      // Estrai testo dai PDF lato client
+      // Import dinamico della funzione client-side
+      const { extractTextFromPDF } = await import('./components/pdfTextExtractClient');
       const [contractText, statementText, templateText] = await Promise.all([
         extractTextFromPDF(contract),
         extractTextFromPDF(statement),

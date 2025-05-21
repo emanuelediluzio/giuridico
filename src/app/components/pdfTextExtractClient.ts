@@ -14,14 +14,20 @@ function waitForPdfjsLib(): Promise<any> {
 }
 
 export async function extractTextFromPDF(file: File): Promise<string> {
-  const pdfjsLib = await waitForPdfjsLib();
+  const pdfjsLib = await import('pdfjs-dist/build/pdf');
+  // @ts-ignore
+  const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
+  // @ts-ignore
+  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker.default || pdfjsWorker;
+
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let text = "";
+  let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map((item: any) => item.str).join(" ") + "\n";
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(' ');
+    fullText += pageText + '\n';
   }
-  return text;
+  return fullText;
 } 
