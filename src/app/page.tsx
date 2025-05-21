@@ -62,10 +62,7 @@ export default function Home() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [progressStep, setProgressStep] = useState<string>("");
   const [mainScreen, setMainScreen] = useState<'home' | 'rimborso' | 'chat-ai'>("home");
-
   const [letterContent, setLetterContent] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
@@ -127,7 +124,9 @@ export default function Home() {
 
     setIsLoading(true);
     setError(null);
-    setProgress(0);
+    setResult(null);
+    setLetterContent('');
+    setIsEditing(false);
 
     try {
       const formData = new FormData();
@@ -135,8 +134,8 @@ export default function Home() {
       formData.append('statement', statement);
       formData.append('template', template);
 
-      // Invia i file per l'elaborazione asincrona
-      const response = await fetch('/api/process_async', {
+      // Invia i file direttamente a Gemini
+      const response = await fetch('/api/process_gemini', {
         method: 'POST',
         body: formData
       });
@@ -146,34 +145,11 @@ export default function Home() {
         throw new Error(errorData.error || 'Errore durante l\'elaborazione dei file');
       }
 
-      const { jobId } = await response.json();
-      
-      // Polling dello stato del job
-      const checkStatus = async () => {
-        const statusResponse = await fetch(`/api/process_async/status/${jobId}`);
-        const statusData = await statusResponse.json();
-
-        if (statusData.status === 'completed') {
-          setResult(statusData.result);
-          setProgress(100);
-          setProgressStep('Completato');
-          setIsLoading(false);
-        } else if (statusData.status === 'failed') {
-          throw new Error(statusData.error || 'Errore durante l\'elaborazione');
-        } else {
-          // Aggiorna la progress bar in base allo stato reale
-          setProgress(statusData.progress || 0);
-          setProgressStep(statusData.step || '');
-          // Continua il polling
-          setTimeout(checkStatus, 2000);
-        }
-      };
-
-      // Avvia il polling
-      checkStatus();
-
+      const data = await response.json();
+      setResult({ lettera: data.lettera });
+      setLetterContent(data.lettera);
+      setIsLoading(false);
     } catch (error) {
-      console.error('Errore:', error);
       setError(error instanceof Error ? error.message : 'Errore sconosciuto');
       setIsLoading(false);
     }
@@ -188,10 +164,6 @@ export default function Home() {
       return (
         <div className="mt-6 p-4 border border-blue-300 rounded-lg bg-blue-50">
           <p className="text-blue-700 font-semibold">Caricamento in corso...</p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
-          </div>
-          <p className="text-sm text-blue-600 mt-1">{progress}% {progressStep && (<span>- {progressStep}</span>)}</p>
         </div>
       );
     }
