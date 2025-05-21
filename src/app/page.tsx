@@ -28,14 +28,15 @@ interface ResultData {
   // Campi rimossi: rimborso, quotaNonGoduta, totaleCosti, durataTotale, durataResidua, storno, dettaglioCosti, nomeCliente, dataChiusura, message, pdfProcessingDisabled
 }
 
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
-// @ts-ignore
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
-// @ts-ignore
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker;
-
 // Funzione per estrarre testo da un file PDF lato client
 async function extractTextFromPDF(file: File): Promise<string> {
+  // Import dinamico SOLO lato client
+  const pdfjsLib = await import('pdfjs-dist/build/pdf');
+  // @ts-ignore
+  const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
+  // @ts-ignore
+  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker.default || pdfjsWorker;
+
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   let fullText = '';
