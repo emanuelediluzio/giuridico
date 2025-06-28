@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     let data;
     try {
       data = await response.json();
-    } catch (jsonErr) {
+    } catch {
       const text = await response.text();
       console.error("Risposta non JSON da NVIDIA:", text);
       if (text.includes('timeout') || text.includes('timed out')) {

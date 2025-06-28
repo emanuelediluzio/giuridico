@@ -2,10 +2,9 @@
 
 export async function pdfToSingleJpegBase64(file: File): Promise<string> {
   const pdfjsLib = await import('pdfjs-dist/build/pdf');
-  // @ts-ignore
   const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
-  // @ts-ignore
-  (pdfjsLib as any).GlobalWorkerOptions.workerSrc = pdfjsWorker.default || pdfjsWorker;
+  // @ts-expect-error - pdfjs-dist types issue
+  (pdfjsLib as unknown).GlobalWorkerOptions.workerSrc = pdfjsWorker.default || pdfjsWorker;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -13,14 +12,14 @@ export async function pdfToSingleJpegBase64(file: File): Promise<string> {
   let totalHeight = 0;
   let maxWidth = 0;
 
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2 }); // Alta risoluzione
+  for (let i = 1; i <= (pdf as { numPages: number }).numPages; i++) {
+    const page = await (pdf as { getPage: (num: number) => Promise<unknown> }).getPage(i);
+    const viewport = (page as { getViewport: (opts: { scale: number }) => { width: number; height: number } }).getViewport({ scale: 2 });
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const context = canvas.getContext('2d');
-    await page.render({ canvasContext: context!, viewport }).promise;
+    await (page as { render: (opts: { canvasContext: CanvasRenderingContext2D, viewport: { width: number, height: number } }) => { promise: Promise<void> } }).render({ canvasContext: context!, viewport }).promise;
     pageCanvases.push(canvas);
     totalHeight += canvas.height;
     maxWidth = Math.max(maxWidth, canvas.width);

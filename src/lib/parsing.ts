@@ -1,23 +1,4 @@
-import mammoth from 'mammoth';
-
 // Funzioni solo su testo, nessun import pdfjs-dist
-
-function estraiNumeriMultipli(text: string, regex: RegExp): number[] {
-  const matches = [...text.matchAll(regex)];
-  return matches.map(match => {
-    const num = match[1].replace(/\./g, '').replace(/,/g, '.');
-    return parseFloat(num);
-  });
-}
-
-function estraiNumero(text: string, regex: RegExp): number | null {
-  const match = text.match(regex);
-  if (match && match[1]) {
-    const num = match[1].replace(/\./g, '').replace(/,/g, '.');
-    return parseFloat(num);
-  }
-  return null;
-}
 
 export function estraiDatiEconomici(testoContratto: string, testoEstratto: string) {
   console.log("--- estraiDatiEconomici INIZIO (v3.1) ---");

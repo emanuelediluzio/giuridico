@@ -2,7 +2,7 @@ export async function processFilesDirectly(
   contractFile: File,
   statementFile: File,
   templateFile: File
-): Promise<any> {
+): Promise<{ lettera: string; calcoli: string | null }> {
   try {
     const apiKey = process.env.MIXTRAL_API_KEY;
     if (!apiKey) {

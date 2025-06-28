@@ -1,4 +1,4 @@
-export async function processWithMistralChat(systemPrompt: string, userPrompt: string): Promise<any> {
+export async function processWithMistralChat(systemPrompt: string, userPrompt: string): Promise<{ lettera: string; calcoli: string | null }> {
   try {
     const apiKey = process.env.MIXTRAL_API_KEY;
     if (!apiKey) {

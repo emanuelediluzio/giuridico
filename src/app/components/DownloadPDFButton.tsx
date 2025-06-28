@@ -41,6 +41,11 @@ export default function DownloadPDFButton({ content, fileName }: DownloadPDFButt
       </div>
     `;
 
+    // Crea un elemento temporaneo per il contenuto
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = finalStyledHtml;
+    document.body.appendChild(tempDiv);
+
     const options = {
       margin: 20, // Margine uniforme di 20mm (può essere un array [top, left, bottom, right])
       filename: fileName,
@@ -50,7 +55,10 @@ export default function DownloadPDFButton({ content, fileName }: DownloadPDFButt
       pagebreak: { mode: ['css', 'avoid-all'] } // Evita interruzioni dentro elementi, rispetta CSS page-break
     };
 
-    html2pdf().from(finalStyledHtml).set(options).save();
+    html2pdf(tempDiv, options).then(() => {
+      // Rimuovi l'elemento temporaneo dopo il download
+      document.body.removeChild(tempDiv);
+    });
   }
 
   return (

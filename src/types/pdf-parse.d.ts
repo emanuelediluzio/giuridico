@@ -7,14 +7,14 @@ declare module 'pdf-parse' {
       PDFFormatVersion: string;
       IsAcroFormPresent: boolean;
       IsXFAPresent: boolean;
-      [key: string]: any;
+      [key: string]: unknown;
     };
-    metadata: any;
+    metadata: unknown;
     version: string;
   }
 
   interface PDFOptions {
-    pagerender?: (pageData: any) => any;
+    pagerender?: (pageData: unknown) => unknown;
     max?: number;
     version?: string;
   }

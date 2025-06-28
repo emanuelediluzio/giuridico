@@ -1,19 +1,10 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 
 interface Message {
   role: "user" | "assistant" | "system";
   content: string;
 }
-
-interface FileMem {
-  id: string;
-  name: string;
-  url: string;
-  selected: boolean;
-}
-
-const MOCK_USER_ID = "user-demo-1";
 
 export default function ChatAI() {
   const [messages, setMessages] = useState<Message[]>([
@@ -22,7 +13,6 @@ export default function ChatAI() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [files, setFiles] = useState<FileMem[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   async function inviaMessaggio(e: React.FormEvent) {
@@ -30,7 +20,7 @@ export default function ChatAI() {
     if (!input.trim()) return;
     
     const nuovoMessaggio: Message = { role: "user", content: input };
-    let msgs = [...messages];
+    const msgs = [...messages];
     
     setMessages(msgs => [...msgs, nuovoMessaggio]);
     setInput("");
@@ -56,7 +46,7 @@ export default function ChatAI() {
       console.error('Errore durante la chat:', err);
       setMessages(msgs => [...msgs, { 
         role: "assistant", 
-        content: "Mi dispiace, si è verificato un errore durante l'elaborazione della tua richiesta. Riprova tra qualche istante." 
+        content: "Mi dispiace, si è verificato un errore durante l&apos;elaborazione della tua richiesta. Riprova tra qualche istante." 
       }]);
     } finally {
       setLoading(false);
@@ -69,7 +59,7 @@ export default function ChatAI() {
       <div className="flex flex-col h-full">
         <div className="mb-6">
           <h2 className="text-center mb-2 text-slate-800">Chat con Lexa</h2>
-          <p className="text-center text-slate-500 text-sm mb-4">Consulta l'AI su questioni legali</p>
+          <p className="text-center text-slate-500 text-sm mb-4">Consulta l&apos;AI su questioni legali</p>
         </div>
         
         <div className="flex flex-row h-full gap-4">

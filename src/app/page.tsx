@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import React, { useState, ChangeEvent, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -142,10 +142,6 @@ export default function Home() {
     }
   };
 
-  function formatCurrency(val: number) {
-    return val.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-  }
-
   const renderLoadingOrResult = () => {
     if (isLoading) {
       return (
@@ -171,7 +167,6 @@ export default function Home() {
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
           
           {isEditing ? (
-            // @ts-ignore
             <div className="mb-4">
               <ReactQuill 
                 theme="snow" 
@@ -239,7 +234,7 @@ export default function Home() {
             <section className="py-16 md:py-20">
               <div className="max-w-3xl mx-auto text-center mb-16">
                 <h1 className="text-3xl md:text-4xl lg:text-5xl mb-6 font-bold text-slate-800">
-                  L'assistente legale <span className="text-blue-600">per avvocati</span>
+                  L&apos;assistente legale <span className="text-blue-600">per avvocati</span>
                 </h1>
                 <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
                   Lexa semplifica il tuo lavoro quotidiano fornendo strumenti avanzati per calcolare rimborsi
@@ -262,7 +257,7 @@ export default function Home() {
                     {/* <CalculatorIcon className="w-6 h-6" fill="none" stroke="currentColor" /> */}
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-slate-800">Calcolo Rimborso</h3>
-                  <p className="text-slate-600 mb-4">Determina l'importo da restituire in base all'Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
+                  <p className="text-slate-600 mb-4">Determina l&apos;importo da restituire in base all&apos;Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
                   <button 
                     onClick={() => setMainScreen('rimborso')} 
                     className="btn-primary btn-small"
@@ -288,7 +283,7 @@ export default function Home() {
                       <span className="font-bold text-lg">2</span>
                     </div>
                     <h3 className="text-lg font-bold mb-2 text-slate-800">Conversione e Analisi</h3>
-                    <p className="text-slate-600">I PDF vengono convertiti in immagini e analizzati dall'AI.</p>
+                    <p className="text-slate-600">I PDF vengono convertiti in immagini e analizzati dall&apos;AI.</p>
                   </div>
                   <div className="p-6 bg-blue-50 rounded-xl">
                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
