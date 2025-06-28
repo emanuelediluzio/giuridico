@@ -105,38 +105,27 @@ export default function Home() {
     setError(null);
 
     try {
-      if (typeof window !== 'undefined') {
-        const { pdfToSingleJpegBase64 } = await import('./components/PDFToJpeg');
-        const [contractImg, statementImg, templateImg] = await Promise.all([
-          pdfToSingleJpegBase64(contract),
-          pdfToSingleJpegBase64(statement),
-          pdfToSingleJpegBase64(template),
-        ]);
+      // Crea FormData per inviare i file PDF
+      const formData = new FormData();
+      formData.append('contract', contract);
+      formData.append('statement', statement);
+      formData.append('template', template);
 
-        const response = await fetch("/api/process_nvidia", {
-          method: "POST",
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contractImg,
-            statementImg,
-            templateImg,
-          }),
-        });
+      const response = await fetch("/api/cqs", {
+        method: "POST",
+        body: formData,
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Errore nella generazione della lettera");
-        }
-
-        const data = await response.json();
-        // setResult({ lettera: data.result }); // Aggiorna lo stato result per far scattare useEffect
-        setLetterContent(data.result); // Imposta direttamente letterContent se non serve useEffect complesso
-        setIsEditing(true);
-      } else {
-        throw new Error("Operazione di conversione PDF supportata solo lato client.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Errore nella generazione della lettera");
       }
+
+      const data = await response.json();
+      setLetterContent(data.lettera || data.result || "Nessuna lettera generata");
+      setIsEditing(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore sconosciuto durante l\'elaborazione");
+      setError(err instanceof Error ? err.message : "Errore sconosciuto durante l'elaborazione");
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +136,7 @@ export default function Home() {
       return (
         <div className="mt-6 p-4 border border-blue-300 rounded-lg bg-blue-50">
           <p className="text-blue-700 font-semibold">Caricamento in corso...</p>
-          <p className="text-blue-600 text-sm">Conversione PDF in immagini e invio al server...</p>
+          <p className="text-blue-600 text-sm">Analisi dei PDF e generazione lettera con Mistral AI...</p>
         </div>
       );
     }
