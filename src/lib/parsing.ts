@@ -1,7 +1,7 @@
 // Funzioni solo su testo, nessun import pdfjs-dist
 
 export function estraiDatiEconomici(testoContratto: string, testoEstratto: string) {
-  console.log("--- estraiDatiEconomici INIZIO (v3.1) ---");
+  console.log("--- estraiDatiEconomici INIZIO (v4.0) ---");
   console.log("Testo Contratto (primi 200 char):", testoContratto ? testoContratto.substring(0, 200) + "..." : "VUOTO O NON FORNITO");
   console.log("Testo Estratto (primi 200 char):", testoEstratto ? testoEstratto.substring(0, 200) + "..." : "VUOTO O NON FORNITO");
 
@@ -25,9 +25,8 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     /DURATA:\s*(\d+)\s*MESI/i,
     /NUMERO\s*RATE[^\d\n]*:?\s*(\d{2,3})/i,
     /N\.\s*RATE\s*MENSILI:\s*(\d{2,3})/i,
-    // Altre regex esistenti per numeroRate possono essere aggiunte qui se necessario
   ];
-  const numeroRatePatternsEstratto = [ // Cercare anche nel conteggio se non trovato prima
+  const numeroRatePatternsEstratto = [
     /NUMERO\s*RATE[^\d\n]*:?\s*(\d{2,3})/i,
   ];
 
@@ -46,10 +45,10 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
 
   // Regex per RATE SCADUTE (solo da testoEstratto)
   const rateScadutePatterns = [
-    /IMPORTO RATE VERSATE ED INCASSATE DALLA BANCA N\.\s*RATE\s*(\d+)/i, // Es: IMPORTO RATE VERSATE ED INCASSATE DALLA BANCA N. RATE 57
-    /RATE SCADUTE AL MESE DI COMPETENZA DEL CONTEGGIO ESTINTIVO\s*\((\d+)\s*MESI\)/i, // Es: RATE SCADUTE AL MESE DI COMPETENZA DEL CONTEGGIO ESTINTIVO (57 MESI)
-    /RATE\s*SCADUTE[^\d\n]*:?\s*\(?(\d{1,3})\s*MESI?/i, // Generica per "RATE SCADUTE XX MESI"
-    /N\.\s*RATE\s*PAGATE\s*(\d+)/i, // Es: N. RATE PAGATE 57
+    /IMPORTO RATE VERSATE ED INCASSATE DALLA BANCA N\.\s*RATE\s*(\d+)/i,
+    /RATE SCADUTE AL MESE DI COMPETENZA DEL CONTEGGIO ESTINTIVO\s*\((\d+)\s*MESI\)/i,
+    /RATE\s*SCADUTE[^\d\n]*:?\s*\(?(\d{1,3})\s*MESI?/i,
+    /N\.\s*RATE\s*PAGATE\s*(\d+)/i,
     /(\d{1,3})\s*rate\s*scadute/i,
     /SCADUTE[^\d\n]*(\d{1,3})/i,
   ];
@@ -63,15 +62,18 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   const durataResidua = numeroRate > 0 && rateScadute >= 0 && numeroRate > rateScadute ? numeroRate - rateScadute : 0;
   const durataTotale = numeroRate > 0 ? numeroRate : 0;
 
+  // ESTRAZIONE DATI PERSONALI MIGLIORATA
+  let nomeClienteEstratto = '';
+  let codiceFiscale = '';
+  let dataNascita = '';
+  let luogoNascita = '';
 
   // Nome cliente: cerca prima nel contratto, poi nell'estratto
-  let nomeClienteEstratto = '';
-  // Pattern per "CLIENTE COGNOME: LORIA NOME: MASSIMO" o "CLIENTE LORIA MASSIMO"
   const clienteCognomeNomeMatch = testoContratto.match(/CLIENTE\s*(?:COGNOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*(?:NOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
   if (clienteCognomeNomeMatch) {
-      if (clienteCognomeNomeMatch[1] && clienteCognomeNomeMatch[2]) { // COGNOME: X NOME: Y
+      if (clienteCognomeNomeMatch[1] && clienteCognomeNomeMatch[2]) {
           nomeClienteEstratto = `${clienteCognomeNomeMatch[1].trim()} ${clienteCognomeNomeMatch[2].trim()}`;
-      } else if (clienteCognomeNomeMatch[3]) { // CLIENTE X Y (X Cognome, Y Nome)
+      } else if (clienteCognomeNomeMatch[3]) {
           nomeClienteEstratto = clienteCognomeNomeMatch[3].trim();
       }
   }
@@ -100,13 +102,44 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
           nomeClienteEstratto = titolareMatchEstratto[1].trim();
       }
   }
+
+  // Codice Fiscale
+  const cfMatch = testoContratto.match(/C\.?F\.?\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i) 
+    || testoEstratto.match(/C\.?F\.?\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
+    || testoContratto.match(/Codice\s*Fiscale\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
+    || testoEstratto.match(/Codice\s*Fiscale\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i);
+  
+  if (cfMatch && cfMatch[1]) {
+    codiceFiscale = cfMatch[1].toUpperCase();
+  }
+
+  // Data di nascita
+  const dataNascitaMatch = testoContratto.match(/nato\s*a\s*[^,]*\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoEstratto.match(/nato\s*a\s*[^,]*\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoContratto.match(/Data\s*di\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoEstratto.match(/Data\s*di\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  
+  if (dataNascitaMatch && dataNascitaMatch[1]) {
+    dataNascita = dataNascitaMatch[1];
+  }
+
+  // Luogo di nascita
+  const luogoNascitaMatch = testoContratto.match(/nato\s*a\s*([^,]*?)\s*il/i)
+    || testoEstratto.match(/nato\s*a\s*([^,]*?)\s*il/i)
+    || testoContratto.match(/Luogo\s*di\s*nascita\s*:?\s*([^,\n]+)/i)
+    || testoEstratto.match(/Luogo\s*di\s*nascita\s*:?\s*([^,\n]+)/i);
+  
+  if (luogoNascitaMatch && luogoNascitaMatch[1]) {
+    luogoNascita = luogoNascitaMatch[1].trim();
+  }
+
   const nomeCliente = nomeClienteEstratto || 'Cliente';
 
   // Data chiusura
   const dataChiusuraPatterns = [
-    /DATA ELABORAZIONE CONTEGGIO ESTINTIVO\s*([\d\/]+)/i, // Prioritaria
+    /DATA ELABORAZIONE CONTEGGIO ESTINTIVO\s*([\d\/]+)/i,
     /DATA\s*STAMPA:?\s*([\d\/]+)/i,
-    /(\d{2}\/\d{2}\/\d{4})/i, // Generica per una data dd/mm/yyyy
+    /(\d{2}\/\d{2}\/\d{4})/i,
   ];
   let dataChiusuraMatch: RegExpMatchArray | null = null;
   for (const regex of dataChiusuraPatterns) {
@@ -116,21 +149,27 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   const dataChiusura = dataChiusuraMatch && dataChiusuraMatch[1] ? dataChiusuraMatch[1] : '';
 
   // Log per debug
-  console.log('--- DEBUG ESTRAZIONE FINALE ---src/lib/parsing.ts (v3.1)---');
+  console.log('--- DEBUG ESTRAZIONE FINALE (v4.0) ---');
   console.log('Totale costi estratto (CT A+B):', totaleCosti);
   console.log('Numero Rate Totali Estratto:', numeroRate);
   console.log('Rate Scadute Estratte:', rateScadute);
-  console.log('Durata Totale Calcolata (usata per calcolo):', durataTotale);
-  console.log('Durata Residua Calcolata (usata per calcolo):', durataResidua);
+  console.log('Durata Totale Calcolata:', durataTotale);
+  console.log('Durata Residua Calcolata:', durataResidua);
   console.log('Nome Cliente Estratto:', nomeCliente);
-  console.log('Data Chiusura Estratta (da statement):', dataChiusura);
+  console.log('Codice Fiscale Estratto:', codiceFiscale);
+  console.log('Data Nascita Estratta:', dataNascita);
+  console.log('Luogo Nascita Estratto:', luogoNascita);
+  console.log('Data Chiusura Estratta:', dataChiusura);
 
   return {
     totaleCosti,
     durataTotale: durataTotale,
     durataResidua: durataResidua > 0 ? durataResidua : 0,
-    storno: 0, // non presente nei tuoi file
+    storno: 0,
     nomeCliente: nomeCliente,
+    codiceFiscale: codiceFiscale,
+    dataNascita: dataNascita,
+    luogoNascita: luogoNascita,
     dataChiusura: dataChiusura,
     dettaglioCosti: [totaleCosti]
   };
@@ -150,12 +189,21 @@ export function calcolaRimborso(testoContratto: string, testoEstratto: string) {
     storno: dati.storno,
     dettaglioCosti: dati.dettaglioCosti,
     nomeCliente: dati.nomeCliente,
+    codiceFiscale: dati.codiceFiscale,
+    dataNascita: dati.dataNascita,
+    luogoNascita: dati.luogoNascita,
     dataChiusura: dati.dataChiusura
   };
 }
 
-export function generaLettera(template: string, importoRimborso: string, dettagli: { nomeCliente: string, dataChiusura: string }) {
-  let result = template; // Inizializza result con il template originale
+export function generaLettera(template: string, importoRimborso: string, dettagli: { 
+  nomeCliente: string, 
+  dataChiusura: string,
+  codiceFiscale?: string,
+  dataNascita?: string,
+  luogoNascita?: string
+}) {
+  let result = template;
 
   // Sostituzioni standard esistenti
   result = result
@@ -173,28 +221,62 @@ export function generaLettera(template: string, importoRimborso: string, dettagl
     .replace(/xxx_nome_cliente/gi, dettagli.nomeCliente)
     .replace(/xxx_data_chiusura/gi, dettagli.dataChiusura);
     
-  // Nuove sostituzioni per i placeholder del template .doc specifico
-  // Nome Cliente (es. "Sig. XXXXXX")
-  // Usiamo \b per assicurarci che XXXXXX sia una parola intera e non parte di una più lunga.
-  // Il flag 'g' è per global (sostituisci tutte le occorrenze), 'i' per case-insensitive.
-  if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
-    result = result.replace(/Sig\. XXXXXX\b/gi, `Sig. ${dettagli.nomeCliente}`);
+  // Sostituzioni per i nuovi dati estratti
+  if (dettagli.codiceFiscale) {
+    result = result
+      .replace(/{{codice_fiscale}}/g, dettagli.codiceFiscale)
+      .replace(/XXX_CODICE_FISCALE/g, dettagli.codiceFiscale)
+      .replace(/xxx_codice_fiscale/gi, dettagli.codiceFiscale)
+      .replace(/\bXXXXXX\b/g, dettagli.codiceFiscale) // Placeholder generico per CF
+      .replace(/\bXXXXX\b/g, dettagli.codiceFiscale); // Placeholder più corto per CF
   }
 
-  // Importo Rimborso
-  // Sostituisce "complessivi euro xxxxx" ma non "euro xxxxxxxx" o "euro xxxxxxx"
-  // importoRimborso contiene già il simbolo € (es. "1.234,56 €")
-  result = result.replace(/complessivi euro xxxxx(?![xX\w€])/g, `complessivi ${importoRimborso}`);
-  
-  // Sostituisce "somma di euro xxxxxxx (xxxxxx/xx)" con "somma di [importoRimborso]"
-  // ATTENZIONE: la parte testuale "(xxxxxx/xx)" viene persa.
-  result = result.replace(/somma di euro xxxxxxx\s*\([xX]+\/[xX]+\)/gi, `somma di ${importoRimborso}`);
+  if (dettagli.dataNascita) {
+    result = result
+      .replace(/{{data_nascita}}/g, dettagli.dataNascita)
+      .replace(/XXX_DATA_NASCITA/g, dettagli.dataNascita)
+      .replace(/xxx_data_nascita/gi, dettagli.dataNascita);
+  }
 
-  // Gestione semplice di XXX generico (spostata alla fine per dare priorità a sostituzioni più specifiche)
+  if (dettagli.luogoNascita) {
+    result = result
+      .replace(/{{luogo_nascita}}/g, dettagli.luogoNascita)
+      .replace(/XXX_LUOGO_NASCITA/g, dettagli.luogoNascita)
+      .replace(/xxx_luogo_nascita/gi, dettagli.luogoNascita);
+  }
+
+  // Sostituzioni specifiche per template .doc
   if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
-    // Questa regex è molto generica, potrebbe sostituire 'XXX' in posti non voluti se le precedenti non matchano.
-    // Valuta se mantenerla o renderla più specifica se causa problemi.
-    result = result.replace(/\bXXX\b/g, dettagli.nomeCliente); 
+    result = result.replace(/Sig\. XXXXXX\b/gi, `Sig. ${dettagli.nomeCliente}`);
+    result = result.replace(/Sig\.ra XXXXXX\b/gi, `Sig.ra ${dettagli.nomeCliente}`);
+    result = result.replace(/Egr\. XXXXXX\b/gi, `Egr. ${dettagli.nomeCliente}`);
+  }
+
+  // Importo Rimborso - sostituzioni più specifiche
+  result = result.replace(/complessivi euro xxxxx(?![xX\w€])/g, `complessivi ${importoRimborso}`);
+  result = result.replace(/somma di euro xxxxxxx\s*\([xX]+\/[xX]+\)/gi, `somma di ${importoRimborso}`);
+  result = result.replace(/euro xxxxxxx\s*\([xX]+\/[xX]+\)/gi, importoRimborso);
+  result = result.replace(/euro xxxxxxx/gi, importoRimborso);
+  result = result.replace(/euro xxxxxx/gi, importoRimborso);
+  result = result.replace(/euro xxxxx/gi, importoRimborso);
+
+  // Sostituzioni per date
+  if (dettagli.dataChiusura) {
+    result = result.replace(/__\/__\/____/g, dettagli.dataChiusura);
+    result = result.replace(/XX\/XX\/XXXX/gi, dettagli.dataChiusura);
+    result = result.replace(/xx\/xx\/xxxx/gi, dettagli.dataChiusura);
+  }
+
+  // Sostituzioni per luoghi
+  if (dettagli.luogoNascita) {
+    result = result.replace(/nato a XXXXXX/gi, `nato a ${dettagli.luogoNascita}`);
+    result = result.replace(/residente a XXXXXX/gi, `residente a ${dettagli.luogoNascita}`);
+  }
+
+  // Gestione generica di XXX (solo se non è già stato sostituito)
+  if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
+    // Sostituisce XXX solo se non è già stato sostituito da pattern più specifici
+    result = result.replace(/\bXXX\b(?!\w)/g, dettagli.nomeCliente);
   }
   
   return result;
