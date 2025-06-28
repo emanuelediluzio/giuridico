@@ -5,6 +5,9 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
       throw new Error('API key mancante');
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 secondi timeout
+
     const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -18,9 +21,12 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 1500, // Ridotto per velocizzare
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -41,6 +47,9 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
     };
   } catch (error) {
     console.error('Errore durante l\'elaborazione con Mistral:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Timeout: la richiesta ha impiegato troppo tempo');
+    }
     throw error;
   }
 } 

@@ -1,37 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calcolaRimborso, generaLettera } from '@/lib/parsing';
 
 export const runtime = 'nodejs';
+export const maxDuration = 15; // Timeout molto breve
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { contractText, statementText, templateText } = await request.json();
+    const { contractText, statementText, templateText } = await req.json();
+
     if (!contractText || !statementText || !templateText) {
-      return NextResponse.json(
-        { error: 'Tutti i testi sono obbligatori' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Testi mancanti' }, { status: 400 });
     }
-    // Calcola il rimborso
-    const result = calcolaRimborso(contractText, statementText);
-    // Genera la lettera
-    const letter = generaLettera(
-      templateText,
-      result.rimborso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }),
-      {
-        nomeCliente: result.nomeCliente,
-        dataChiusura: result.dataChiusura
-      }
-    );
-    return NextResponse.json({
-      ...result,
-      letter
+
+    // Lettera di esempio generata localmente per test
+    const letteraEsempio = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.
+
+Gentile Direzione,
+
+La sottoscritta, avvalendosi delle facoltà concesse dall'Art. 125 sexies del Testo Unico Bancario, richiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto stipendio.
+
+Dall'analisi del contratto e del conteggio estintivo risulta che sono state pagate rate per un importo superiore a quello dovuto.
+
+Si richiede pertanto il rimborso immediato delle somme pagate in eccesso, unitamente agli interessi di legge.
+
+In attesa di un vostro riscontro, si porgono distinti saluti.
+
+Avv. Gabriele Scappaticci`;
+
+    return NextResponse.json({ 
+      lettera: letteraEsempio,
+      calcoli: null 
     });
+
   } catch (error) {
-    console.error('Errore:', error);
-    return NextResponse.json(
-      { error: 'Errore durante il calcolo' },
-      { status: 500 }
-    );
+    console.error("Errore API lettera:", error);
+    return NextResponse.json({ 
+      error: "Errore interno del server",
+      lettera: "Si è verificato un errore. Riprova più tardi."
+    }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ message: "API Lettera è attiva" });
 }

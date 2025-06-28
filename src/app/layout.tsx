@@ -8,7 +8,6 @@ export const metadata = {
     icon: '/favicon.svg',
     apple: '/apple-touch-icon.svg'
   },
-  manifest: '/site.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

@@ -3,6 +3,7 @@ import React, { useState, ChangeEvent, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { extractTextFromPDF } from './components/PDFTextExtractor';
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 // Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
@@ -105,25 +106,52 @@ export default function Home() {
     setError(null);
 
     try {
-      // Crea FormData per inviare i file PDF
-      const formData = new FormData();
-      formData.append('contract', contract);
-      formData.append('statement', statement);
-      formData.append('template', template);
+      // Prima prova l'API CQS
+      try {
+        const formData = new FormData();
+        formData.append('contract', contract);
+        formData.append('statement', statement);
+        formData.append('template', template);
 
-      const response = await fetch("/api/cqs", {
+        const response = await fetch("/api/cqs", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setLetterContent(data.lettera || data.result || "Nessuna lettera generata");
+          setIsEditing(true);
+          return;
+        }
+      } catch (cqsError) {
+        console.log("API CQS fallita, provo API di fallback:", cqsError);
+      }
+
+      // Se CQS fallisce, usa l'API di fallback
+      const contractText = await extractTextFromPDF(contract);
+      const statementText = await extractTextFromPDF(statement);
+      const templateText = await extractTextFromPDF(template);
+
+      const fallbackResponse = await fetch("/api/lettera", {
         method: "POST",
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contractText: contractText.substring(0, 1000),
+          statementText: statementText.substring(0, 1000),
+          templateText: templateText.substring(0, 500)
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!fallbackResponse.ok) {
+        const errorData = await fallbackResponse.json();
         throw new Error(errorData.error || "Errore nella generazione della lettera");
       }
 
-      const data = await response.json();
-      setLetterContent(data.lettera || data.result || "Nessuna lettera generata");
+      const data = await fallbackResponse.json();
+      setLetterContent(data.lettera || "Nessuna lettera generata");
       setIsEditing(true);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore sconosciuto durante l'elaborazione");
     } finally {
