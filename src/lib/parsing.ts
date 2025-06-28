@@ -68,6 +68,10 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
   let dataNascita = '';
   let luogoNascita = '';
 
+  console.log('--- DEBUG ESTRAZIONE DATI PERSONALI ---');
+  console.log('Testo Contratto (primi 500 char):', testoContratto ? testoContratto.substring(0, 500) : 'VUOTO');
+  console.log('Testo Estratto (primi 500 char):', testoEstratto ? testoEstratto.substring(0, 500) : 'VUOTO');
+
   // Nome cliente: cerca prima nel contratto, poi nell'estratto
   const clienteCognomeNomeMatch = testoContratto.match(/CLIENTE\s*(?:COGNOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*(?:NOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
   if (clienteCognomeNomeMatch) {
@@ -82,6 +86,28 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     const titolareMatchContratto = testoContratto.match(/Titolare:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)/i);
     if (titolareMatchContratto && titolareMatchContratto[1]) {
       nomeClienteEstratto = titolareMatchContratto[1].trim();
+    }
+  }
+
+  // Nuovi pattern per nome cliente
+  if (!nomeClienteEstratto) {
+    const pattern1 = testoContratto.match(/Intestatario:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)/i);
+    if (pattern1 && pattern1[1]) {
+      nomeClienteEstratto = pattern1[1].trim();
+    }
+  }
+
+  if (!nomeClienteEstratto) {
+    const pattern2 = testoContratto.match(/Richiedente:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)/i);
+    if (pattern2 && pattern2[1]) {
+      nomeClienteEstratto = pattern2[1].trim();
+    }
+  }
+
+  if (!nomeClienteEstratto) {
+    const pattern3 = testoContratto.match(/Nominativo:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)/i);
+    if (pattern3 && pattern3[1]) {
+      nomeClienteEstratto = pattern3[1].trim();
     }
   }
   
@@ -103,34 +129,96 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
       }
   }
 
-  // Codice Fiscale
+  // Codice Fiscale - pattern più ampi
   const cfMatch = testoContratto.match(/C\.?F\.?\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i) 
     || testoEstratto.match(/C\.?F\.?\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
     || testoContratto.match(/Codice\s*Fiscale\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
-    || testoEstratto.match(/Codice\s*Fiscale\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i);
+    || testoEstratto.match(/Codice\s*Fiscale\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
+    || testoContratto.match(/CF\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
+    || testoEstratto.match(/CF\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
+    || testoContratto.match(/Cod\.\s*Fisc\.\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i)
+    || testoEstratto.match(/Cod\.\s*Fisc\.\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/i);
   
   if (cfMatch && cfMatch[1]) {
     codiceFiscale = cfMatch[1].toUpperCase();
   }
 
-  // Data di nascita
+  // Data di nascita - pattern più ampi
   const dataNascitaMatch = testoContratto.match(/nato\s*a\s*[^,]*\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
     || testoEstratto.match(/nato\s*a\s*[^,]*\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
     || testoContratto.match(/Data\s*di\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
-    || testoEstratto.match(/Data\s*di\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+    || testoEstratto.match(/Data\s*di\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoContratto.match(/Nato\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoEstratto.match(/Nato\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoContratto.match(/Data\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i)
+    || testoEstratto.match(/Data\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
   
   if (dataNascitaMatch && dataNascitaMatch[1]) {
     dataNascita = dataNascitaMatch[1];
   }
 
-  // Luogo di nascita
+  // Luogo di nascita - pattern più ampi
   const luogoNascitaMatch = testoContratto.match(/nato\s*a\s*([^,]*?)\s*il/i)
     || testoEstratto.match(/nato\s*a\s*([^,]*?)\s*il/i)
     || testoContratto.match(/Luogo\s*di\s*nascita\s*:?\s*([^,\n]+)/i)
-    || testoEstratto.match(/Luogo\s*di\s*nascita\s*:?\s*([^,\n]+)/i);
+    || testoEstratto.match(/Luogo\s*di\s*nascita\s*:?\s*([^,\n]+)/i)
+    || testoContratto.match(/Nato\s*a\s*([^,]*?)(?:\s*il|\s*CF|$)/i)
+    || testoEstratto.match(/Nato\s*a\s*([^,]*?)(?:\s*il|\s*CF|$)/i)
+    || testoContratto.match(/Luogo\s*nascita\s*:?\s*([^,\n]+)/i)
+    || testoEstratto.match(/Luogo\s*nascita\s*:?\s*([^,\n]+)/i);
   
   if (luogoNascitaMatch && luogoNascitaMatch[1]) {
     luogoNascita = luogoNascitaMatch[1].trim();
+  }
+
+  console.log('--- RISULTATI ESTRAZIONE ---');
+  console.log('Nome Cliente trovato:', nomeClienteEstratto);
+  console.log('Codice Fiscale trovato:', codiceFiscale);
+  console.log('Data Nascita trovata:', dataNascita);
+  console.log('Luogo Nascita trovato:', luogoNascita);
+
+  // FALLBACK INTELLIGENTE - cerca pattern più generici se non trovato
+  if (!nomeClienteEstratto) {
+    console.log('--- FALLBACK NOME CLIENTE ---');
+    // Cerca qualsiasi sequenza di 2-3 parole maiuscole che potrebbe essere un nome
+    const fallbackMatch = testoContratto.match(/([A-Z][a-z]+)\s+([A-Z][a-z]+)(?:\s+([A-Z][a-z]+))?/);
+    if (fallbackMatch) {
+      nomeClienteEstratto = fallbackMatch.slice(1).filter(Boolean).join(' ');
+      console.log('Nome cliente fallback:', nomeClienteEstratto);
+    }
+  }
+
+  if (!codiceFiscale) {
+    console.log('--- FALLBACK CODICE FISCALE ---');
+    // Cerca pattern di codice fiscale più flessibili
+    const cfFallback = testoContratto.match(/([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/);
+    if (cfFallback) {
+      codiceFiscale = cfFallback[1].toUpperCase();
+      console.log('Codice fiscale fallback:', codiceFiscale);
+    }
+  }
+
+  if (!dataNascita) {
+    console.log('--- FALLBACK DATA NASCITA ---');
+    // Cerca qualsiasi data nel formato dd/mm/yyyy
+    const dataFallback = testoContratto.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (dataFallback) {
+      dataNascita = dataFallback[1];
+      console.log('Data nascita fallback:', dataNascita);
+    }
+  }
+
+  if (!luogoNascita) {
+    console.log('--- FALLBACK LUOGO NASCITA ---');
+    // Cerca nomi di città comuni
+    const cittaComuni = ['Roma', 'Milano', 'Napoli', 'Torino', 'Palermo', 'Genova', 'Bologna', 'Firenze', 'Bari', 'Catania'];
+    for (const citta of cittaComuni) {
+      if (testoContratto.includes(citta)) {
+        luogoNascita = citta;
+        console.log('Luogo nascita fallback:', luogoNascita);
+        break;
+      }
+    }
   }
 
   const nomeCliente = nomeClienteEstratto || 'Cliente';
@@ -205,6 +293,10 @@ export function generaLettera(template: string, importoRimborso: string, dettagl
 }) {
   let result = template;
 
+  console.log('--- DEBUG GENERAZIONE LETTERA ---');
+  console.log('Importo Rimborso:', importoRimborso);
+  console.log('Dettagli ricevuti:', dettagli);
+
   // Sostituzioni standard esistenti
   result = result
     .replace(/{{importo_rimborso}}/g, importoRimborso)
@@ -222,27 +314,33 @@ export function generaLettera(template: string, importoRimborso: string, dettagl
     .replace(/xxx_data_chiusura/gi, dettagli.dataChiusura);
     
   // Sostituzioni per i nuovi dati estratti
-  if (dettagli.codiceFiscale) {
+  if (dettagli.codiceFiscale && dettagli.codiceFiscale !== 'Non disponibile') {
     result = result
       .replace(/{{codice_fiscale}}/g, dettagli.codiceFiscale)
       .replace(/XXX_CODICE_FISCALE/g, dettagli.codiceFiscale)
       .replace(/xxx_codice_fiscale/gi, dettagli.codiceFiscale)
-      .replace(/\bXXXXXX\b/g, dettagli.codiceFiscale) // Placeholder generico per CF
-      .replace(/\bXXXXX\b/g, dettagli.codiceFiscale); // Placeholder più corto per CF
+      .replace(/\bXXXXXX\b/g, dettagli.codiceFiscale)
+      .replace(/\bXXXXX\b/g, dettagli.codiceFiscale)
+      .replace(/C\.F\.\s*Non\s*disponibile/gi, `C.F. ${dettagli.codiceFiscale}`)
+      .replace(/Codice\s*Fiscale\s*Non\s*disponibile/gi, `Codice Fiscale ${dettagli.codiceFiscale}`);
   }
 
-  if (dettagli.dataNascita) {
+  if (dettagli.dataNascita && dettagli.dataNascita !== 'Non disponibile') {
     result = result
       .replace(/{{data_nascita}}/g, dettagli.dataNascita)
       .replace(/XXX_DATA_NASCITA/g, dettagli.dataNascita)
-      .replace(/xxx_data_nascita/gi, dettagli.dataNascita);
+      .replace(/xxx_data_nascita/gi, dettagli.dataNascita)
+      .replace(/il\s*Non\s*disponibile/gi, `il ${dettagli.dataNascita}`)
+      .replace(/data\s*di\s*nascita\s*Non\s*disponibile/gi, `data di nascita ${dettagli.dataNascita}`);
   }
 
-  if (dettagli.luogoNascita) {
+  if (dettagli.luogoNascita && dettagli.luogoNascita !== 'Non disponibile') {
     result = result
       .replace(/{{luogo_nascita}}/g, dettagli.luogoNascita)
       .replace(/XXX_LUOGO_NASCITA/g, dettagli.luogoNascita)
-      .replace(/xxx_luogo_nascita/gi, dettagli.luogoNascita);
+      .replace(/xxx_luogo_nascita/gi, dettagli.luogoNascita)
+      .replace(/nato\s*a\s*Non\s*disponibile/gi, `nato a ${dettagli.luogoNascita}`)
+      .replace(/residente\s*a\s*Non\s*disponibile/gi, `residente a ${dettagli.luogoNascita}`);
   }
 
   // Sostituzioni specifiche per template .doc
@@ -250,6 +348,9 @@ export function generaLettera(template: string, importoRimborso: string, dettagl
     result = result.replace(/Sig\. XXXXXX\b/gi, `Sig. ${dettagli.nomeCliente}`);
     result = result.replace(/Sig\.ra XXXXXX\b/gi, `Sig.ra ${dettagli.nomeCliente}`);
     result = result.replace(/Egr\. XXXXXX\b/gi, `Egr. ${dettagli.nomeCliente}`);
+    result = result.replace(/Sig\. Cliente/gi, `Sig. ${dettagli.nomeCliente}`);
+    result = result.replace(/Sig\.ra Cliente/gi, `Sig.ra ${dettagli.nomeCliente}`);
+    result = result.replace(/Egr\. Cliente/gi, `Egr. ${dettagli.nomeCliente}`);
   }
 
   // Importo Rimborso - sostituzioni più specifiche
@@ -259,6 +360,8 @@ export function generaLettera(template: string, importoRimborso: string, dettagl
   result = result.replace(/euro xxxxxxx/gi, importoRimborso);
   result = result.replace(/euro xxxxxx/gi, importoRimborso);
   result = result.replace(/euro xxxxx/gi, importoRimborso);
+  result = result.replace(/euro 0,00/gi, importoRimborso);
+  result = result.replace(/0,00 €/gi, importoRimborso);
 
   // Sostituzioni per date
   if (dettagli.dataChiusura) {
@@ -268,16 +371,23 @@ export function generaLettera(template: string, importoRimborso: string, dettagl
   }
 
   // Sostituzioni per luoghi
-  if (dettagli.luogoNascita) {
+  if (dettagli.luogoNascita && dettagli.luogoNascita !== 'Non disponibile') {
     result = result.replace(/nato a XXXXXX/gi, `nato a ${dettagli.luogoNascita}`);
     result = result.replace(/residente a XXXXXX/gi, `residente a ${dettagli.luogoNascita}`);
   }
+
+  // Sostituzioni per rate
+  result = result.replace(/XXX rate delle XXX convenute/gi, 'le rate convenute');
+  result = result.replace(/XXX rate/gi, 'le rate');
 
   // Gestione generica di XXX (solo se non è già stato sostituito)
   if (dettagli.nomeCliente && dettagli.nomeCliente !== 'Cliente') {
     // Sostituisce XXX solo se non è già stato sostituito da pattern più specifici
     result = result.replace(/\bXXX\b(?!\w)/g, dettagli.nomeCliente);
   }
+
+  console.log('--- RISULTATO FINALE ---');
+  console.log('Lettere generate (primi 200 char):', result.substring(0, 200));
   
   return result;
 } 
