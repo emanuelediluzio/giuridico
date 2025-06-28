@@ -27,6 +27,16 @@ interface ResultData {
   lettera?: string; // Modificato da letter
   calcoli?: string; // Mantenuto per ora nella struttura dati, ma non visualizzato
   // Campi rimossi: rimborso, quotaNonGoduta, totaleCosti, durataTotale, durataResidua, storno, dettaglioCosti, nomeCliente, dataChiusura, message, pdfProcessingDisabled
+  dati?: {
+    nomeCliente: string;
+    codiceFiscale: string;
+    dataNascita: string;
+    luogoNascita: string;
+    importoRimborso: string;
+    rateResidue: number;
+    durataTotale: number;
+    costiTotali: number;
+  };
 }
 
 export default function Home() {
@@ -122,11 +132,17 @@ export default function Home() {
           
           if (data.lettera) {
             setLetterContent(data.lettera);
+            setResult({ lettera: data.lettera, dati: data.dati });
             setIsEditing(true);
             
             // Log dei dati estratti per debug
             if (data.dati) {
-              console.log("Dati estratti dal backend Python:", data.dati);
+              console.log("Dati estratti dal backend Python:", JSON.stringify(data.dati, null, 2));
+              console.log("Nome Cliente:", data.dati.nomeCliente);
+              console.log("Codice Fiscale:", data.dati.codiceFiscale);
+              console.log("Importo Rimborso:", data.dati.importoRimborso);
+              console.log("Rate Residue:", data.dati.rateResidue);
+              console.log("Durata Totale:", data.dati.durataTotale);
             }
             return;
           }
@@ -212,6 +228,23 @@ export default function Home() {
         <div className="mt-8 p-6 border border-gray-300 rounded-lg shadow-lg bg-white">
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
           
+          {/* Sezione dati estratti */}
+          {result?.dati && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="text-lg font-semibold text-blue-800 mb-3">Dati Estratti dai PDF</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div><strong>Nome Cliente:</strong> {result.dati.nomeCliente || 'Non trovato'}</div>
+                <div><strong>Codice Fiscale:</strong> {result.dati.codiceFiscale || 'Non trovato'}</div>
+                <div><strong>Data Nascita:</strong> {result.dati.dataNascita || 'Non trovata'}</div>
+                <div><strong>Luogo Nascita:</strong> {result.dati.luogoNascita || 'Non trovato'}</div>
+                <div><strong>Importo Rimborso:</strong> {result.dati.importoRimborso || '0,00 €'}</div>
+                <div><strong>Rate Residue:</strong> {result.dati.rateResidue || 0}</div>
+                <div><strong>Durata Totale:</strong> {result.dati.durataTotale || 0} mesi</div>
+                <div><strong>Costi Totali:</strong> {result.dati.costiTotali || 0} €</div>
+              </div>
+            </div>
+          )}
+          
           {isEditing ? (
             <div className="mb-4">
               <ReactQuill 
@@ -234,7 +267,7 @@ export default function Home() {
                 formats={[
                   'header', 'font', 'size',
                   'bold', 'italic', 'underline', 'strike', 'blockquote',
-                  'list', 'bullet', 'indent',
+                  'list', 'indent',
                   'link',
                   'align', 'color', 'background'
                 ]}
