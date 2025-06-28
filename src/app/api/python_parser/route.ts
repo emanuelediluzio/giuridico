@@ -22,6 +22,14 @@ export async function POST(req: NextRequest) {
     const contractText = await extractTextFromPDF(contractFile, false);
     const statementText = await extractTextFromPDF(statementFile, false);
 
+    // Debug dettagliato del testo estratto
+    console.log("=== DEBUG TESTO CONTRATTO ===");
+    console.log("Lunghezza contratto:", contractText.length);
+    console.log("Primi 1000 caratteri contratto:", contractText.substring(0, 1000));
+    console.log("=== DEBUG TESTO CONTEGGIO ===");
+    console.log("Lunghezza conteggio:", statementText.length);
+    console.log("Primi 1000 caratteri conteggio:", statementText.substring(0, 1000));
+
     // Calcolo rimborso con dati estratti
     console.log("[Python Parser] Calcolo rimborso...");
     const datiRimborso = calcolaRimborso(contractText, statementText);

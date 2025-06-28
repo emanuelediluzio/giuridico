@@ -188,6 +188,35 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     }
   }
 
+  // Pattern ancora più flessibili per nome
+  if (!nomeClienteEstratto) {
+    console.log('--- FALLBACK NOME CLIENTE AVANZATO ---');
+    // Cerca pattern come "COGNOME: XXXX NOME: YYYY" o "COGNOME NOME: XXXX YYYY"
+    const patternAvanzato1 = testoContratto.match(/COGNOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+NOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+)/i);
+    if (patternAvanzato1) {
+      nomeClienteEstratto = `${patternAvanzato1[1].trim()} ${patternAvanzato1[2].trim()}`;
+      console.log('Nome cliente pattern avanzato 1:', nomeClienteEstratto);
+    }
+  }
+
+  if (!nomeClienteEstratto) {
+    // Cerca pattern come "COGNOME NOME: XXXX YYYY"
+    const patternAvanzato2 = testoContratto.match(/COGNOME\s+NOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+)/i);
+    if (patternAvanzato2) {
+      nomeClienteEstratto = patternAvanzato2[1].trim();
+      console.log('Nome cliente pattern avanzato 2:', nomeClienteEstratto);
+    }
+  }
+
+  if (!nomeClienteEstratto) {
+    // Cerca qualsiasi sequenza di parole che inizia con maiuscola
+    const patternAvanzato3 = testoContratto.match(/([A-Z][a-zÀ-ÖØ-öø-ÿ]+)\s+([A-Z][a-zÀ-ÖØ-öø-ÿ]+)(?:\s+([A-Z][a-zÀ-ÖØ-öø-ÿ]+))?/);
+    if (patternAvanzato3) {
+      nomeClienteEstratto = patternAvanzato3.slice(1).filter(Boolean).join(' ');
+      console.log('Nome cliente pattern avanzato 3:', nomeClienteEstratto);
+    }
+  }
+
   if (!codiceFiscale) {
     console.log('--- FALLBACK CODICE FISCALE ---');
     // Cerca pattern di codice fiscale più flessibili
@@ -195,6 +224,17 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     if (cfFallback) {
       codiceFiscale = cfFallback[1].toUpperCase();
       console.log('Codice fiscale fallback:', codiceFiscale);
+    }
+  }
+
+  // Pattern più flessibili per codice fiscale
+  if (!codiceFiscale) {
+    console.log('--- FALLBACK CODICE FISCALE AVANZATO ---');
+    // Cerca anche nel testo estratto
+    const cfFallback2 = testoEstratto.match(/([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])/);
+    if (cfFallback2) {
+      codiceFiscale = cfFallback2[1].toUpperCase();
+      console.log('Codice fiscale fallback 2:', codiceFiscale);
     }
   }
 
@@ -208,6 +248,17 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
     }
   }
 
+  // Pattern più flessibili per data nascita
+  if (!dataNascita) {
+    console.log('--- FALLBACK DATA NASCITA AVANZATO ---');
+    // Cerca anche nel testo estratto
+    const dataFallback2 = testoEstratto.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (dataFallback2) {
+      dataNascita = dataFallback2[1];
+      console.log('Data nascita fallback 2:', dataNascita);
+    }
+  }
+
   if (!luogoNascita) {
     console.log('--- FALLBACK LUOGO NASCITA ---');
     // Cerca nomi di città comuni
@@ -216,6 +267,20 @@ export function estraiDatiEconomici(testoContratto: string, testoEstratto: strin
       if (testoContratto.includes(citta)) {
         luogoNascita = citta;
         console.log('Luogo nascita fallback:', luogoNascita);
+        break;
+      }
+    }
+  }
+
+  // Pattern più flessibili per luogo nascita
+  if (!luogoNascita) {
+    console.log('--- FALLBACK LUOGO NASCITA AVANZATO ---');
+    // Cerca anche nel testo estratto
+    const cittaComuni = ['Roma', 'Milano', 'Napoli', 'Torino', 'Palermo', 'Genova', 'Bologna', 'Firenze', 'Bari', 'Catania'];
+    for (const citta of cittaComuni) {
+      if (testoEstratto.includes(citta)) {
+        luogoNascita = citta;
+        console.log('Luogo nascita fallback 2:', luogoNascita);
         break;
       }
     }
