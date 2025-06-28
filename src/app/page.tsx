@@ -106,7 +106,38 @@ export default function Home() {
     setError(null);
 
     try {
-      // Prima prova l'API CQS
+      // PRIMA OPZIONE: Backend Python (più robusto)
+      try {
+        const formData = new FormData();
+        formData.append('file_contratto', contract);
+        formData.append('file_conteggio', statement);
+
+        const pythonResponse = await fetch("/api/python_parser", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (pythonResponse.ok) {
+          // Il backend Python restituisce direttamente il PDF
+          const pdfBlob = await pythonResponse.blob();
+          const url = window.URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'diffida_compilata.pdf';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          setLetterContent("Lettera di diffida generata e scaricata con successo!");
+          setIsEditing(true);
+          return;
+        }
+      } catch (pythonError) {
+        console.log("Backend Python fallito, provo API CQS:", pythonError);
+      }
+
+      // SECONDA OPZIONE: API CQS (fallback)
       try {
         const formData = new FormData();
         formData.append('contract', contract);
@@ -128,7 +159,7 @@ export default function Home() {
         console.log("API CQS fallita, provo API di fallback:", cqsError);
       }
 
-      // Se CQS fallisce, usa l'API di fallback
+      // TERZA OPZIONE: API di fallback (ultima risorsa)
       const contractText = await extractTextFromPDF(contract);
       const statementText = await extractTextFromPDF(statement);
       const templateText = await extractTextFromPDF(template);
