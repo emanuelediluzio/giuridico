@@ -118,20 +118,18 @@ export default function Home() {
         });
 
         if (pythonResponse.ok) {
-          // Il backend Python restituisce direttamente il PDF
-          const pdfBlob = await pythonResponse.blob();
-          const url = window.URL.createObjectURL(pdfBlob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'diffida_compilata.pdf';
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
+          const data = await pythonResponse.json();
           
-          setLetterContent("Lettera di diffida generata e scaricata con successo!");
-          setIsEditing(true);
-          return;
+          if (data.lettera) {
+            setLetterContent(data.lettera);
+            setIsEditing(true);
+            
+            // Log dei dati estratti per debug
+            if (data.dati) {
+              console.log("Dati estratti dal backend Python:", data.dati);
+            }
+            return;
+          }
         }
       } catch (pythonError) {
         console.log("Backend Python fallito, provo API CQS:", pythonError);
