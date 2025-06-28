@@ -1,13 +1,20 @@
 import io
 import re
+import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber
 from fpdf import FPDF
 import json
+from huggingface_hub import snapshot_download
+import torch
+from transformers import AutoProcessor, AutoModel
+from PIL import Image
+import cv2
+import numpy as np
 
-app = FastAPI(title="PDF Parser API", version="1.0.0")
+app = FastAPI(title="PDF Parser API", version="2.0.0")
 
 # Configurazione CORS
 app.add_middleware(
@@ -18,9 +25,284 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def estrai_dati_contratto(file):
-    """Estrae i dati dal contratto PDF"""
+# Variabili globali per il modello
+model = None
+processor = None
+
+async def load_pdf_extract_model():
+    """Carica il modello PDF-Extract-Kit"""
+    global model, processor
+    
+    if model is None:
+        try:
+            print("Caricamento modello PDF-Extract-Kit...")
+            
+            # Scarica il modello se non esiste
+            model_path = "./pdf_extract_model"
+            if not os.path.exists(model_path):
+                print("Download del modello PDF-Extract-Kit...")
+                snapshot_download(
+                    repo_id='opendatalab/pdf-extract-kit-1.0', 
+                    local_dir=model_path, 
+                    max_workers=20
+                )
+            
+            # Carica il modello e il processor
+            model = AutoModel.from_pretrained(model_path)
+            processor = AutoProcessor.from_pretrained(model_path)
+            
+            print("Modello PDF-Extract-Kit caricato con successo!")
+            
+        except Exception as e:
+            print(f"Errore caricamento modello: {e}")
+            # Fallback al metodo tradizionale
+            model = None
+            processor = None
+
+def extract_data_with_pdf_extract_kit(pdf_file, file_type="contratto"):
+    """Estrae dati usando PDF-Extract-Kit"""
     try:
+        if model is None or processor is None:
+            print("Modello non disponibile, uso fallback")
+            return None
+            
+        # Converti PDF in immagini
+        images = convert_pdf_to_images(pdf_file)
+        
+        extracted_data = {
+            "nome": "",
+            "cognome": "",
+            "codice_fiscale": "",
+            "data_nascita": "",
+            "luogo_nascita": "",
+            "costi_totali": 0.0,
+            "numero_rate": 0,
+            "durata_mesi": 0,
+            "rate_scadute": 0,
+            "data_chiusura": ""
+        }
+        
+        for i, image in enumerate(images):
+            print(f"Processando pagina {i+1} con PDF-Extract-Kit...")
+            
+            # Preprocessa l'immagine
+            inputs = processor(images=image, return_tensors="pt")
+            
+            # Esegui l'inferenza
+            with torch.no_grad():
+                outputs = model(**inputs)
+            
+            # Estrai i risultati
+            results = processor.decode(outputs)
+            
+            # Analizza i risultati per estrarre i dati
+            extracted_data = parse_pdf_extract_results(results, extracted_data, file_type)
+            
+            # Se abbiamo trovato tutti i dati necessari, fermiamoci
+            if all([extracted_data["nome"], extracted_data["codice_fiscale"], extracted_data["costi_totali"] > 0]):
+                break
+        
+        return extracted_data
+        
+    except Exception as e:
+        print(f"Errore PDF-Extract-Kit: {e}")
+        return None
+
+def convert_pdf_to_images(pdf_file):
+    """Converte PDF in immagini"""
+    try:
+        images = []
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                # Converti pagina in immagine
+                img = page.to_image()
+                pil_image = img.original
+                images.append(pil_image)
+        return images
+    except Exception as e:
+        print(f"Errore conversione PDF: {e}")
+        return []
+
+def parse_pdf_extract_results(results, extracted_data, file_type):
+    """Analizza i risultati di PDF-Extract-Kit"""
+    try:
+        # I risultati contengono testo estratto e strutturato
+        # Analizziamo il testo per trovare i pattern specifici
+        
+        if file_type == "contratto":
+            # Estrazione dati dal contratto
+            extracted_data = extract_contract_data_from_results(results, extracted_data)
+        else:
+            # Estrazione dati dal conteggio
+            extracted_data = extract_statement_data_from_results(results, extracted_data)
+            
+        return extracted_data
+        
+    except Exception as e:
+        print(f"Errore parsing risultati: {e}")
+        return extracted_data
+
+def extract_contract_data_from_results(results, data):
+    """Estrae dati dal contratto usando i risultati di PDF-Extract-Kit"""
+    try:
+        # Analizza il testo estratto per trovare i pattern
+        text = results.get("text", "")
+        print(f"🔍 Testo estratto da PDF-Extract-Kit (primi 1000 char): {text[:1000]}")
+        
+        # Nome e cognome - pattern più flessibili
+        nome_patterns = [
+            r"COGNOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+NOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+)",
+            r"TITOLARE\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s']+)",
+            r"CLIENTE\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s']+)",
+            r"([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+CF\s*:?\s*[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]"
+        ]
+        
+        for pattern in nome_patterns:
+            nome_match = re.search(pattern, text, re.IGNORECASE)
+            if nome_match:
+                data["cognome"] = nome_match.group(1).strip()
+                data["nome"] = nome_match.group(2).strip()
+                print(f"✅ Nome estratto: {data['cognome']} {data['nome']}")
+                break
+        
+        # Codice fiscale - pattern più flessibile
+        cf_patterns = [
+            r"([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])",
+            r"CF\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])",
+            r"C\.?F\.?\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])"
+        ]
+        
+        for pattern in cf_patterns:
+            cf_match = re.search(pattern, text, re.IGNORECASE)
+            if cf_match:
+                data["codice_fiscale"] = cf_match.group(1).upper()
+                print(f"✅ Codice fiscale estratto: {data['codice_fiscale']}")
+                break
+        
+        # Data di nascita - pattern più specifici
+        data_patterns = [
+            r"nato\s*a\s*[^,]*\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})",
+            r"data\s*nascita\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{4})",
+            r"nato\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})"
+        ]
+        
+        for pattern in data_patterns:
+            data_match = re.search(pattern, text, re.IGNORECASE)
+            if data_match:
+                data["data_nascita"] = data_match.group(1)
+                print(f"✅ Data nascita estratta: {data['data_nascita']}")
+                break
+        
+        # Luogo di nascita
+        luogo_patterns = [
+            r"nato\s*a\s*([^,]*?)\s*il",
+            r"luogo\s*nascita\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+)"
+        ]
+        
+        for pattern in luogo_patterns:
+            luogo_match = re.search(pattern, text, re.IGNORECASE)
+            if luogo_match:
+                data["luogo_nascita"] = luogo_match.group(1).strip()
+                print(f"✅ Luogo nascita estratto: {data['luogo_nascita']}")
+                break
+        
+        # Costi totali - pattern più flessibili
+        costi_patterns = [
+            r"CT\s+€\s*([\d.,]+)\s+COSTI TOTALI",
+            r"COSTI TOTALI\s*:?\s*€?\s*([\d.,]+)",
+            r"TOTALE COSTI\s*:?\s*€?\s*([\d.,]+)",
+            r"([\d.,]+)\s*€\s*COSTI TOTALI",
+            r"COSTI\s*:?\s*€?\s*([\d.,]+)"
+        ]
+        
+        for pattern in costi_patterns:
+            costi_match = re.search(pattern, text, re.IGNORECASE)
+            if costi_match:
+                try:
+                    costi_str = costi_match.group(1).replace('.', '').replace(',', '.')
+                    data["costi_totali"] = float(costi_str)
+                    print(f"✅ Costi totali estratti: {data['costi_totali']} €")
+                    break
+                except ValueError:
+                    continue
+        
+        # Durata - pattern più flessibili
+        durata_patterns = [
+            r"DURATA\s*:?\s*(\d+)\s*MESI",
+            r"(\d+)\s*MESI\s*DI\s*DURATA",
+            r"DURATA\s*TOTALE\s*:?\s*(\d+)\s*MESI"
+        ]
+        
+        for pattern in durata_patterns:
+            durata_match = re.search(pattern, text, re.IGNORECASE)
+            if durata_match:
+                data["durata_mesi"] = int(durata_match.group(1))
+                data["numero_rate"] = int(durata_match.group(1))
+                print(f"✅ Durata estratta: {data['durata_mesi']} mesi")
+                break
+        
+        return data
+        
+    except Exception as e:
+        print(f"❌ Errore estrazione dati contratto: {e}")
+        return data
+
+def extract_statement_data_from_results(results, data):
+    """Estrae dati dal conteggio usando i risultati di PDF-Extract-Kit"""
+    try:
+        text = results.get("text", "")
+        print(f"🔍 Testo estratto dal conteggio (primi 1000 char): {text[:1000]}")
+        
+        # Rate scadute - pattern più flessibili
+        rate_patterns = [
+            r"RATE\s*SCADUTE[^\d\n]*:?\s*\(?(\d{1,3})\s*MESI?",
+            r"(\d{1,3})\s*RATE\s*SCADUTE",
+            r"SCADUTE\s*:?\s*(\d{1,3})\s*RATE",
+            r"RATE\s*PAGATE\s*:?\s*(\d{1,3})",
+            r"(\d{1,3})\s*MESI?\s*SCADUTI"
+        ]
+        
+        for pattern in rate_patterns:
+            rate_match = re.search(pattern, text, re.IGNORECASE)
+            if rate_match:
+                data["rate_scadute"] = int(rate_match.group(1))
+                print(f"✅ Rate scadute estratte: {data['rate_scadute']}")
+                break
+        
+        # Data chiusura - pattern più flessibili
+        data_patterns = [
+            r"DATA\s*ELABORAZIONE\s*CONTEGGIO\s*ESTINTIVO\s*([\d\/]+)",
+            r"DATA\s*CHIUSURA\s*:?\s*([\d\/]+)",
+            r"ELABORATO\s*IL\s*([\d\/]+)",
+            r"DATA\s*:?\s*([\d\/]+)\s*CONTEGGIO"
+        ]
+        
+        for pattern in data_patterns:
+            data_match = re.search(pattern, text, re.IGNORECASE)
+            if data_match:
+                data["data_chiusura"] = data_match.group(1)
+                print(f"✅ Data chiusura estratta: {data['data_chiusura']}")
+                break
+        
+        return data
+        
+    except Exception as e:
+        print(f"❌ Errore estrazione dati conteggio: {e}")
+        return data
+
+def estrai_dati_contratto(file):
+    """Estrae i dati dal contratto PDF - versione migliorata"""
+    try:
+        # Prima prova con PDF-Extract-Kit
+        print("Tentativo estrazione con PDF-Extract-Kit...")
+        extracted_data = extract_data_with_pdf_extract_kit(file, "contratto")
+        
+        if extracted_data and extracted_data["nome"]:
+            print("Dati estratti con PDF-Extract-Kit:", extracted_data)
+            return extracted_data
+        
+        # Fallback al metodo tradizionale
+        print("Fallback al metodo tradizionale...")
         testo = ""
         with pdfplumber.open(file) as pdf:
             for page in pdf.pages:
@@ -40,52 +322,31 @@ def estrai_dati_contratto(file):
         }
         
         # Estrazione nome e cognome
-        nome_match = re.search(r"CLIENTE\s*(?:COGNOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*(?:NOME:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?))?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]+)", testo, re.IGNORECASE)
+        nome_match = re.search(r"COGNOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)\s+NOME\s*:?\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+)", testo, re.IGNORECASE)
         if nome_match:
-            if nome_match.group(1) and nome_match.group(2):
-                dati["cognome"] = nome_match.group(1).strip()
-                dati["nome"] = nome_match.group(2).strip()
-            elif nome_match.group(3):
-                parti = nome_match.group(3).strip().split()
-                if len(parti) >= 2:
-                    dati["cognome"] = parti[0]
-                    dati["nome"] = " ".join(parti[1:])
+            dati["cognome"] = nome_match.group(1).strip()
+            dati["nome"] = nome_match.group(2).strip()
         
-        # Fallback per nome
-        if not dati["nome"]:
-            titolare_match = re.search(r"Titolare:\s*([A-Za-zÀ-ÖØ-öø-ÿ\s']+?)(?:\s*CF:|$)", testo, re.IGNORECASE)
-            if titolare_match:
-                nome_completo = titolare_match.group(1).strip()
-                parti = nome_completo.split()
-                if len(parti) >= 2:
-                    dati["cognome"] = parti[0]
-                    dati["nome"] = " ".join(parti[1:])
-        
-        # Estrazione codice fiscale
-        cf_match = re.search(r"C\.?F\.?\s*:?\s*([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])", testo, re.IGNORECASE)
+        # Codice Fiscale
+        cf_match = re.search(r"([A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z])", testo)
         if cf_match:
             dati["codice_fiscale"] = cf_match.group(1).upper()
         
-        # Estrazione data di nascita
-        data_match = re.search(r"nato\s*a\s*[^,]*\s*il\s*(\d{1,2}\/\d{1,2}\/\d{4})", testo, re.IGNORECASE)
+        # Data di nascita
+        data_match = re.search(r"(\d{1,2}\/\d{1,2}\/\d{4})", testo)
         if data_match:
             dati["data_nascita"] = data_match.group(1)
         
-        # Estrazione luogo di nascita
-        luogo_match = re.search(r"nato\s*a\s*([^,]*?)\s*il", testo, re.IGNORECASE)
-        if luogo_match:
-            dati["luogo_nascita"] = luogo_match.group(1).strip()
-        
-        # Estrazione costi totali
+        # Costi totali
         costi_match = re.search(r"CT\s+€\s*([\d.,]+)\s+COSTI TOTALI", testo, re.IGNORECASE)
         if costi_match:
             dati["costi_totali"] = float(costi_match.group(1).replace('.', '').replace(',', '.'))
         
-        # Estrazione numero rate
-        rate_match = re.search(r"DURATA:\s*(\d+)\s*MESI", testo, re.IGNORECASE)
-        if rate_match:
-            dati["numero_rate"] = int(rate_match.group(1))
-            dati["durata_mesi"] = int(rate_match.group(1))
+        # Durata
+        durata_match = re.search(r"DURATA:\s*(\d+)\s*MESI", testo, re.IGNORECASE)
+        if durata_match:
+            dati["durata_mesi"] = int(durata_match.group(1))
+            dati["numero_rate"] = int(durata_match.group(1))
         
         print(f"Dati estratti dal contratto: {dati}")
         return dati
@@ -95,8 +356,18 @@ def estrai_dati_contratto(file):
         return {}
 
 def estrai_dati_conteggio(file):
-    """Estrae i dati dal conteggio estintivo PDF"""
+    """Estrae i dati dal conteggio estintivo PDF - versione migliorata"""
     try:
+        # Prima prova con PDF-Extract-Kit
+        print("Tentativo estrazione con PDF-Extract-Kit...")
+        extracted_data = extract_data_with_pdf_extract_kit(file, "conteggio")
+        
+        if extracted_data and extracted_data["rate_scadute"] > 0:
+            print("Dati estratti con PDF-Extract-Kit:", extracted_data)
+            return extracted_data
+        
+        # Fallback al metodo tradizionale
+        print("Fallback al metodo tradizionale...")
         testo = ""
         with pdfplumber.open(file) as pdf:
             for page in pdf.pages:
@@ -119,12 +390,6 @@ def estrai_dati_conteggio(file):
         data_match = re.search(r"DATA\s*ELABORAZIONE\s*CONTEGGIO\s*ESTINTIVO\s*([\d\/]+)", testo, re.IGNORECASE)
         if data_match:
             dati["data_chiusura"] = data_match.group(1)
-        
-        # Fallback per data
-        if not dati["data_chiusura"]:
-            data_fallback = re.search(r"(\d{2}\/\d{2}\/\d{4})", testo)
-            if data_fallback:
-                dati["data_chiusura"] = data_fallback.group(1)
         
         print(f"Dati estratti dal conteggio: {dati}")
         return dati
@@ -217,6 +482,11 @@ def crea_pdf_diffida(dati_contratto, dati_conteggio, calcoli):
         print(f"Errore creazione PDF: {e}")
         raise HTTPException(status_code=500, detail=f"Errore creazione PDF: {e}")
 
+@app.on_event("startup")
+async def startup_event():
+    """Carica il modello all'avvio"""
+    await load_pdf_extract_model()
+
 @app.post("/genera-diffida/")
 async def genera_diffida(
     file_contratto: UploadFile = File(...),
@@ -261,10 +531,24 @@ async def estrai_dati(
         dati_conteggio = estrai_dati_conteggio(file_conteggio.file)
         calcoli = esegui_calcoli(dati_contratto, dati_conteggio)
         
+        # Formatta i dati per il frontend
+        dati_formattati = {
+            "nomeCliente": f"{dati_contratto.get('cognome', '')} {dati_contratto.get('nome', '')}".strip() or "Cliente",
+            "codiceFiscale": dati_contratto.get('codice_fiscale', 'Non disponibile'),
+            "dataNascita": dati_contratto.get('data_nascita', 'Non disponibile'),
+            "luogoNascita": dati_contratto.get('luogo_nascita', 'Non disponibile'),
+            "importoRimborso": f"{calcoli.get('rimborso', 0):.2f}".replace('.', ',') + " €",
+            "rateResidue": calcoli.get('rate_residue', 0),
+            "durataTotale": calcoli.get('durata_totale', 0),
+            "costiTotali": calcoli.get('costi_totali', 0)
+        }
+        
         return {
+            "success": True,
             "dati_contratto": dati_contratto,
             "dati_conteggio": dati_conteggio,
-            "calcoli": calcoli
+            "calcoli": calcoli,
+            "dati_formattati": dati_formattati
         }
         
     except Exception as e:
@@ -274,9 +558,9 @@ async def estrai_dati(
 @app.get("/")
 def home():
     """Endpoint di test"""
-    return {"message": "PDF Parser API è attiva", "version": "1.0.0"}
+    return {"message": "PDF Parser API con PDF-Extract-Kit è attiva", "version": "2.0.0"}
 
 @app.get("/health")
 def health():
     """Health check"""
-    return {"status": "ok"} 
+    return {"status": "ok", "model_loaded": model is not None} 
