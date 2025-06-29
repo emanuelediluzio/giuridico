@@ -116,8 +116,9 @@ export default function Home() {
     setError(null);
 
     try {
-      // PRIMA OPZIONE: Backend Python (più robusto)
+      // PRIMA OPZIONE: Backend Python con PDF-Extract-Kit (più robusto)
       try {
+        console.log("Tentativo con backend Python + PDF-Extract-Kit...");
         const formData = new FormData();
         formData.append('file_contratto', contract);
         formData.append('file_conteggio', statement);
@@ -137,7 +138,7 @@ export default function Home() {
             
             // Log dei dati estratti per debug
             if (data.dati) {
-              console.log("Dati estratti dal backend Python:", JSON.stringify(data.dati, null, 2));
+              console.log("✅ Dati estratti con PDF-Extract-Kit:", JSON.stringify(data.dati, null, 2));
               console.log("Nome Cliente:", data.dati.nomeCliente);
               console.log("Codice Fiscale:", data.dati.codiceFiscale);
               console.log("Importo Rimborso:", data.dati.importoRimborso);
@@ -146,13 +147,45 @@ export default function Home() {
             }
             return;
           }
+        } else {
+          console.log("Backend Python non ha restituito lettera, provo estrazione dati...");
+          
+          // Prova a estrarre solo i dati
+          const dataResponse = await fetch("/api/python_parser/estrai-dati", {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (dataResponse.ok) {
+            const extractedData = await dataResponse.json();
+            console.log("📊 Dati estratti:", extractedData);
+            
+            // Usa i dati estratti per generare lettera con API CQS
+            const cqsFormData = new FormData();
+            cqsFormData.append('contract', contract);
+            cqsFormData.append('statement', statement);
+            cqsFormData.append('template', template);
+            
+            const cqsResponse = await fetch("/api/cqs", {
+              method: "POST",
+              body: cqsFormData,
+            });
+            
+            if (cqsResponse.ok) {
+              const cqsData = await cqsResponse.json();
+              setLetterContent(cqsData.lettera || cqsData.result || "Nessuna lettera generata");
+              setIsEditing(true);
+              return;
+            }
+          }
         }
       } catch (pythonError) {
-        console.log("Backend Python fallito, provo API CQS:", pythonError);
+        console.log("❌ Backend Python fallito, provo API CQS:", pythonError);
       }
 
       // SECONDA OPZIONE: API CQS (fallback)
       try {
+        console.log("Tentativo con API CQS...");
         const formData = new FormData();
         formData.append('contract', contract);
         formData.append('statement', statement);
@@ -170,10 +203,11 @@ export default function Home() {
           return;
         }
       } catch (cqsError) {
-        console.log("API CQS fallita, provo API di fallback:", cqsError);
+        console.log("❌ API CQS fallita, provo API di fallback:", cqsError);
       }
 
       // TERZA OPZIONE: API di fallback (ultima risorsa)
+      console.log("Tentativo con API di fallback...");
       const contractText = await extractTextFromPDF(contract);
       const statementText = await extractTextFromPDF(statement);
       const templateText = await extractTextFromPDF(template);
