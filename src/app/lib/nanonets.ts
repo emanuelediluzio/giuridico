@@ -20,27 +20,19 @@ async function pdfToImages(file: File): Promise<Blob[]> {
   return images;
 }
 
-// Funzione OCR con TroCR (HuggingFace)
-export async function estraiTestoNanonetsOCR(file: File, hfToken: string): Promise<string> {
-  // Converte PDF in immagini
-  const images = await pdfToImages(file);
-  let testoFinale = '';
-  for (const img of images) {
-    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/trocr-base-printed', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfToken}`,
-        'Content-Type': 'image/png'
-      },
-      body: img
-    });
-    if (!response.ok) throw new Error('Errore estrazione dati da TroCR');
-    const result = await response.json();
-    if (result && result[0] && result[0].generated_text) {
-      testoFinale += result[0].generated_text + '\n';
-    }
-  }
-  return testoFinale.trim();
+// Funzione OCR con Nanonets-OCR-s (API Python locale)
+export async function estraiTestoNanonetsOCR(file: File, _hfToken: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  // Chiama la route FastAPI Python (assicurati che sia raggiungibile da Next.js, es: http://localhost:8000/ocr-nanonets/)
+  const response = await fetch('https://giuridico.onrender.com/ocr-nanonets/', {
+    method: 'POST',
+    body: formData
+  });
+  if (!response.ok) throw new Error('Errore estrazione dati da Nanonets-OCR-s');
+  const result = await response.json();
+  if (result && result.text) return result.text;
+  return '';
 }
 
 /**
