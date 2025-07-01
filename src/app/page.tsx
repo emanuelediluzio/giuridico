@@ -3,7 +3,6 @@ import React, { useState, ChangeEvent, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { extractTextFromPDF } from './components/PDFTextExtractor';
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 // Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
@@ -42,16 +41,16 @@ interface ResultData {
 }
 
 // Funzione per estrarre dati da MinerU-API Hugging Face
-async function estraiDatiConMinerU(pdfFile: File) {
-  const formData = new FormData();
-  formData.append('file', pdfFile);
-  const response = await fetch('https://vasilee-mineru-api.hf.space/file-upload', {
-    method: 'POST',
-    body: formData
-  });
-  if (!response.ok) throw new Error('Errore estrazione dati da MinerU-API');
-  return await response.json();
-}
+// async function estraiDatiConMinerU(pdfFile: File) {
+//   const formData = new FormData();
+//   formData.append('file', pdfFile);
+//   const response = await fetch('https://vasilee-mineru-api.hf.space/file-upload', {
+//     method: 'POST',
+//     body: formData
+//   });
+//   if (!response.ok) throw new Error('Errore estrazione dati da MinerU-API');
+//   return await response.json();
+// }
 
 export default function Home() {
   const [contract, setContract] = useState<File | null>(null);
