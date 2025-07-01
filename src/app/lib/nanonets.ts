@@ -12,7 +12,7 @@ async function pdfToImages(file: File): Promise<Blob[]> {
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const context = canvas.getContext('2d');
-    // @ts-expect-error
+    // @ts-expect-error: pdfjs-dist usa tipi non standard per il rendering su canvas
     await page.render({ canvasContext: context, viewport }).promise;
     const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
     images.push(blob);
