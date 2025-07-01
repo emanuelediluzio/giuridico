@@ -1,4 +1,4 @@
-import { PDFDocumentProxy, getDocument } from 'pdfjs-dist';
+import { getDocument } from 'pdfjs-dist';
 
 // Funzione per convertire PDF in immagini PNG (una per pagina)
 async function pdfToImages(file: File): Promise<Blob[]> {
@@ -12,7 +12,7 @@ async function pdfToImages(file: File): Promise<Blob[]> {
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const context = canvas.getContext('2d');
-    // @ts-ignore
+    // @ts-expect-error
     await page.render({ canvasContext: context, viewport }).promise;
     const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
     images.push(blob);
