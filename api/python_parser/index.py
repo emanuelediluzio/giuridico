@@ -9,10 +9,11 @@ from fpdf import FPDF
 import json
 from huggingface_hub import snapshot_download
 import torch
-from transformers import AutoProcessor, AutoModel
+from transformers import AutoProcessor, AutoModel, AutoTokenizer, AutoModelForImageTextToText
 from PIL import Image
 import cv2
 import numpy as np
+from tempfile import NamedTemporaryFile
 
 app = FastAPI(title="PDF Parser API", version="2.0.0")
 
@@ -28,6 +29,10 @@ app.add_middleware(
 # Variabili globali per il modello
 model = None
 processor = None
+
+# === Nanonets-OCR-s ===
+nanonets_model = None
+nanonets_processor = None
 
 async def load_pdf_extract_model():
     """Carica il modello PDF-Extract-Kit"""
@@ -58,6 +63,40 @@ async def load_pdf_extract_model():
             # Fallback al metodo tradizionale
             model = None
             processor = None
+
+def load_nanonets_model():
+    global nanonets_model, nanonets_processor
+    if nanonets_model is None or nanonets_processor is None:
+        model_path = "nanonets/Nanonets-OCR-s"
+        nanonets_model = AutoModelForImageTextToText.from_pretrained(
+            model_path, torch_dtype="auto", device_map="auto", attn_implementation="flash_attention_2"
+        )
+        nanonets_model.eval()
+        nanonets_processor = AutoProcessor.from_pretrained(model_path)
+
+def ocr_page_with_nanonets_s(image_path, max_new_tokens=4096):
+    load_nanonets_model()
+    prompt = ("Extract the text from the above document as if you were reading it naturally. "
+              "Return the tables in html format. Return the equations in LaTeX representation. "
+              "If there is an image in the document and image caption is not present, add a small description of the image inside the <img></img> tag; "
+              "otherwise, add the image caption inside <img></img>. Watermarks should be wrapped in brackets. "
+              "Ex: <watermark>OFFICIAL COPY</watermark>. Page numbers should be wrapped in brackets. "
+              "Ex: <page_number>14</page_number> or <page_number>9/22</page_number>. Prefer using ☐ and ☑ for check boxes.")
+    image = Image.open(image_path)
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": [
+            {"type": "image", "image": f"file://{image_path}"},
+            {"type": "text", "text": prompt},
+        ]},
+    ]
+    text = nanonets_processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = nanonets_processor(text=[text], images=[image], padding=True, return_tensors="pt")
+    inputs = inputs.to(nanonets_model.device)
+    output_ids = nanonets_model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+    generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, output_ids)]
+    output_text = nanonets_processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+    return output_text[0]
 
 def extract_data_with_pdf_extract_kit(pdf_file, file_type="contratto"):
     """Estrae dati usando PDF-Extract-Kit"""
@@ -563,4 +602,33 @@ def home():
 @app.get("/health")
 def health():
     """Health check"""
-    return {"status": "ok", "model_loaded": model is not None} 
+    return {"status": "ok", "model_loaded": model is not None}
+
+@app.post("/ocr-nanonets/")
+async def ocr_nanonets(file: UploadFile = File(...)):
+    """Esegue OCR avanzato con Nanonets-OCR-s su un'immagine o PDF (solo prima pagina)."""
+    try:
+        # Salva il file temporaneamente
+        suffix = os.path.splitext(file.filename)[-1].lower()
+        with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+        # Se PDF, estrai la prima pagina come immagine
+        if suffix == ".pdf":
+            with pdfplumber.open(tmp_path) as pdf:
+                page = pdf.pages[0]
+                img = page.to_image(resolution=300)
+                pil_image = img.original
+                img_path = tmp_path + "_page1.jpg"
+                pil_image.save(img_path)
+        else:
+            img_path = tmp_path
+        # Esegui OCR
+        result = ocr_page_with_nanonets_s(img_path, max_new_tokens=15000)
+        # Pulisci file temporanei
+        os.remove(tmp_path)
+        if suffix == ".pdf":
+            os.remove(img_path)
+        return {"text": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore OCR Nanonets: {e}") 
