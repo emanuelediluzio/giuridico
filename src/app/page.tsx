@@ -22,6 +22,8 @@ import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 const DownloadWordButton = dynamic(() => import('./components/DownloadWordButton'), { ssr: false });
 
+import { estraiTestoNanonetsOCR, parseNanonetsMarkdown } from './lib/nanonets';
+
 // Interfaccia per i dati del risultato
 interface ResultData {
   lettera?: string; // Modificato da letter
@@ -37,6 +39,18 @@ interface ResultData {
     durataTotale: number;
     costiTotali: number;
   };
+}
+
+// Funzione per estrarre dati da MinerU-API Hugging Face
+async function estraiDatiConMinerU(pdfFile: File) {
+  const formData = new FormData();
+  formData.append('file', pdfFile);
+  const response = await fetch('https://vasilee-mineru-api.hf.space/file-upload', {
+    method: 'POST',
+    body: formData
+  });
+  if (!response.ok) throw new Error('Errore estrazione dati da MinerU-API');
+  return await response.json();
 }
 
 export default function Home() {
@@ -111,126 +125,39 @@ export default function Home() {
       setError("Per favore carica tutti i PDF richiesti");
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     try {
-      // PRIMA OPZIONE: Backend Python con PDF-Extract-Kit (più robusto)
-      try {
-        console.log("Tentativo con backend Python + PDF-Extract-Kit...");
-        const formData = new FormData();
-        formData.append('file_contratto', contract);
-        formData.append('file_conteggio', statement);
-
-        const pythonResponse = await fetch("/api/python_parser", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (pythonResponse.ok) {
-          const data = await pythonResponse.json();
-          
-          if (data.lettera) {
-            setLetterContent(data.lettera);
-            setResult({ lettera: data.lettera, dati: data.dati });
-            setIsEditing(true);
-            
-            // Log dei dati estratti per debug
-            if (data.dati) {
-              console.log("✅ Dati estratti con PDF-Extract-Kit:", JSON.stringify(data.dati, null, 2));
-              console.log("Nome Cliente:", data.dati.nomeCliente);
-              console.log("Codice Fiscale:", data.dati.codiceFiscale);
-              console.log("Importo Rimborso:", data.dati.importoRimborso);
-              console.log("Rate Residue:", data.dati.rateResidue);
-              console.log("Durata Totale:", data.dati.durataTotale);
-            }
-            return;
-          }
-        } else {
-          console.log("Backend Python non ha restituito lettera, provo estrazione dati...");
-          
-          // Prova a estrarre solo i dati
-          const dataResponse = await fetch("/api/python_parser/estrai-dati", {
-            method: "POST",
-            body: formData,
-          });
-          
-          if (dataResponse.ok) {
-            const extractedData = await dataResponse.json();
-            console.log("📊 Dati estratti:", extractedData);
-            
-            // Usa i dati estratti per generare lettera con API CQS
-            const cqsFormData = new FormData();
-            cqsFormData.append('contract', contract);
-            cqsFormData.append('statement', statement);
-            cqsFormData.append('template', template);
-            
-            const cqsResponse = await fetch("/api/cqs", {
-              method: "POST",
-              body: cqsFormData,
-            });
-            
-            if (cqsResponse.ok) {
-              const cqsData = await cqsResponse.json();
-              setLetterContent(cqsData.lettera || cqsData.result || "Nessuna lettera generata");
-              setIsEditing(true);
-              return;
-            }
-          }
+      const HF_TOKEN = process.env.NEXT_PUBLIC_HF_TOKEN!;
+      // Estrazione testo da Nanonets-OCR-s
+      const testoContratto = await estraiTestoNanonetsOCR(contract, HF_TOKEN);
+      const testoConteggio = await estraiTestoNanonetsOCR(statement, HF_TOKEN);
+      // Parsing automatico del markdown
+      const datiContratto = parseNanonetsMarkdown(testoContratto);
+      const datiConteggio = parseNanonetsMarkdown(testoConteggio);
+      // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
+      const nomeCliente = datiContratto.nomeCliente || datiConteggio.nomeCliente || '';
+      const codiceFiscale = datiContratto.codiceFiscale || datiConteggio.codiceFiscale || '';
+      const dataNascita = datiContratto.dataNascita || datiConteggio.dataNascita || '';
+      const luogoNascita = datiContratto.luogoNascita || datiConteggio.luogoNascita || '';
+      const importoRimborso = datiConteggio.importo || datiContratto.importo || '';
+      // Generazione lettera compilata
+      const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
+      setLetterContent(lettera);
+      setResult({
+        lettera,
+        dati: {
+          nomeCliente,
+          codiceFiscale,
+          dataNascita,
+          luogoNascita,
+          importoRimborso: importoRimborso || '0,00 €',
+          rateResidue: 0,
+          durataTotale: 0,
+          costiTotali: 0
         }
-      } catch (pythonError) {
-        console.log("❌ Backend Python fallito, provo API CQS:", pythonError);
-      }
-
-      // SECONDA OPZIONE: API CQS (fallback)
-      try {
-        console.log("Tentativo con API CQS...");
-        const formData = new FormData();
-        formData.append('contract', contract);
-        formData.append('statement', statement);
-        formData.append('template', template);
-
-        const response = await fetch("/api/cqs", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setLetterContent(data.lettera || data.result || "Nessuna lettera generata");
-          setIsEditing(true);
-          return;
-        }
-      } catch (cqsError) {
-        console.log("❌ API CQS fallita, provo API di fallback:", cqsError);
-      }
-
-      // TERZA OPZIONE: API di fallback (ultima risorsa)
-      console.log("Tentativo con API di fallback...");
-      const contractText = await extractTextFromPDF(contract);
-      const statementText = await extractTextFromPDF(statement);
-      const templateText = await extractTextFromPDF(template);
-
-      const fallbackResponse = await fetch("/api/lettera", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contractText: contractText.substring(0, 1000),
-          statementText: statementText.substring(0, 1000),
-          templateText: templateText.substring(0, 500)
-        }),
       });
-
-      if (!fallbackResponse.ok) {
-        const errorData = await fallbackResponse.json();
-        throw new Error(errorData.error || "Errore nella generazione della lettera");
-      }
-
-      const data = await fallbackResponse.json();
-      setLetterContent(data.lettera || "Nessuna lettera generata");
       setIsEditing(true);
-
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore sconosciuto durante l'elaborazione");
     } finally {
