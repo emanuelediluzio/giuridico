@@ -1,15 +1,46 @@
-export async function estraiTestoNanonetsOCR(file: File, hfToken: string): Promise<string> {
+import { PDFDocumentProxy, getDocument } from 'pdfjs-dist';
+
+// Funzione per convertire PDF in immagini PNG (una per pagina)
+async function pdfToImages(file: File): Promise<Blob[]> {
   const arrayBuffer = await file.arrayBuffer();
-  const response = await fetch('https://api-inference.huggingface.co/models/nanonets/Nanonets-OCR-s', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${hfToken}`,
-      'Content-Type': file.type // "application/pdf" o "image/png"
-    },
-    body: arrayBuffer
-  });
-  if (!response.ok) throw new Error('Errore estrazione dati da Nanonets-OCR-s');
-  return await response.text(); // markdown strutturato!
+  const pdf = await getDocument({ data: arrayBuffer }).promise;
+  const images: Blob[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const context = canvas.getContext('2d');
+    // @ts-ignore
+    await page.render({ canvasContext: context, viewport }).promise;
+    const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
+    images.push(blob);
+  }
+  return images;
+}
+
+// Funzione OCR con TroCR (HuggingFace)
+export async function estraiTestoNanonetsOCR(file: File, hfToken: string): Promise<string> {
+  // Converte PDF in immagini
+  const images = await pdfToImages(file);
+  let testoFinale = '';
+  for (const img of images) {
+    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/trocr-base-printed', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hfToken}`,
+        'Content-Type': 'image/png'
+      },
+      body: img
+    });
+    if (!response.ok) throw new Error('Errore estrazione dati da TroCR');
+    const result = await response.json();
+    if (result && result[0] && result[0].generated_text) {
+      testoFinale += result[0].generated_text + '\n';
+    }
+  }
+  return testoFinale.trim();
 }
 
 /**
