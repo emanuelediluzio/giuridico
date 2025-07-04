@@ -1,0 +1,6 @@
+*.py linguist-language=Python
+*.md linguist-language=Markdown
+*.txt linguist-language=Text
+*.json linguist-language=JSON
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML 

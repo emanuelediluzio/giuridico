@@ -14,13 +14,18 @@ from PIL import Image
 import cv2
 import numpy as np
 from tempfile import NamedTemporaryFile
+from config import Config
 
-app = FastAPI(title="PDF Parser API", version="2.0.0")
+app = FastAPI(
+    title="PDF Parser API con Nanonets-OCR-s", 
+    version="2.0.0",
+    description="API per estrazione testo da PDF con OCR avanzato"
+)
 
 # Configurazione CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=Config.get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,12 +72,23 @@ async def load_pdf_extract_model():
 def load_nanonets_model():
     global nanonets_model, nanonets_processor
     if nanonets_model is None or nanonets_processor is None:
-        model_path = "nanonets/Nanonets-OCR-s"
+        model_config = Config.get_model_config()
+        model_path = model_config["model_path"]
+        device = model_config["device"]
+        
+        print(f"Caricamento modello Nanonets-OCR-s da: {model_path}")
+        print(f"Device configurato: {device}")
+        
         nanonets_model = AutoModelForImageTextToText.from_pretrained(
-            model_path, torch_dtype="auto", device_map="auto", attn_implementation="flash_attention_2"
+            model_path, 
+            torch_dtype="auto", 
+            device_map=device, 
+            attn_implementation="flash_attention_2"
         )
         nanonets_model.eval()
         nanonets_processor = AutoProcessor.from_pretrained(model_path)
+        
+        print("Modello Nanonets-OCR-s caricato con successo!")
 
 def ocr_page_with_nanonets_s(image_path, max_new_tokens=4096):
     load_nanonets_model()
@@ -601,8 +617,29 @@ def home():
 
 @app.get("/health")
 def health():
-    """Health check"""
-    return {"status": "ok", "model_loaded": model is not None}
+    """Health check endpoint con informazioni dettagliate"""
+    import platform
+    import datetime
+    
+    health_info = {
+        "status": "ok",
+        "timestamp": str(datetime.datetime.now()),
+        "version": "2.0.0",
+        "model_loaded": model is not None,
+        "nanonets_loaded": nanonets_model is not None,
+        "system": {
+            "python_version": platform.python_version(),
+            "platform": platform.platform()
+        },
+        "config": {
+            "model_path": Config.get_model_config()["model_path"],
+            "device": Config.get_model_config()["device"],
+            "max_file_size": f"{Config.MAX_FILE_SIZE} MB",
+            "ocr_timeout": f"{Config.OCR_TIMEOUT} seconds"
+        }
+    }
+    
+    return health_info
 
 @app.post("/ocr-nanonets/")
 async def ocr_nanonets(file: UploadFile = File(...)):

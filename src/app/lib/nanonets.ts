@@ -20,16 +20,24 @@ async function pdfToImages(file: File): Promise<Blob[]> {
   return images;
 }
 
-// Funzione OCR con Nanonets-OCR-s (API Python locale)
+// Funzione OCR con Nanonets-OCR-s (API Hugging Face Spaces)
 export async function estraiTestoNanonetsOCR(file: File, _hfToken: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
-  // Chiama la route FastAPI Python (assicurati che sia raggiungibile da Next.js, es: http://localhost:8000/ocr-nanonets/)
-  const response = await fetch('https://giuridico.onrender.com/ocr-nanonets/', {
+  
+  // URL di Hugging Face Spaces (da sostituire con il tuo URL)
+  const HF_SPACES_URL = process.env.NEXT_PUBLIC_HF_SPACES_URL || 'https://your-username-your-space-name.hf.space';
+  
+  const response = await fetch(`${HF_SPACES_URL}/ocr-nanonets/`, {
     method: 'POST',
     body: formData
   });
-  if (!response.ok) throw new Error('Errore estrazione dati da Nanonets-OCR-s');
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Errore estrazione dati da Nanonets-OCR-s: ${response.status} - ${errorText}`);
+  }
+  
   const result = await response.json();
   if (result && result.text) return result.text;
   return '';
