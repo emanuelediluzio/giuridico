@@ -20,26 +20,25 @@ async function pdfToImages(file: File): Promise<Blob[]> {
   return images;
 }
 
-// Funzione OCR con Nanonets-OCR-s (API Hugging Face Spaces)
+// Funzione OCR con Mistral API (route locale)
 export async function estraiTestoNanonetsOCR(file: File, _hfToken: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('threshold', '50'); // Soglia di default per l'analisi percentuale
   
-  // URL di Hugging Face Spaces (da sostituire con il tuo URL)
-  const HF_SPACES_URL = process.env.NEXT_PUBLIC_HF_SPACES_URL || 'https://your-username-your-space-name.hf.space';
-  
-  const response = await fetch(`${HF_SPACES_URL}/ocr-nanonets/`, {
+  // Usa la route API locale OCR Mistral
+  const response = await fetch('/api/ocr-mistral', {
     method: 'POST',
     body: formData
   });
   
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Errore estrazione dati da Nanonets-OCR-s: ${response.status} - ${errorText}`);
+    throw new Error(`Errore estrazione dati da Mistral OCR: ${response.status} - ${errorText}`);
   }
   
   const result = await response.json();
-  if (result && result.text) return result.text;
+  if (result && result.ocrText) return result.ocrText;
   return '';
 }
 
@@ -88,5 +87,49 @@ export function parseNanonetsMarkdown(markdown: string): {
     importo: importo || '',
     dataNascita: dataNascita || '',
     luogoNascita: luogoNascita || ''
+  };
+}
+
+/**
+ * Estrae dati strutturati usando l'analisi avanzata di Mistral
+ * @param file File da analizzare
+ * @returns Dati estratti con analisi percentuale
+ */
+export async function estraiDatiMistral(file: File): Promise<{
+  ocrText: string;
+  analisiPercentuale: { valore: number; stato: string };
+  datiEstratti: {
+    nomeCliente: string;
+    codiceFiscale: string;
+    importo: string;
+    dataNascita: string;
+    luogoNascita: string;
+  };
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('threshold', '50');
+  
+  const response = await fetch('/api/ocr-mistral', {
+    method: 'POST',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Errore analisi Mistral: ${response.status} - ${errorText}`);
+  }
+  
+  const result = await response.json();
+  const ocrText = result.ocrText || '';
+  const analisiPercentuale = result.result || { valore: 0, stato: 'NO' };
+  
+  // Estrai dati dal testo OCR usando la funzione esistente
+  const datiEstratti = parseNanonetsMarkdown(ocrText);
+  
+  return {
+    ocrText,
+    analisiPercentuale,
+    datiEstratti
   };
 } 

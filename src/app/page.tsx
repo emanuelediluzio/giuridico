@@ -21,7 +21,7 @@ import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 const DownloadWordButton = dynamic(() => import('./components/DownloadWordButton'), { ssr: false });
 
-import { estraiTestoNanonetsOCR, parseNanonetsMarkdown } from './lib/nanonets';
+import { estraiTestoNanonetsOCR, parseNanonetsMarkdown, estraiDatiMistral } from './lib/nanonets';
 
 // Interfaccia per i dati del risultato
 interface ResultData {
@@ -37,6 +37,10 @@ interface ResultData {
     rateResidue: number;
     durataTotale: number;
     costiTotali: number;
+  };
+  analisiPercentuale?: {
+    valore: number;
+    stato: string;
   };
 }
 
@@ -127,19 +131,22 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
     try {
-      const HF_TOKEN = process.env.NEXT_PUBLIC_HF_TOKEN!;
-      // Estrazione testo da Nanonets-OCR-s
-      const testoContratto = await estraiTestoNanonetsOCR(contract, HF_TOKEN);
-      const testoConteggio = await estraiTestoNanonetsOCR(statement, HF_TOKEN);
-      // Parsing automatico del markdown
-      const datiContratto = parseNanonetsMarkdown(testoContratto);
-      const datiConteggio = parseNanonetsMarkdown(testoConteggio);
+      // Estrazione dati con Mistral OCR e analisi percentuale
+      const datiContratto = await estraiDatiMistral(contract);
+      const datiConteggio = await estraiDatiMistral(statement);
+      
       // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
-      const nomeCliente = datiContratto.nomeCliente || datiConteggio.nomeCliente || '';
-      const codiceFiscale = datiContratto.codiceFiscale || datiConteggio.codiceFiscale || '';
-      const dataNascita = datiContratto.dataNascita || datiConteggio.dataNascita || '';
-      const luogoNascita = datiContratto.luogoNascita || datiConteggio.luogoNascita || '';
-      const importoRimborso = datiConteggio.importo || datiContratto.importo || '';
+      const nomeCliente = datiContratto.datiEstratti.nomeCliente || datiConteggio.datiEstratti.nomeCliente || '';
+      const codiceFiscale = datiContratto.datiEstratti.codiceFiscale || datiConteggio.datiEstratti.codiceFiscale || '';
+      const dataNascita = datiContratto.datiEstratti.dataNascita || datiConteggio.datiEstratti.dataNascita || '';
+      const luogoNascita = datiContratto.datiEstratti.luogoNascita || datiConteggio.datiEstratti.luogoNascita || '';
+      const importoRimborso = datiConteggio.datiEstratti.importo || datiContratto.datiEstratti.importo || '';
+      
+      // Analisi percentuale (usa il valore più alto tra i due documenti)
+      const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore 
+        ? datiContratto.analisiPercentuale 
+        : datiConteggio.analisiPercentuale;
+      
       // Generazione lettera compilata
       const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
       setLetterContent(lettera);
@@ -154,7 +161,8 @@ export default function Home() {
           rateResidue: 0,
           durataTotale: 0,
           costiTotali: 0
-        }
+        },
+        analisiPercentuale
       });
       setIsEditing(true);
     } catch (err) {
@@ -169,7 +177,7 @@ export default function Home() {
       return (
         <div className="mt-6 p-4 border border-blue-300 rounded-lg bg-blue-50">
           <p className="text-blue-700 font-semibold">Caricamento in corso...</p>
-          <p className="text-blue-600 text-sm">Analisi dei PDF e generazione lettera con Mistral AI...</p>
+          <p className="text-blue-600 text-sm">OCR e analisi percentuale con Mistral AI...</p>
         </div>
       );
     }
@@ -201,6 +209,33 @@ export default function Home() {
                 <div><strong>Rate Residue:</strong> {result.dati.rateResidue || 0}</div>
                 <div><strong>Durata Totale:</strong> {result.dati.durataTotale || 0} mesi</div>
                 <div><strong>Costi Totali:</strong> {result.dati.costiTotali || 0} €</div>
+              </div>
+            </div>
+          )}
+          
+          {/* Sezione analisi percentuale */}
+          {result?.analisiPercentuale && (
+            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+              <h4 className="text-lg font-semibold text-green-800 mb-3">Analisi Percentuale AI</h4>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="text-sm text-green-700">
+                    <strong>Percentuale trovata:</strong> {result.analisiPercentuale.valore}%
+                  </div>
+                  <div className="text-sm text-green-700">
+                    <strong>Stato:</strong> 
+                    <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
+                      result.analisiPercentuale.stato === 'OK' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {result.analisiPercentuale.stato}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-green-600">
+                  {result.analisiPercentuale.valore}%
+                </div>
               </div>
             </div>
           )}
