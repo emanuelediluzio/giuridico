@@ -14,7 +14,7 @@ export async function processWithMistralChat(systemPrompt: string, userPrompt: s
 
     // Race between puter call and timeout
     const response = await Promise.race([
-      puter.ai.chat(messages, { model: 'gemini-1.5-pro' }),
+      puter.ai.chat(messages, { model: 'gemini-3-pro-preview' }),
       timeoutPromise
     ]);
 

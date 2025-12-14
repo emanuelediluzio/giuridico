@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       }
     ];
 
-    const response = await puter.ai.chat(messages, { model: 'gemini-1.5-pro' });
+    const response = await puter.ai.chat(messages, { model: 'gemini-3-pro-preview' });
 
     // puter.ai.chat usually returns the message object or content directly. 
     // Based on the previous file implementation, we assume it returns an object similar to { message: { content: ... } } or just the content?

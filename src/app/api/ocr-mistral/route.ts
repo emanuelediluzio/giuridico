@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       }
     ];
 
-    const response = await puter.ai.chat(messages, { model: 'gemini-1.5-pro' });
+    const response = await puter.ai.chat(messages, { model: 'gemini-3-pro-preview' });
 
     let content = "";
     if (typeof response === 'string') {
