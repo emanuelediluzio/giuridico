@@ -12,8 +12,8 @@ import "@fontsource/inter/700.css";
 
 // Import dinamico per ReactQuill per evitare problemi SSR
 // Tentativo di import più esplicito del default
-const ReactQuill = dynamic(() => import('react-quill-new'), { 
-  ssr: false, 
+const ReactQuill = dynamic(() => import('react-quill-new'), {
+  ssr: false,
   loading: () => <p>Caricamento editor...</p> // Aggiungi un fallback di caricamento
 });
 import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di ReactQuill
@@ -21,7 +21,7 @@ import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 const DownloadWordButton = dynamic(() => import('./components/DownloadWordButton'), { ssr: false });
 
-import { estraiTestoNanonetsOCR, parseNanonetsMarkdown, estraiDatiMistral } from './lib/nanonets';
+import { estraiDatiMistral } from './lib/nanonets';
 
 // Interfaccia per i dati del risultato
 interface ResultData {
@@ -86,34 +86,34 @@ export default function Home() {
   useEffect(() => {
     if (result && result.lettera) {
       let rawLetter = result.lettera || "";
-      rawLetter = rawLetter.replace(/\\n/g, "\n"); 
+      rawLetter = rawLetter.replace(/\\n/g, "\n");
 
       let finalLetter = rawLetter;
       const signature = "Avv. Gabriele Scappaticci";
       const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
-      
+
       if (rawLetter.trim().endsWith("convertito")) {
         finalLetter = rawLetter.trim() + " " + standardEnding;
       } else if (rawLetter.includes("Avv. _________________")) {
         finalLetter = rawLetter.replace("Avv. _________________", signature);
       } else if (!rawLetter.trim().endsWith(signature.trim())) {
         if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
-             finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
+          finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
         }
       }
-      
+
       finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^/\]]*non specificat[^/\]]*\] il \[[^/\]]*non specificat[^/\]]*\]\s*,?/gi, "");
-      finalLetter = finalLetter.replace(/\[[^/\]]*non specificat[^/\]]*\]/gi, ""); 
+      finalLetter = finalLetter.replace(/\[[^/\]]*non specificat[^/\]]*\]/gi, "");
       finalLetter = finalLetter.replace(/\[[^/\]]*[Nn]on disponibil[^/\]]*\]/gi, "");
       finalLetter = finalLetter.replace(/\[[^/\]]*[Dd]ato [^/\]]*mancan[^/\]]*\]/gi, "");
       finalLetter = finalLetter.replace(/\s*-\s*il\s*\[Data di nascita non specificata\]/gi, "");
 
       finalLetter = finalLetter.replace(/ ,/g, ",");
       finalLetter = finalLetter.replace(/ \./g, ".");
-      finalLetter = finalLetter.replace(/ {2,}/g, " "); 
-      finalLetter = finalLetter.replace(/\s+\n/g, "\n"); 
-      finalLetter = finalLetter.replace(/\n\s+/g, "\n"); 
-      finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n"); 
+      finalLetter = finalLetter.replace(/ {2,}/g, " ");
+      finalLetter = finalLetter.replace(/\s+\n/g, "\n");
+      finalLetter = finalLetter.replace(/\n\s+/g, "\n");
+      finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n");
       finalLetter = finalLetter.replace(/ \)/g, ")");
       finalLetter = finalLetter.replace(/\( /g, "(");
       finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
@@ -134,19 +134,19 @@ export default function Home() {
       // Estrazione dati con Mistral OCR e analisi percentuale
       const datiContratto = await estraiDatiMistral(contract);
       const datiConteggio = await estraiDatiMistral(statement);
-      
+
       // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
       const nomeCliente = datiContratto.datiEstratti.nomeCliente || datiConteggio.datiEstratti.nomeCliente || '';
       const codiceFiscale = datiContratto.datiEstratti.codiceFiscale || datiConteggio.datiEstratti.codiceFiscale || '';
       const dataNascita = datiContratto.datiEstratti.dataNascita || datiConteggio.datiEstratti.dataNascita || '';
       const luogoNascita = datiContratto.datiEstratti.luogoNascita || datiConteggio.datiEstratti.luogoNascita || '';
       const importoRimborso = datiConteggio.datiEstratti.importo || datiContratto.datiEstratti.importo || '';
-      
+
       // Analisi percentuale (usa il valore più alto tra i due documenti)
-      const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore 
-        ? datiContratto.analisiPercentuale 
+      const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore
+        ? datiContratto.analisiPercentuale
         : datiConteggio.analisiPercentuale;
-      
+
       // Generazione lettera compilata
       const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
       setLetterContent(lettera);
@@ -195,7 +195,7 @@ export default function Home() {
       return (
         <div className="mt-8 p-6 border border-gray-300 rounded-lg shadow-lg bg-white">
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
-          
+
           {/* Sezione dati estratti */}
           {result?.dati && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -212,7 +212,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          
+
           {/* Sezione analisi percentuale */}
           {result?.analisiPercentuale && (
             <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
@@ -223,12 +223,11 @@ export default function Home() {
                     <strong>Percentuale trovata:</strong> {result.analisiPercentuale.valore}%
                   </div>
                   <div className="text-sm text-green-700">
-                    <strong>Stato:</strong> 
-                    <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
-                      result.analisiPercentuale.stato === 'OK' 
-                        ? 'bg-green-100 text-green-800' 
+                    <strong>Stato:</strong>
+                    <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${result.analisiPercentuale.stato === 'OK'
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {result.analisiPercentuale.stato}
                     </span>
                   </div>
@@ -239,20 +238,20 @@ export default function Home() {
               </div>
             </div>
           )}
-          
+
           {isEditing ? (
             <div className="mb-4">
-              <ReactQuill 
-                theme="snow" 
-                value={letterContent} 
-                onChange={setLetterContent} 
+              <ReactQuill
+                theme="snow"
+                value={letterContent}
+                onChange={setLetterContent}
                 modules={{
                   toolbar: [
-                    [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
-                    [{size: []}],
+                    [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
+                    [{ size: [] }],
                     ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-                    [{'list': 'ordered'}, {'list': 'bullet'}, 
-                     {'indent': '-1'}, {'indent': '+1'}],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' },
+                    { 'indent': '-1' }, { 'indent': '+1' }],
                     ['link'],
                     ['clean'],
                     [{ 'align': [] }],
@@ -276,15 +275,15 @@ export default function Home() {
             </pre>
           )}
           <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0 mt-4">
-            <DownloadPDFButton 
-              content={letterContent} 
-              fileName="lettera_diffida.pdf" 
+            <DownloadPDFButton
+              content={letterContent}
+              fileName="lettera_diffida.pdf"
             />
-            <DownloadWordButton 
-              content={letterContent} 
-              fileName="lettera_diffida.docx" 
+            <DownloadWordButton
+              content={letterContent}
+              fileName="lettera_diffida.docx"
             />
-            <button 
+            <button
               onClick={() => setIsEditing(!isEditing)}
               className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-150 ease-in-out shadow-sm"
             >
@@ -300,7 +299,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar currentScreen={mainScreen} onScreenChange={setMainScreen} />
-      
+
       <main className="flex-grow pt-24 pb-8">
         {mainScreen === 'home' && (
           <div className="container-lexa">
@@ -315,7 +314,7 @@ export default function Home() {
                   e rispondere alle tue domande con precisione legale.
                 </p>
                 <div className="flex flex-wrap justify-center gap-4">
-                  <button 
+                  <button
                     onClick={() => setMainScreen('rimborso')}
                     className="btn-primary"
                   >
@@ -323,7 +322,7 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              
+
               {/* Feature Cards */}
               <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-2xl mx-auto">
                 <div className="feature-card">
@@ -332,15 +331,15 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-bold mb-3 text-slate-800">Calcolo Rimborso</h3>
                   <p className="text-slate-600 mb-4">Determina l&apos;importo da restituire in base all&apos;Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
-                  <button 
-                    onClick={() => setMainScreen('rimborso')} 
+                  <button
+                    onClick={() => setMainScreen('rimborso')}
                     className="btn-primary btn-small"
                   >
                     Avvia calcolo
                   </button>
                 </div>
               </div>
-              
+
               {/* Informazioni aggiuntive */}
               <div className="mt-20 text-center">
                 <h2 className="text-2xl font-bold text-slate-800 mb-6">Come funziona Lexa</h2>
@@ -371,7 +370,7 @@ export default function Home() {
             </section>
           </div>
         )}
-        
+
         {mainScreen === 'rimborso' && (
           <div className="container-lexa max-w-4xl animate-fade-in">
             <div className="card-lexa">
@@ -380,50 +379,50 @@ export default function Home() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="contract" className="block text-slate-700 font-medium mb-2">Contratto (PDF)</label>
-                    <input 
-                      type="file" 
-                      id="contract" 
-                      accept="application/pdf" 
-                      onChange={handleFileChange(setContract)} 
+                    <input
+                      type="file"
+                      id="contract"
+                      accept="application/pdf"
+                      onChange={handleFileChange(setContract)}
                       className="input-lexa"
                     />
                     <p className="mt-1 text-sm text-slate-500">Carica il contratto di cessione del quinto in formato PDF.</p>
                   </div>
-                  
+
                   <div>
                     <label htmlFor="statement" className="block text-slate-700 font-medium mb-2">Conteggio Estintivo (PDF)</label>
-                    <input 
-                      type="file" 
-                      id="statement" 
-                      accept="application/pdf" 
-                      onChange={handleFileChange(setStatement)} 
+                    <input
+                      type="file"
+                      id="statement"
+                      accept="application/pdf"
+                      onChange={handleFileChange(setStatement)}
                       className="input-lexa"
                     />
                     <p className="mt-1 text-sm text-slate-500">Carica il conteggio estintivo rilasciato dalla finanziaria in PDF.</p>
                   </div>
-                  
+
                   <div>
                     <label htmlFor="template" className="block text-slate-700 font-medium mb-2">Template Lettera (PDF)</label>
-                    <input 
-                      type="file" 
-                      id="template" 
-                      accept="application/pdf" 
-                      onChange={handleFileChange(setTemplate)} 
+                    <input
+                      type="file"
+                      id="template"
+                      accept="application/pdf"
+                      onChange={handleFileChange(setTemplate)}
                       className="input-lexa"
                     />
                     <p className="mt-1 text-sm text-slate-500">Carica il template per la lettera di richiesta rimborso in PDF.</p>
                   </div>
-                  
+
                   {error && !isLoading && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                       {error}
                     </div>
                   )}
-                  
+
                   <div className="flex justify-center pt-4">
-                    <button 
-                      type="submit" 
-                      disabled={isLoading} 
+                    <button
+                      type="submit"
+                      disabled={isLoading}
                       className="btn-primary w-full"
                     >
                       {isLoading ? (
@@ -444,7 +443,7 @@ export default function Home() {
           </div>
         )}
       </main>
-      
+
       <Footer />
     </div>
   );

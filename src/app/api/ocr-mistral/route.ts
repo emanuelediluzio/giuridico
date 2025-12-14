@@ -1,63 +1,75 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY!;
-const BASE_URL = "https://api.mistral.ai/v1";
+import puter from 'puter';
 
 export async function POST(req: NextRequest) {
   try {
     // 1. Ricevi il file dal form-data
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const threshold = Number(formData.get("threshold")) || 50;
+
     if (!file) return NextResponse.json({ error: "File mancante" }, { status: 400 });
 
-    // 2. OCR con Mistral
-    const ocrResp = await fetch(`${BASE_URL}/vision/ocr`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${MISTRAL_API_KEY}` },
-      body: (() => {
-        const fd = new FormData();
-        fd.append("file", file);
-        return fd;
-      })(),
-    });
-    if (!ocrResp.ok) throw new Error("Errore OCR Mistral");
-    const ocrJson = await ocrResp.json();
-    const ocrText = ocrJson.text || ocrJson.data?.text || "";
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    // 3. Prompt per Mixtral
-    const threshold = Number(formData.get("threshold")) || 50;
-    const prompt = `Estratto dal OCR:\n\"\"\"\n${ocrText}\n\"\"\"\nTrova la prima percentuale nel testo (formato “42%” o “73 percento").\nRestituisci JSON con chiavi:\n  - valore: numero intero\n  - stato: 'OK' se valore >= ${threshold}, altrimenti 'NO'\n`;
+    const prompt = `Analizza questa immagine. Estrai l'intero testo visibile. Poi trova la prima percentuale nel testo (formato "42%" o "73 percento").
+    Restituisci ESCLUSIVAMENTE un oggetto JSON con il seguente formato, senza markdown o altro testo:
+    {
+      "ocrText": "tutto il testo estratto dall'immagine",
+      "result": {
+        "valore": <numero intero trovato o null>,
+        "stato": <"OK" se valore >= ${threshold}, altrimenti "NO">
+      }
+    }`;
 
-    // 4. Chiamata Mixtral
-    const compResp = await fetch(`${BASE_URL}/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${MISTRAL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "mixtral-8x7b",
-        prompt,
-        temperature: 0.0,
-        max_tokens: 64,
-      }),
-    });
-    if (!compResp.ok) throw new Error("Errore completions Mistral");
-    const compJson = await compResp.json();
-    let textResponse = compJson.choices?.[0]?.text?.trim() || "";
-    let result: any = null;
-    try {
-      result = compJson.choices?.[0]?.json;
-    } catch {
-      // fallback: estrai numero con regex
-      const m = textResponse.match(/(\d+)/);
-      const val = m ? parseInt(m[1], 10) : null;
-      const stato = val !== null && val >= threshold ? "OK" : "NO";
-      result = { valore: val, stato };
+    const messages = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: dataUrl } }
+        ]
+      }
+    ];
+
+    const response = await puter.ai.chat(messages, { model: 'gemini-1.5-pro' });
+
+    let content = "";
+    if (typeof response === 'string') {
+      content = response;
+    } else if (typeof response === 'object' && response !== null && 'message' in response) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      content = (response as any).message?.content || "";
+    } else if (Array.isArray(response) && response.length > 0 && 'message' in response[0]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      content = (response as any)[0].message?.content || "";
+    } else {
+      content = JSON.stringify(response);
     }
 
-    return NextResponse.json({ result, ocrText, raw: textResponse });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    // Try to parse JSON from the response
+    // The model might wrap it in ```json ```
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const jsonPart = JSON.parse(jsonMatch[0]);
+        return NextResponse.json(jsonPart);
+      } catch (e) {
+        console.error("Failed to parse JSON from response", e);
+      }
+    }
+
+    // Fallback if not proper JSON
+    return NextResponse.json({
+      ocrText: content,
+      result: { valore: null, stato: "NO" },
+      raw: content
+    });
+
+  } catch (e: unknown) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
-} 
+}

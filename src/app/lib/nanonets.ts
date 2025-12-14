@@ -1,42 +1,24 @@
-import { getDocument } from 'pdfjs-dist';
+// getDocument removed
 
-// Funzione per convertire PDF in immagini PNG (una per pagina)
-async function pdfToImages(file: File): Promise<Blob[]> {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await getDocument({ data: arrayBuffer }).promise;
-  const images: Blob[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const context = canvas.getContext('2d');
-    // @ts-expect-error: pdfjs-dist usa tipi non standard per il rendering su canvas
-    await page.render({ canvasContext: context, viewport }).promise;
-    const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
-    images.push(blob);
-  }
-  return images;
-}
 
 // Funzione OCR con Mistral API (route locale)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function estraiTestoNanonetsOCR(file: File, _hfToken: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('threshold', '50'); // Soglia di default per l'analisi percentuale
-  
+
   // Usa la route API locale OCR Mistral
   const response = await fetch('/api/ocr-mistral', {
     method: 'POST',
     body: formData
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Errore estrazione dati da Mistral OCR: ${response.status} - ${errorText}`);
   }
-  
+
   const result = await response.json();
   if (result && result.ocrText) return result.ocrText;
   return '';
@@ -109,27 +91,27 @@ export async function estraiDatiMistral(file: File): Promise<{
   const formData = new FormData();
   formData.append('file', file);
   formData.append('threshold', '50');
-  
+
   const response = await fetch('/api/ocr-mistral', {
     method: 'POST',
     body: formData
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Errore analisi Mistral: ${response.status} - ${errorText}`);
   }
-  
+
   const result = await response.json();
   const ocrText = result.ocrText || '';
   const analisiPercentuale = result.result || { valore: 0, stato: 'NO' };
-  
+
   // Estrai dati dal testo OCR usando la funzione esistente
   const datiEstratti = parseNanonetsMarkdown(ocrText);
-  
+
   return {
     ocrText,
     analisiPercentuale,
     datiEstratti
   };
-} 
+}
