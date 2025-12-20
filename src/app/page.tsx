@@ -1,391 +1,168 @@
 "use client";
-import React, { useState, ChangeEvent } from 'react';
-import dynamic from 'next/dynamic';
-import 'react-quill-new/dist/quill.snow.css';
+import React from 'react';
+import Link from 'next/link';
 
-// Import dinamico per ReactQuill, DownloadButton
-const ReactQuill = dynamic(() => import('react-quill-new'), {
-  ssr: false,
-  loading: () => <p className="text-gray-500 font-mono text-xs">LOADING EDITOR...</p>
-});
-const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
-const DownloadWordButton = dynamic(() => import('./components/DownloadWordButton'), { ssr: false });
-
-import { estraiDatiMistral } from './lib/nanonets';
-
-// --- ICONS (Lucas Icons style - minimal SVG) ---
-const IconPlus = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+// --- ICONS ---
+const IconTerminal = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="4 17 10 11 4 5"></polyline>
+    <line x1="12" y1="19" x2="20" y2="19"></line>
   </svg>
 );
 
-const IconFile = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-    <polyline points="13 2 13 9 20 9"></polyline>
+const IconCpu = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+    <rect x="9" y="9" width="6" height="6"></rect>
+    <line x1="9" y1="1" x2="9" y2="4"></line>
+    <line x1="15" y1="1" x2="15" y2="4"></line>
+    <line x1="9" y1="20" x2="9" y2="23"></line>
+    <line x1="15" y1="20" x2="15" y2="23"></line>
+    <line x1="20" y1="9" x2="23" y2="9"></line>
+    <line x1="20" y1="14" x2="23" y2="14"></line>
+    <line x1="1" y1="9" x2="4" y2="9"></line>
+    <line x1="1" y1="14" x2="4" y2="14"></line>
   </svg>
 );
 
-const IconTrash = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+const IconFileText = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+    <polyline points="10 9 9 9 8 9"></polyline>
   </svg>
 );
 
-interface ResultData {
-  lettera?: string;
-  dati?: {
-    nomeCliente: string;
-    codiceFiscale: string;
-    dataNascita: string;
-    luogoNascita: string;
-    importoRimborso: string;
-    rateResidue: number;
-    durataTotale: number;
-    costiTotali: number;
-  };
-  analisiPercentuale?: {
-    valore: number;
-    stato: string;
-  };
-}
-
-import { useRouter } from 'next/navigation';
-
-export default function Home() {
-  const router = useRouter();
-  // State
-  const [contract, setContract] = useState<File | null>(null);
-  const [statement, setStatement] = useState<File | null>(null);
-  const [template, setTemplate] = useState<File | null>(null);
-  const [result, setResult] = useState<ResultData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [letterContent, setLetterContent] = useState<string>('');
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-
-  // Mock History
-  const [history, setHistory] = useState([
-    { id: 1, name: 'contract_rossi.pdf', date: '2023-10-24' },
-    { id: 2, name: 'prospetto_verdi.pdf', date: '2023-10-22' },
-    { id: 3, name: 'diffida_bianchi_v2.docx', date: '2023-10-20' },
-  ]);
-
-  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type !== 'application/pdf') {
-        setError('SOLO PDF ALLOWED');
-        return;
-      }
-      setter(file);
-      setError(null);
-    }
-  };
-
-  const removeFile = (setter: React.Dispatch<React.SetStateAction<File | null>>) => {
-    setter(null);
-  };
-
-  const handleSubmit = async () => {
-    if (!contract || !statement || !template) {
-      setError("UPLOAD ALL REQUIRED DOCUMENTS");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Estrazione dati con Mistral OCR e analisi percentuale
-      const datiContratto = await estraiDatiMistral(contract);
-      const datiConteggio = await estraiDatiMistral(statement);
-
-      // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
-      const nomeCliente = datiContratto.datiEstratti.nomeCliente || datiConteggio.datiEstratti.nomeCliente || '';
-      const codiceFiscale = datiContratto.datiEstratti.codiceFiscale || datiConteggio.datiEstratti.codiceFiscale || '';
-      const dataNascita = datiContratto.datiEstratti.dataNascita || datiConteggio.datiEstratti.dataNascita || '';
-      const luogoNascita = datiContratto.datiEstratti.luogoNascita || datiConteggio.datiEstratti.luogoNascita || '';
-      const importoRimborso = datiConteggio.datiEstratti.importo || datiContratto.datiEstratti.importo || '';
-
-      // Analisi percentuale (usa il valore più alto tra i due documenti)
-      const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore
-        ? datiContratto.analisiPercentuale
-        : datiConteggio.analisiPercentuale;
-
-      // Generazione lettera compilata
-      const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
-
-      setLetterContent(lettera);
-      setResult({
-        lettera,
-        dati: {
-          nomeCliente,
-          codiceFiscale,
-          dataNascita,
-          luogoNascita,
-          importoRimborso: importoRimborso || '0,00 €',
-          rateResidue: 0,
-          durataTotale: 0,
-          costiTotali: 0
-        },
-        analisiPercentuale
-      });
-      setIsEditing(true);
-      // Add to history
-      setHistory(prev => [{ id: Date.now(), name: `extraction_${Date.now()}.pdf`, date: new Date().toISOString().split('T')[0] }, ...prev]);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "UNKNOWN ERROR OCCURRED");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+export default function LandingPage() {
   return (
-    <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-[#111] text-white font-mono selection:bg-emerald-500 selection:text-white">
 
-      {/* SIDEBAR - HISTORY */}
-      <aside className="w-[300px] border-r border-[#333] flex flex-col shrink-0">
-        <div className="h-14 flex items-center px-4 border-b border-[#333]">
-          <span className="font-mono text-xs text-emerald-500 uppercase tracking-widest">History Log</span>
+      {/* HEADER */}
+      <header className="fixed top-0 w-full z-50 bg-[#111]/80 backdrop-blur-md border-b border-[#333]">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-500 font-bold tracking-tighter text-xl">LEXA</span>
+            <span className="text-[10px] uppercase tracking-widest text-gray-500 border border-[#333] px-2 py-0.5 rounded-full">v2.0 Beta</span>
+          </div>
+          <Link href="/login" className="btn-secondary hover:text-emerald-400 hover:border-emerald-500 transition-all text-xs">
+            System Access
+          </Link>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {history.map((item) => (
-            <div key={item.id} className="group flex items-center justify-between p-2 rounded-sm hover:bg-[#222] cursor-pointer transition-colors">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <IconFile />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium truncate text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
-                  <span className="text-[10px] text-gray-600 font-mono">{item.date}</span>
-                </div>
+      </header>
+
+      {/* HERO SECTION */}
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
+        {/* Background Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#3333331a_1px,transparent_1px),linear-gradient(to_bottom,#3333331a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-2 text-emerald-500 bg-emerald-900/10 border border-emerald-900/30 px-3 py-1 rounded-full mb-6">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+            <span className="text-[10px] uppercase tracking-widest">Neural Engine Online</span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500">
+            ADVANCED LEGAL <br />
+            <span className="text-white">EXTRACTION & ANALYSIS</span>
+          </h1>
+
+          <p className="max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-10">
+            Automate document processing with Gemini 1.5 Flash. Extract entities, calculate refunds, and generate legal drafts in milliseconds with banking-grade precision.
+          </p>
+
+          <Link href="/login" className="btn-primary text-base px-8 py-4 inline-flex items-center gap-3 group">
+            <span>Initiate Sequence</span>
+            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </Link>
+        </div>
+      </section>
+
+      {/* FEATURES GRID */}
+      <section className="py-20 px-6 border-t border-[#333] bg-[#0c0c0c]">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            {/* Feature 1 */}
+            <div className="p-8 border border-[#333] bg-[#111] hover:border-emerald-500/50 transition-colors group">
+              <div className="w-12 h-12 bg-[#1a1a1a] flex items-center justify-center rounded-sm mb-6 border border-[#333] group-hover:border-emerald-500/30">
+                <IconTerminal />
               </div>
+              <h3 className="text-lg font-bold mb-3 text-white">OCR Extraction</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Parse scanned PDFs and images using advanced computer vision. Identifies contracts and financial statements with 99% accuracy.
+              </p>
             </div>
-          ))}
-        </div>
-        <div className="p-4 border-t border-[#333]">
-          <div className="text-[10px] text-gray-600 font-mono text-center uppercase tracking-widest">
-            Lexa v2.0 - Stable
+
+            {/* Feature 2 */}
+            <div className="p-8 border border-[#333] bg-[#111] hover:border-emerald-500/50 transition-colors group">
+              <div className="w-12 h-12 bg-[#1a1a1a] flex items-center justify-center rounded-sm mb-6 border border-[#333] group-hover:border-emerald-500/30">
+                <IconCpu />
+              </div>
+              <h3 className="text-lg font-bold mb-3 text-white">Math Analysis</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Automatically calculates refund amounts and residual rates based on the extracted financial data.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="p-8 border border-[#333] bg-[#111] hover:border-emerald-500/50 transition-colors group">
+              <div className="w-12 h-12 bg-[#1a1a1a] flex items-center justify-center rounded-sm mb-6 border border-[#333] group-hover:border-emerald-500/30">
+                <IconFileText />
+              </div>
+              <h3 className="text-lg font-bold mb-3 text-white">Legal Drafting</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Generates formal demand letters (&quot;Diffida&quot;) following standard legal templates, ready for download in PDF or Word.
+              </p>
+            </div>
+
           </div>
         </div>
-      </aside>
+      </section>
 
-      {/* MAIN CONTENT Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      {/* TERMINAL EXAMPLE */}
+      <section className="py-20 px-6 border-t border-[#333]">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-[#050505] border border-[#333] rounded-sm p-4 font-mono text-xs md:text-sm overflow-hidden shadow-2xl">
+            <div className="flex items-center gap-2 mb-4 border-b border-[#333] pb-4">
+              <div className="flex gap-1.5Hook">
+                <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+              </div>
+              <span className="text-gray-500 ml-2">lexa_cli — -zsh — 80x24</span>
+            </div>
 
-        {/* HEADER */}
-        <header className="h-14 border-b border-[#333] flex items-center justify-between px-6 bg-[#111]">
-          <div className="flex items-center gap-2 font-mono text-sm">
-            <span className="text-emerald-500 font-bold tracking-widest">LEXA</span>
-            <span className="text-gray-600">/</span>
-            <span className="text-gray-400">workspace</span>
-            {contract && (
-              <>
-                <span className="text-gray-600">/</span>
-                <span className="text-white">{contract.name}</span>
-              </>
-            )}
-          </div>
-          <div>
-            <button
-              onClick={() => router.push('/login')}
-              className="text-xs font-mono text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors"
-            >
-              Disconnect
-            </button>
-          </div>
-        </header>
+            <div className="space-y-2">
+              <p className="text-emerald-500">➜  ~ <span className="text-white">lexa analyze --input contract_001.pdf</span></p>
+              <p className="text-gray-400">[info] Initializing Neural Engine...</p>
+              <p className="text-gray-400">[info] Uploading to secure enclave...</p>
+              <p className="text-gray-400">[processing] OCR Extraction: 100%</p>
+              <p className="text-gray-400">[processing] Context Analysis: 100%</p>
+              <p className="text-emerald-500 mt-4 success-blink">✔ ANALYSIS COMPLETE</p>
 
-        {/* WORKSPACE - SPLIT PANE */}
-        <div className="flex-1 flex overflow-hidden">
-
-          {/* LEFT PANE - SOURCE / INPUT */}
-          <section className="flex-1 border-r border-[#333] flex flex-col min-w-[400px]">
-            <div className="p-6 flex flex-col h-full overflow-y-auto">
-
-              <div className="mb-8">
-                <span className="mono-label">Source Documents</span>
-
-                <div className="grid gap-4">
-                  {/* Contract Input */}
-                  <div className="relative group">
-                    {!contract ? (
-                      <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <IconPlus />
-                          <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Contract</p>
-                        </div>
-                        <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setContract)} />
-                      </label>
-                    ) : (
-                      <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
-                        <div className="flex items-center gap-3">
-                          <IconFile />
-                          <span className="text-sm font-mono text-gray-300">{contract.name}</span>
-                        </div>
-                        <button onClick={() => removeFile(setContract)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Statement Input */}
-                  <div className="relative group">
-                    {!statement ? (
-                      <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <IconPlus />
-                          <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Statement</p>
-                        </div>
-                        <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setStatement)} />
-                      </label>
-                    ) : (
-                      <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
-                        <div className="flex items-center gap-3">
-                          <IconFile />
-                          <span className="text-sm font-mono text-gray-300">{statement.name}</span>
-                        </div>
-                        <button onClick={() => removeFile(setStatement)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Template Input */}
-                  <div className="relative group">
-                    {!template ? (
-                      <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <IconPlus />
-                          <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Template</p>
-                        </div>
-                        <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setTemplate)} />
-                      </label>
-                    ) : (
-                      <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
-                        <div className="flex items-center gap-3">
-                          <IconFile />
-                          <span className="text-sm font-mono text-gray-300">{template.name}</span>
-                        </div>
-                        <button onClick={() => removeFile(setTemplate)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="pl-4 border-l-2 border-[#333] my-4 text-gray-300">
+                <p>Client: <span className="text-white">ROSSI MARIO</span></p>
+                <p>DOB: <span className="text-white">12/05/1980</span></p>
+                <p>Amount: <span className="text-emerald-400">€ 12.450,00</span></p>
+                <p>Confidence: <span className="text-emerald-400">98.5%</span></p>
               </div>
 
-              {error && (
-                <div className="mb-6 p-3 border border-rose-900/50 bg-rose-500/10 text-rose-500 text-xs font-mono uppercase tracking-wide">
-                  Error: {error}
-                </div>
-              )}
-
-              <div className="mt-auto pt-6 border-t border-[#333]">
-                <button
-                  onClick={handleSubmit}
-                  disabled={isLoading}
-                  className={`w-full btn-primary ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
-                >
-                  {isLoading ? 'PROCESSING DATA...' : 'RUN EXTRACTION'}
-                </button>
-              </div>
-
+              <p className="text-emerald-500">➜  ~ <span className="text-white animate-pulse">_</span></p>
             </div>
-          </section>
-
-          {/* RIGHT PANE - OUTPUT */}
-          <section className="flex-[1.5] bg-[#0c0c0c] flex flex-col min-w-[500px]">
-            <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#111]">
-              <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">Output / Editor</span>
-              {result?.analisiPercentuale && (
-                <span className={`font-mono text-xs px-2 py-0.5 ${result.analisiPercentuale.stato === 'OK' ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
-                  AI SCORE: {result.analisiPercentuale.valore}% [{result.analisiPercentuale.stato}]
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center relative">
-              {!result && !isLoading && (
-                <div className="text-center opacity-30">
-                  <div className="w-16 h-16 border rounded-full border-gray-600 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-mono">?</span>
-                  </div>
-                  <p className="font-mono text-sm uppercase tracking-widest">Waiting for input</p>
-                </div>
-              )}
-
-              {isLoading && (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="font-mono text-xs text-emerald-500 animate-pulse uppercase tracking-widest">Analyzing Documents via Gemini Flash...</p>
-                </div>
-              )}
-
-              {result && !isLoading && (
-                <div className="w-full h-full flex flex-col animate-fade-in">
-
-                  {/* METADATA GRID */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 w-full border-b border-[#333] pb-8">
-                    <div>
-                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Cliente</span>
-                      <span className="text-sm font-mono text-white">{result.dati?.nomeCliente || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Codice Fiscale</span>
-                      <span className="text-sm font-mono text-white">{result.dati?.codiceFiscale || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Importo</span>
-                      <span className="text-sm font-mono text-emerald-400">{result.dati?.importoRimborso || '0.00'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Data Nascita</span>
-                      <span className="text-sm font-mono text-white">{result.dati?.dataNascita || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  {/* EDITOR */}
-                  <div className="flex-1 bg-white text-black rounded-sm overflow-hidden flex flex-col relative">
-                    {isEditing ? (
-                      <ReactQuill
-                        theme="snow"
-                        value={letterContent}
-                        onChange={setLetterContent}
-                        className="h-full"
-                        modules={{
-                          toolbar: [
-                            [{ 'header': [1, 2, false] }],
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                            ['clean']
-                          ],
-                        }}
-                      />
-                    ) : (
-                      <div className="p-8 whitespace-pre-wrap font-serif text-sm leading-relaxed overflow-y-auto h-full">
-                        {letterContent}
-                      </div>
-                    )}
-
-                    {/* Floating Toggle Edit */}
-                    <button
-                      onClick={() => setIsEditing(!isEditing)}
-                      className="absolute bottom-4 right-4 bg-black text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors z-10"
-                      title="Toggle Edit"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                  </div>
-
-                  {/* ACTIONS */}
-                  <div className="mt-4 flex gap-3 justify-end">
-                    <DownloadPDFButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.pdf`} />
-                    <DownloadWordButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.docx`} />
-                  </div>
-
-                </div>
-              )}
-            </div>
-          </section>
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="py-12 px-6 border-t border-[#333] bg-[#0c0c0c] text-center">
+        <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">
+          © 2024 Lexa Systems. All rights reserved. <br />
+          Engineered by Legal Tech Division.
+        </p>
+      </footer>
+
     </div>
   );
 }

@@ -14,7 +14,7 @@ export default function LoginPage() {
 
         // Simulate auth delay
         setTimeout(() => {
-            router.push('/');
+            router.push('/dashboard');
         }, 1500);
     };
 
