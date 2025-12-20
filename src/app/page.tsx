@@ -51,7 +51,10 @@ interface ResultData {
   };
 }
 
+import { useRouter } from 'next/navigation';
+
 export default function Home() {
+  const router = useRouter();
   // State
   const [contract, setContract] = useState<File | null>(null);
   const [statement, setStatement] = useState<File | null>(null);
@@ -183,7 +186,10 @@ export default function Home() {
             )}
           </div>
           <div>
-            <button className="text-xs font-mono text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors">
+            <button
+              onClick={() => router.push('/login')}
+              className="text-xs font-mono text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors"
+            >
               Disconnect
             </button>
           </div>
