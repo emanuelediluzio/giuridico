@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Formato messaggi non valido' }, { status: 400 });
     }
 
-    const response = await puter.ai.chat(messages, { model: 'gemini-1.5-flash' });
+    const response = await puter.ai.chat(messages, { model: 'gemini-2.0-flash-exp' });
 
     return NextResponse.json(response);
   } catch (e: unknown) {

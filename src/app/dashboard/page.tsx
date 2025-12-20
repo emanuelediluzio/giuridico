@@ -3,6 +3,8 @@ import React, { useState, ChangeEvent } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import 'react-quill-new/dist/quill.snow.css';
+import RegulatoryFeed from '../components/RegulatoryFeed';
+import { PERSONAS, PersonaConfig } from '@/types/lexa';
 
 // Import dinamico per ReactQuill e Button 
 // NOTA: I path sono aggiornati per essere relativi a src/app/dashboard (quindi ../components)
@@ -64,6 +66,7 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [letterContent, setLetterContent] = useState<string>('');
     const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [selectedPersona, setSelectedPersona] = useState<PersonaConfig>(PERSONAS[0]);
 
     // Mock History
     const [history, setHistory] = useState([
@@ -162,9 +165,10 @@ export default function DashboardPage() {
                         </div>
                     ))}
                 </div>
+                <RegulatoryFeed />
                 <div className="p-4 border-t border-[#333]">
                     <div className="text-[10px] text-gray-600 font-mono text-center uppercase tracking-widest">
-                        Lexa v2.0 - Stable
+                        Lexa v2.1 - {selectedPersona.name}
                     </div>
                 </div>
             </aside>
@@ -185,7 +189,21 @@ export default function DashboardPage() {
                             </>
                         )}
                     </div>
-                    <div>
+
+                    <div className="flex items-center gap-4">
+                        <select
+                            value={selectedPersona.id}
+                            onChange={(e) => {
+                                const p = PERSONAS.find(p => p.id === e.target.value);
+                                if (p) setSelectedPersona(p);
+                            }}
+                            className="bg-[#1a1a1a] border border-[#333] text-xs text-gray-300 rounded px-2 py-1 focus:outline-none focus:border-emerald-500 font-mono"
+                        >
+                            {PERSONAS.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+
                         <button
                             onClick={() => router.push('/login')}
                             className="text-xs font-mono text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors"
