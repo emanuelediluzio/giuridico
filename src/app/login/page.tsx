@@ -1,21 +1,38 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 export default function LoginPage() {
     const router = useRouter();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleGoogleLogin = async () => {
         setIsLoading(true);
+        setError(null);
+        const provider = new GoogleAuthProvider();
 
-        // Simulate auth delay
-        setTimeout(() => {
+        if (!auth) {
+            setError("Firebase init failed");
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            await signInWithPopup(auth, provider);
+            // Successful login
             router.push('/dashboard');
-        }, 1500);
+        } catch (err: unknown) {
+            console.error("Login Error:", err);
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError("Authentication Failed");
+            }
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -48,59 +65,48 @@ export default function LoginPage() {
                     <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-emerald-500"></div>
                     <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-emerald-500"></div>
 
-                    <form onSubmit={handleLogin} className="space-y-6">
+                    <div className="space-y-6">
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest text-gray-400 block">Identity / Email</label>
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-[#111] border border-[#333] text-white p-3 text-sm focus:outline-none focus:border-emerald-500 focus:bg-[#151515] transition-all placeholder:text-gray-700"
-                                placeholder="USR-7734"
-                            />
+                        <div className="text-center mb-6">
+                            <p className="text-xs text-gray-400">Authenticate with verified credentials to access the workspace.</p>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest text-gray-400 block">Passcode</label>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-[#111] border border-[#333] text-white p-3 text-sm focus:outline-none focus:border-emerald-500 focus:bg-[#151515] transition-all placeholder:text-gray-700"
-                                placeholder="••••••••"
-                            />
-                        </div>
+                        {error && (
+                            <div className="p-3 bg-red-900/20 border border-red-500 text-red-500 text-xs text-center mb-4">
+                                ERROR: {error}
+                            </div>
+                        )}
 
                         <button
-                            type="submit"
+                            onClick={handleGoogleLogin}
                             disabled={isLoading}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold uppercase tracking-widest py-3 text-xs transition-colors relative overflow-hidden group"
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold uppercase tracking-widest py-4 text-xs transition-colors relative overflow-hidden group flex items-center justify-center gap-3"
                         >
                             {isLoading ? (
-                                <span className="flex items-center justify-center gap-2">
+                                <>
                                     <span className="w-2 h-2 bg-black rounded-full animate-bounce"></span>
-                                    AUTHENTICATING...
-                                </span>
+                                    CONNECTING...
+                                </>
                             ) : (
-                                <span className="relative z-10 group-hover:tracking-[0.2em] transition-all duration-300">Initialize Session</span>
+                                <>
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.053-1.133 8.16-3.293 2.133-2.133 2.907-5.133 2.907-8.16 0-.64-.067-1.453-.16-2.16H12.48z"></path></svg>
+                                    <span className="relative z-10">Initial Session via Google Identity</span>
+                                </>
                             )}
                         </button>
 
-                    </form>
+                    </div>
 
                     <div className="mt-8 pt-6 border-t border-[#222] flex justify-between items-center text-[10px] text-gray-600 uppercase tracking-wider">
                         <span>Secure Connection</span>
-                        <span>v2.0.4</span>
+                        <span>v2.1.0</span>
                     </div>
 
                 </div>
 
                 <div className="mt-8 text-center text-[10px] text-gray-700 font-mono">
                     <p className="tracking-widest">UNAUTHORIZED ACCESS IS PROHIBITED</p>
-                    <p className="opacity-50 mt-1">IP: 127.0.0.1 :: LOCALHOST</p>
+                    <p className="opacity-50 mt-1">IP: ::1 LOCALHOST</p>
                 </div>
 
             </div>

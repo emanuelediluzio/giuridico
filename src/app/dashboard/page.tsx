@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import 'react-quill-new/dist/quill.snow.css';
 import RegulatoryFeed from '../components/RegulatoryFeed';
 import { PERSONAS, PersonaConfig } from '@/types/lexa';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { saveUserHistory, getUserHistory, HistoryItem } from '@/lib/firestore';
 
 // Import dinamico per ReactQuill e Button 
 // NOTA: I path sono aggiornati per essere relativi a src/app/dashboard (quindi ../components)
@@ -67,13 +70,27 @@ export default function DashboardPage() {
     const [letterContent, setLetterContent] = useState<string>('');
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [selectedPersona, setSelectedPersona] = useState<PersonaConfig>(PERSONAS[0]);
+    const [user, setUser] = useState<User | null>(null);
 
-    // Mock History
-    const [history, setHistory] = useState([
-        { id: 1, name: 'contract_rossi.pdf', date: '2023-10-24' },
-        { id: 2, name: 'prospetto_verdi.pdf', date: '2023-10-22' },
-        { id: 3, name: 'diffida_bianchi_v2.docx', date: '2023-10-20' },
-    ]);
+    // History state
+    const [history, setHistory] = useState<HistoryItem[]>([]);
+
+    // Auth & History Effect
+    React.useEffect(() => {
+        if (!auth) return;
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+                // Load history
+                const userHistory = await getUserHistory(currentUser.uid);
+                setHistory(userHistory);
+            } else {
+                // Redirect if not logged in
+                router.push('/login');
+            }
+        });
+        return () => unsubscribe();
+    }, [router]);
 
     const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -134,8 +151,18 @@ export default function DashboardPage() {
                 analisiPercentuale
             });
             setIsEditing(true);
-            // Add to history
-            setHistory(prev => [{ id: Date.now(), name: `extraction_${Date.now()}.pdf`, date: new Date().toISOString().split('T')[0] }, ...prev]);
+
+            // Save to Firebase
+            if (user) {
+                const docName = `extraction_${Date.now()}.pdf`;
+                await saveUserHistory(user.uid, docName, {
+                    analysis: analisiPercentuale,
+                    letter: lettera.substring(0, 100) + "..."
+                });
+                // Refresh local history
+                const updatedHistory = await getUserHistory(user.uid);
+                setHistory(updatedHistory);
+            }
 
         } catch (err) {
             setError(err instanceof Error ? err.message : "UNKNOWN ERROR OCCURRED");
