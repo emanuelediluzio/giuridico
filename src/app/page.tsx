@@ -1,33 +1,40 @@
 "use client";
-import React, { useState, ChangeEvent, useEffect } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import dynamic from 'next/dynamic';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/700.css";
-// Fontsource Montserrat rimosso per problemi di build - utilizziamo Google Fonts tramite globals.css
+import 'react-quill-new/dist/quill.snow.css';
 
-// import CalculatorIcon from '@/assets/icons/calculator.svg?react';
-// import ChatBubbleIcon from '@/assets/icons/chat-bubble.svg?react';
-
-// Import dinamico per ReactQuill per evitare problemi SSR
-// Tentativo di import più esplicito del default
+// Import dinamico per ReactQuill, DownloadButton
 const ReactQuill = dynamic(() => import('react-quill-new'), {
   ssr: false,
-  loading: () => <p>Caricamento editor...</p> // Aggiungi un fallback di caricamento
+  loading: () => <p className="text-gray-500 font-mono text-xs">LOADING EDITOR...</p>
 });
-import 'react-quill-new/dist/quill.snow.css'; // Importa CSS per il tema snow di ReactQuill
-
 const DownloadPDFButton = dynamic(() => import('./components/DownloadPDFButton'), { ssr: false });
 const DownloadWordButton = dynamic(() => import('./components/DownloadWordButton'), { ssr: false });
 
 import { estraiDatiMistral } from './lib/nanonets';
 
-// Interfaccia per i dati del risultato
+// --- ICONS (Lucas Icons style - minimal SVG) ---
+const IconPlus = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconFile = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+    <polyline points="13 2 13 9 20 9"></polyline>
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  </svg>
+);
+
 interface ResultData {
-  lettera?: string; // Modificato da letter
-  calcoli?: string; // Mantenuto per ora nella struttura dati, ma non visualizzato
-  // Campi rimossi: rimborso, quotaNonGoduta, totaleCosti, durataTotale, durataResidua, storno, dettaglioCosti, nomeCliente, dataChiusura, message, pdfProcessingDisabled
+  lettera?: string;
   dati?: {
     nomeCliente: string;
     codiceFiscale: string;
@@ -44,88 +51,43 @@ interface ResultData {
   };
 }
 
-// Funzione per estrarre dati da MinerU-API Hugging Face
-// async function estraiDatiConMinerU(pdfFile: File) {
-//   const formData = new FormData();
-//   formData.append('file', pdfFile);
-//   const response = await fetch('https://vasilee-mineru-api.hf.space/file-upload', {
-//     method: 'POST',
-//     body: formData
-//   });
-//   if (!response.ok) throw new Error('Errore estrazione dati da MinerU-API');
-//   return await response.json();
-// }
-
 export default function Home() {
+  // State
   const [contract, setContract] = useState<File | null>(null);
   const [statement, setStatement] = useState<File | null>(null);
   const [template, setTemplate] = useState<File | null>(null);
   const [result, setResult] = useState<ResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [mainScreen, setMainScreen] = useState<'home' | 'rimborso' | 'chat-ai'>("home");
   const [letterContent, setLetterContent] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
+
+  // Mock History
+  const [history, setHistory] = useState([
+    { id: 1, name: 'contract_rossi.pdf', date: '2023-10-24' },
+    { id: 2, name: 'prospetto_verdi.pdf', date: '2023-10-22' },
+    { id: 3, name: 'diffida_bianchi_v2.docx', date: '2023-10-20' },
+  ]);
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Accetta solo PDF
       if (file.type !== 'application/pdf') {
-        setError('Carica solo file PDF');
+        setError('SOLO PDF ALLOWED');
         return;
       }
       setter(file);
       setError(null);
-      setResult(null);
-      setLetterContent('');
-      setIsEditing(false);
     }
   };
 
-  useEffect(() => {
-    if (result && result.lettera) {
-      let rawLetter = result.lettera || "";
-      rawLetter = rawLetter.replace(/\\n/g, "\n");
+  const removeFile = (setter: React.Dispatch<React.SetStateAction<File | null>>) => {
+    setter(null);
+  };
 
-      let finalLetter = rawLetter;
-      const signature = "Avv. Gabriele Scappaticci";
-      const standardEnding = "in legge, con modificazioni, dalla Legge 10 novembre 2014, n. 162.\n\nDistinti saluti,\n" + signature;
-
-      if (rawLetter.trim().endsWith("convertito")) {
-        finalLetter = rawLetter.trim() + " " + standardEnding;
-      } else if (rawLetter.includes("Avv. _________________")) {
-        finalLetter = rawLetter.replace("Avv. _________________", signature);
-      } else if (!rawLetter.trim().endsWith(signature.trim())) {
-        if (!rawLetter.match(/Distinti saluti,\nAvv\./)) {
-          finalLetter = rawLetter.trim() + "\n\nDistinti saluti,\n" + signature;
-        }
-      }
-
-      finalLetter = finalLetter.replace(/\s*,?\s*nato a \[[^/\]]*non specificat[^/\]]*\] il \[[^/\]]*non specificat[^/\]]*\]\s*,?/gi, "");
-      finalLetter = finalLetter.replace(/\[[^/\]]*non specificat[^/\]]*\]/gi, "");
-      finalLetter = finalLetter.replace(/\[[^/\]]*[Nn]on disponibil[^/\]]*\]/gi, "");
-      finalLetter = finalLetter.replace(/\[[^/\]]*[Dd]ato [^/\]]*mancan[^/\]]*\]/gi, "");
-      finalLetter = finalLetter.replace(/\s*-\s*il\s*\[Data di nascita non specificata\]/gi, "");
-
-      finalLetter = finalLetter.replace(/ ,/g, ",");
-      finalLetter = finalLetter.replace(/ \./g, ".");
-      finalLetter = finalLetter.replace(/ {2,}/g, " ");
-      finalLetter = finalLetter.replace(/\s+\n/g, "\n");
-      finalLetter = finalLetter.replace(/\n\s+/g, "\n");
-      finalLetter = finalLetter.replace(/\n{3,}/g, "\n\n");
-      finalLetter = finalLetter.replace(/ \)/g, ")");
-      finalLetter = finalLetter.replace(/\( /g, "(");
-      finalLetter = finalLetter.replace(/Sig\.\s+LORIA\s+MASSIMO/gi, "Sig. Massimo Loria");
-      finalLetter = finalLetter.replace(/rappresentar Vi/g, "rappresentarVi");
-      setLetterContent(finalLetter.trim());
-    }
-  }, [result]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!contract || !statement || !template) {
-      setError("Per favore carica tutti i PDF richiesti");
+      setError("UPLOAD ALL REQUIRED DOCUMENTS");
       return;
     }
     setIsLoading(true);
@@ -149,6 +111,7 @@ export default function Home() {
 
       // Generazione lettera compilata
       const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
+
       setLetterContent(lettera);
       setResult({
         lettera,
@@ -165,286 +128,258 @@ export default function Home() {
         analisiPercentuale
       });
       setIsEditing(true);
+      // Add to history
+      setHistory(prev => [{ id: Date.now(), name: `extraction_${Date.now()}.pdf`, date: new Date().toISOString().split('T')[0] }, ...prev]);
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore sconosciuto durante l'elaborazione");
+      setError(err instanceof Error ? err.message : "UNKNOWN ERROR OCCURRED");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderLoadingOrResult = () => {
-    if (isLoading) {
-      return (
-        <div className="mt-6 p-4 border border-blue-300 rounded-lg bg-blue-50">
-          <p className="text-blue-700 font-semibold">Caricamento in corso...</p>
-          <p className="text-blue-600 text-sm">OCR e analisi percentuale con Mistral AI...</p>
+  return (
+    <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white">
+
+      {/* SIDEBAR - HISTORY */}
+      <aside className="w-[300px] border-r border-[#333] flex flex-col shrink-0">
+        <div className="h-14 flex items-center px-4 border-b border-[#333]">
+          <span className="font-mono text-xs text-emerald-500 uppercase tracking-widest">History Log</span>
         </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="mt-6 p-4 border border-red-300 rounded-lg bg-red-50">
-          <p className="text-red-700 font-semibold">Errore:</p>
-          <pre className="text-red-600 text-sm whitespace-pre-wrap">{error}</pre>
-        </div>
-      );
-    }
-
-    if (letterContent) { // Mostra solo se abbiamo letterContent
-      return (
-        <div className="mt-8 p-6 border border-gray-300 rounded-lg shadow-lg bg-white">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">Lettera di Diffida Proposta</h3>
-
-          {/* Sezione dati estratti */}
-          {result?.dati && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="text-lg font-semibold text-blue-800 mb-3">Dati Estratti dai PDF</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div><strong>Nome Cliente:</strong> {result.dati.nomeCliente || 'Non trovato'}</div>
-                <div><strong>Codice Fiscale:</strong> {result.dati.codiceFiscale || 'Non trovato'}</div>
-                <div><strong>Data Nascita:</strong> {result.dati.dataNascita || 'Non trovata'}</div>
-                <div><strong>Luogo Nascita:</strong> {result.dati.luogoNascita || 'Non trovato'}</div>
-                <div><strong>Importo Rimborso:</strong> {result.dati.importoRimborso || '0,00 €'}</div>
-                <div><strong>Rate Residue:</strong> {result.dati.rateResidue || 0}</div>
-                <div><strong>Durata Totale:</strong> {result.dati.durataTotale || 0} mesi</div>
-                <div><strong>Costi Totali:</strong> {result.dati.costiTotali || 0} €</div>
-              </div>
-            </div>
-          )}
-
-          {/* Sezione analisi percentuale */}
-          {result?.analisiPercentuale && (
-            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-              <h4 className="text-lg font-semibold text-green-800 mb-3">Analisi Percentuale AI</h4>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className="text-sm text-green-700">
-                    <strong>Percentuale trovata:</strong> {result.analisiPercentuale.valore}%
-                  </div>
-                  <div className="text-sm text-green-700">
-                    <strong>Stato:</strong>
-                    <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${result.analisiPercentuale.stato === 'OK'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}>
-                      {result.analisiPercentuale.stato}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-green-600">
-                  {result.analisiPercentuale.valore}%
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {history.map((item) => (
+            <div key={item.id} className="group flex items-center justify-between p-2 rounded-sm hover:bg-[#222] cursor-pointer transition-colors">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <IconFile />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium truncate text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
+                  <span className="text-[10px] text-gray-600 font-mono">{item.date}</span>
                 </div>
               </div>
             </div>
-          )}
+          ))}
+        </div>
+        <div className="p-4 border-t border-[#333]">
+          <div className="text-[10px] text-gray-600 font-mono text-center uppercase tracking-widest">
+            Lexa v2.0 - Stable
+          </div>
+        </div>
+      </aside>
 
-          {isEditing ? (
-            <div className="mb-4">
-              <ReactQuill
-                theme="snow"
-                value={letterContent}
-                onChange={setLetterContent}
-                modules={{
-                  toolbar: [
-                    [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
-                    [{ size: [] }],
-                    ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' },
-                    { 'indent': '-1' }, { 'indent': '+1' }],
-                    ['link'],
-                    ['clean'],
-                    [{ 'align': [] }],
-                    [{ 'color': [] }, { 'background': [] }],
-                  ],
-                }}
-                formats={[
-                  'header', 'font', 'size',
-                  'bold', 'italic', 'underline', 'strike', 'blockquote',
-                  'list', 'indent',
-                  'link',
-                  'align', 'color', 'background'
-                ]}
-                className="bg-white rounded-xl border border-slate-300 shadow-sm resize-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200"
-                style={{ minHeight: '250px', maxHeight: '500px', marginBottom: '0', overflowY: 'auto' }}
-              />
-            </div>
-          ) : (
-            <pre className="bg-gray-50 p-4 rounded-md text-sm text-gray-600 whitespace-pre-wrap mb-4">
-              {letterContent}
-            </pre>
-          )}
-          <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0 mt-4">
-            <DownloadPDFButton
-              content={letterContent}
-              fileName="lettera_diffida.pdf"
-            />
-            <DownloadWordButton
-              content={letterContent}
-              fileName="lettera_diffida.docx"
-            />
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-150 ease-in-out shadow-sm"
-            >
-              {isEditing ? 'Termina Modifica' : 'Modifica Lettera'}
+      {/* MAIN CONTENT Area */}
+      <main className="flex-1 flex flex-col min-w-0">
+
+        {/* HEADER */}
+        <header className="h-14 border-b border-[#333] flex items-center justify-between px-6 bg-[#111]">
+          <div className="flex items-center gap-2 font-mono text-sm">
+            <span className="text-emerald-500 font-bold tracking-widest">LEXA</span>
+            <span className="text-gray-600">/</span>
+            <span className="text-gray-400">workspace</span>
+            {contract && (
+              <>
+                <span className="text-gray-600">/</span>
+                <span className="text-white">{contract.name}</span>
+              </>
+            )}
+          </div>
+          <div>
+            <button className="text-xs font-mono text-gray-500 hover:text-rose-500 uppercase tracking-widest transition-colors">
+              Disconnect
             </button>
           </div>
-        </div>
-      );
-    }
-    return null;
-  };
+        </header>
 
-  return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Navbar currentScreen={mainScreen} onScreenChange={setMainScreen} />
+        {/* WORKSPACE - SPLIT PANE */}
+        <div className="flex-1 flex overflow-hidden">
 
-      <main className="flex-grow pt-24 pb-8">
-        {mainScreen === 'home' && (
-          <div className="container-lexa">
-            {/* Hero section */}
-            <section className="py-16 md:py-20">
-              <div className="max-w-3xl mx-auto text-center mb-16">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl mb-6 font-bold text-slate-800">
-                  L&apos;assistente legale <span className="text-blue-600">per avvocati</span>
-                </h1>
-                <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-                  Lexa semplifica il tuo lavoro quotidiano fornendo strumenti avanzati per calcolare rimborsi
-                  e rispondere alle tue domande con precisione legale.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  <button
-                    onClick={() => setMainScreen('rimborso')}
-                    className="btn-primary"
-                  >
-                    Calcola Rimborso
-                  </button>
-                </div>
-              </div>
+          {/* LEFT PANE - SOURCE / INPUT */}
+          <section className="flex-1 border-r border-[#333] flex flex-col min-w-[400px]">
+            <div className="p-6 flex flex-col h-full overflow-y-auto">
 
-              {/* Feature Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-2xl mx-auto">
-                <div className="feature-card">
-                  <div className="feature-icon">
-                    {/* <CalculatorIcon className="w-6 h-6" fill="none" stroke="currentColor" /> */}
-                  </div>
-                  <h3 className="text-xl font-bold mb-3 text-slate-800">Calcolo Rimborso</h3>
-                  <p className="text-slate-600 mb-4">Determina l&apos;importo da restituire in base all&apos;Art. 125 sexies T.U.B. in modo rapido e preciso.</p>
-                  <button
-                    onClick={() => setMainScreen('rimborso')}
-                    className="btn-primary btn-small"
-                  >
-                    Avvia calcolo
-                  </button>
-                </div>
-              </div>
+              <div className="mb-8">
+                <span className="mono-label">Source Documents</span>
 
-              {/* Informazioni aggiuntive */}
-              <div className="mt-20 text-center">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6">Come funziona Lexa</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                  <div className="p-6 bg-blue-50 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="font-bold text-lg">1</span>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2 text-slate-800">Carica i documenti PDF</h3>
-                    <p className="text-slate-600">Carica contratto, conteggio estintivo e template PDF.</p>
-                  </div>
-                  <div className="p-6 bg-blue-50 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="font-bold text-lg">2</span>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2 text-slate-800">Conversione e Analisi</h3>
-                    <p className="text-slate-600">I PDF vengono convertiti in immagini e analizzati dall&apos;AI.</p>
-                  </div>
-                  <div className="p-6 bg-blue-50 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="font-bold text-lg">3</span>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2 text-slate-800">Risultato immediato</h3>
-                    <p className="text-slate-600">Ottieni la lettera di diffida generata e pronta per essere modificata.</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
-
-        {mainScreen === 'rimborso' && (
-          <div className="container-lexa max-w-4xl animate-fade-in">
-            <div className="card-lexa">
-              <h2 className="mb-6 text-center">Genera Lettera di Diffida da PDF</h2>
-              {!letterContent && !isLoading && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="contract" className="block text-slate-700 font-medium mb-2">Contratto (PDF)</label>
-                    <input
-                      type="file"
-                      id="contract"
-                      accept="application/pdf"
-                      onChange={handleFileChange(setContract)}
-                      className="input-lexa"
-                    />
-                    <p className="mt-1 text-sm text-slate-500">Carica il contratto di cessione del quinto in formato PDF.</p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="statement" className="block text-slate-700 font-medium mb-2">Conteggio Estintivo (PDF)</label>
-                    <input
-                      type="file"
-                      id="statement"
-                      accept="application/pdf"
-                      onChange={handleFileChange(setStatement)}
-                      className="input-lexa"
-                    />
-                    <p className="mt-1 text-sm text-slate-500">Carica il conteggio estintivo rilasciato dalla finanziaria in PDF.</p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="template" className="block text-slate-700 font-medium mb-2">Template Lettera (PDF)</label>
-                    <input
-                      type="file"
-                      id="template"
-                      accept="application/pdf"
-                      onChange={handleFileChange(setTemplate)}
-                      className="input-lexa"
-                    />
-                    <p className="mt-1 text-sm text-slate-500">Carica il template per la lettera di richiesta rimborso in PDF.</p>
-                  </div>
-
-                  {error && !isLoading && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                      {error}
-                    </div>
-                  )}
-
-                  <div className="flex justify-center pt-4">
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="btn-primary w-full"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Elaborazione in corso...
+                <div className="grid gap-4">
+                  {/* Contract Input */}
+                  <div className="relative group">
+                    {!contract ? (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <IconPlus />
+                          <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Contract</p>
                         </div>
-                      ) : 'Genera Lettera'}
+                        <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setContract)} />
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
+                        <div className="flex items-center gap-3">
+                          <IconFile />
+                          <span className="text-sm font-mono text-gray-300">{contract.name}</span>
+                        </div>
+                        <button onClick={() => removeFile(setContract)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Statement Input */}
+                  <div className="relative group">
+                    {!statement ? (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <IconPlus />
+                          <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Statement</p>
+                        </div>
+                        <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setStatement)} />
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
+                        <div className="flex items-center gap-3">
+                          <IconFile />
+                          <span className="text-sm font-mono text-gray-300">{statement.name}</span>
+                        </div>
+                        <button onClick={() => removeFile(setStatement)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Template Input */}
+                  <div className="relative group">
+                    {!template ? (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <IconPlus />
+                          <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Template</p>
+                        </div>
+                        <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setTemplate)} />
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
+                        <div className="flex items-center gap-3">
+                          <IconFile />
+                          <span className="text-sm font-mono text-gray-300">{template.name}</span>
+                        </div>
+                        <button onClick={() => removeFile(setTemplate)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mb-6 p-3 border border-rose-900/50 bg-rose-500/10 text-rose-500 text-xs font-mono uppercase tracking-wide">
+                  Error: {error}
+                </div>
+              )}
+
+              <div className="mt-auto pt-6 border-t border-[#333]">
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className={`w-full btn-primary ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
+                >
+                  {isLoading ? 'PROCESSING DATA...' : 'RUN EXTRACTION'}
+                </button>
+              </div>
+
+            </div>
+          </section>
+
+          {/* RIGHT PANE - OUTPUT */}
+          <section className="flex-[1.5] bg-[#0c0c0c] flex flex-col min-w-[500px]">
+            <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#111]">
+              <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">Output / Editor</span>
+              {result?.analisiPercentuale && (
+                <span className={`font-mono text-xs px-2 py-0.5 ${result.analisiPercentuale.stato === 'OK' ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
+                  AI SCORE: {result.analisiPercentuale.valore}% [{result.analisiPercentuale.stato}]
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center relative">
+              {!result && !isLoading && (
+                <div className="text-center opacity-30">
+                  <div className="w-16 h-16 border rounded-full border-gray-600 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-mono">?</span>
+                  </div>
+                  <p className="font-mono text-sm uppercase tracking-widest">Waiting for input</p>
+                </div>
+              )}
+
+              {isLoading && (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="font-mono text-xs text-emerald-500 animate-pulse uppercase tracking-widest">Analyzing Documents via Gemini Flash...</p>
+                </div>
+              )}
+
+              {result && !isLoading && (
+                <div className="w-full h-full flex flex-col animate-fade-in">
+
+                  {/* METADATA GRID */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 w-full border-b border-[#333] pb-8">
+                    <div>
+                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Cliente</span>
+                      <span className="text-sm font-mono text-white">{result.dati?.nomeCliente || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Codice Fiscale</span>
+                      <span className="text-sm font-mono text-white">{result.dati?.codiceFiscale || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Importo</span>
+                      <span className="text-sm font-mono text-emerald-400">{result.dati?.importoRimborso || '0.00'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Data Nascita</span>
+                      <span className="text-sm font-mono text-white">{result.dati?.dataNascita || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {/* EDITOR */}
+                  <div className="flex-1 bg-white text-black rounded-sm overflow-hidden flex flex-col relative">
+                    {isEditing ? (
+                      <ReactQuill
+                        theme="snow"
+                        value={letterContent}
+                        onChange={setLetterContent}
+                        className="h-full"
+                        modules={{
+                          toolbar: [
+                            [{ 'header': [1, 2, false] }],
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['clean']
+                          ],
+                        }}
+                      />
+                    ) : (
+                      <div className="p-8 whitespace-pre-wrap font-serif text-sm leading-relaxed overflow-y-auto h-full">
+                        {letterContent}
+                      </div>
+                    )}
+
+                    {/* Floating Toggle Edit */}
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="absolute bottom-4 right-4 bg-black text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors z-10"
+                      title="Toggle Edit"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </button>
                   </div>
-                </form>
-              )}
-              {renderLoadingOrResult()}
-            </div>
-          </div>
-        )}
-      </main>
 
-      <Footer />
+                  {/* ACTIONS */}
+                  <div className="mt-4 flex gap-3 justify-end">
+                    <DownloadPDFButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.pdf`} />
+                    <DownloadWordButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.docx`} />
+                  </div>
+
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

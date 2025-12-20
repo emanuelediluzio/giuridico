@@ -1,195 +1,83 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f8fafc;
-  --color-bg-tertiary: #f1f5f9;
-  --color-text-primary: #111827;
-  --color-text-secondary: #374151;
-  --color-text-tertiary: #6b7280;
-  --color-brand-primary: #1d4ed8;
-  --color-brand-secondary: #2563eb;
-  --color-brand-tertiary: #3b82f6;
-  --color-accent: #0ea5e9;
-  --color-success: #059669;
-  --color-warning: #d97706;
-  --color-error: #dc2626;
+  --background: #111111;
+  --foreground: #ffffff;
+  
+  --primary: #10B981; /* Emerald 500 */
+  --primary-foreground: #ffffff;
+
+  --secondary: #333333;
+  --secondary-foreground: #9ca3af;
+
+  --border: #333333;
+  --input: #1a1a1a;
+  
+  --destructive: #F43F5E; /* Rose 500 */
+  --destructive-foreground: #ffffff;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Space Grotesk', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-html, body {
-  height: 100%;
-  font-family: 'Inter', sans-serif;
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  min-height: 100vh;
-}
-
-body {
-  min-height: 100vh;
-}
-
-/* Layout Components */
-.container-lexa {
-  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-}
-
-.card-lexa {
-  @apply bg-white border border-slate-200 rounded-2xl shadow-lg p-8 backdrop-blur-md bg-white/95;
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--color-text-primary);
-}
-
-h1 {
-  @apply text-4xl md:text-5xl lg:text-6xl mb-4 font-extrabold;
-}
-
-h2 {
-  @apply text-2xl md:text-3xl lg:text-4xl mb-3 font-bold;
-}
-
-h3 {
-  @apply text-xl md:text-2xl lg:text-3xl mb-3 font-semibold;
-}
-
-/* Form Elements */
-.input-lexa {
-  @apply bg-white/90 text-slate-800 border border-slate-300 rounded-xl px-4 py-3.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 shadow-sm;
-}
-
-.textarea-lexa {
-  @apply bg-white/90 text-slate-800 border border-slate-300 rounded-xl px-4 py-3.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 shadow-sm;
-}
-
-.select-lexa {
-  @apply bg-white/90 text-slate-800 border border-slate-300 rounded-xl px-4 py-3.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 shadow-sm;
-}
-
-.file-input-lexa {
-  @apply bg-white/90 text-slate-800 border border-slate-300 rounded-xl px-4 py-3.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 shadow-sm;
-}
-
-/* Buttons */
-.btn-primary {
-  @apply bg-blue-600 text-white font-medium rounded-xl px-6 py-3.5 hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2;
-}
-
-.btn-secondary {
-  @apply bg-white text-slate-700 border border-slate-300 font-medium rounded-xl px-6 py-3.5 hover:bg-slate-50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2;
-}
-
-.btn-outline {
-  @apply bg-transparent text-blue-600 border-2 border-blue-600 font-medium rounded-xl px-6 py-3.5 hover:bg-blue-50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2;
-}
-
-.btn-small {
-  @apply px-4 py-2 text-sm;
-}
-
-.btn-large {
-  @apply px-8 py-4 text-lg;
-}
-
-/* Feature Cards */
-.feature-card {
-  @apply bg-white/95 border border-slate-200 rounded-2xl p-8 transition-all duration-300 hover:shadow-lg hover:border-slate-300 backdrop-blur-md transform hover:-translate-y-1;
-}
-
-.feature-icon {
-  @apply w-14 h-14 flex items-center justify-center rounded-xl mb-5 bg-blue-100 text-blue-600;
-}
-
-/* Home cards */
-.home-section {
-  @apply max-w-6xl mx-auto my-16;
-}
-
-.home-card {
-  @apply bg-white/95 rounded-2xl overflow-hidden shadow-lg relative p-8 flex flex-col border border-slate-200 backdrop-blur-md transform hover:-translate-y-1 transition-all duration-300;
-}
-
-.home-card-icon {
-  @apply absolute right-6 bottom-6 w-20 h-20 text-blue-400 opacity-20;
-}
-
-/* Background elements */
-.bg-blur-gradient {
-  @apply absolute pointer-events-none z-0 opacity-40 blur-[120px] rounded-full;
-}
-
-.bg-grid {
-  background-size: 50px 50px;
-  background-image: 
-    linear-gradient(to right, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
-}
-
-/* Animations */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.9;
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.6s cubic-bezier(.2,0,.2,1);
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 4s infinite;
-}
-
-/* Custom scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3b82f6;
-  border-radius: 4px;
+  background: #333;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1d4ed8;
+  background: #444;
 }
 
-/* Media queries */
-@media (max-width: 640px) {
-  .card-lexa {
-    @apply p-5;
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
-} 
+}
+
+/* Technical Design System Utilities */
+@layer components {
+  .btn-primary {
+    @apply bg-[#111] text-emerald-500 border border-[#333] px-6 py-2 rounded-none uppercase tracking-widest text-sm font-mono hover:bg-emerald-500 hover:text-white transition-colors duration-200;
+  }
+  
+  .btn-destructive {
+    @apply bg-[#111] text-rose-500 border border-[#333] px-6 py-2 rounded-none uppercase tracking-widest text-sm font-mono hover:bg-rose-500 hover:text-white transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-[#111] text-gray-400 border border-[#333] px-4 py-1 rounded-none uppercase tracking-widest text-xs font-mono hover:text-white transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply bg-[#111] border border-[#333] text-white p-2 w-full focus:outline-none focus:border-emerald-500 transition-colors duration-200 font-mono text-sm;
+  }
+
+  .card-technical {
+    @apply bg-[#111] border border-[#333] p-4;
+  }
+  
+  .mono-label {
+    @apply font-mono text-xs uppercase tracking-widest text-gray-500 mb-2 block;
+  }
+}
