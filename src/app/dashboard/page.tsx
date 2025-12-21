@@ -154,7 +154,17 @@ export default function DashboardPage() {
 
             // Save to Firebase
             if (user) {
-                const docName = `extraction_${Date.now()}.pdf`;
+                // Smart Naming Strategy: "Analisi [NomeFile] [N]" or "Analisi [Cliente] [N]"
+                const baseName = contract ? contract.name.replace('.pdf', '') : 'Analisi';
+                const clientName = nomeCliente && nomeCliente !== 'XXXXX' ? nomeCliente : null;
+
+                // Use Client Name if available, otherwise filename, otherwise "Analisi"
+                let smartName = clientName ? `Analisi ${clientName}` : baseName;
+
+                // Add sequential number if needed (based on local history length + 1)
+                const count = history.length + 1;
+                const docName = `${smartName} #${count}`;
+
                 await saveUserHistory(user.uid, docName, {
                     analysis: analisiPercentuale,
                     letter: lettera.substring(0, 100) + "..."

@@ -68,6 +68,7 @@
     "react-hook-form": "^7.54.2",
     "react-quill-new": "^3.4.6",
     "recharts": "^2.15.1",
+    "rss-parser": "^3.13.0",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "word-extractor": "^1.0.4",
