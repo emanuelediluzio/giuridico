@@ -4,7 +4,6 @@ import React from 'react';
 export const metadata = {
   title: 'Lexa - Assistente Legale AI',
   description: 'Assistente legale avanzato per professionisti del diritto',
-  description: 'Assistente legale avanzato per professionisti del diritto',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
