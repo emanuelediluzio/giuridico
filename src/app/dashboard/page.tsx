@@ -72,6 +72,12 @@ export default function DashboardPage() {
     const [selectedPersona, setSelectedPersona] = useState<PersonaConfig>(PERSONAS[0]);
     const [user, setUser] = useState<User | null>(null);
 
+    // State for Tabs
+    const [activeTab, setActiveTab] = useState<'editor' | 'chat'>('editor');
+
+    // Import Chat (Dynamic to avoid SSR issues if any)
+    const ChatInterface = dynamic(() => import('../components/ChatInterface'), { ssr: false });
+
     // History state
     const [history, setHistory] = useState<HistoryItem[]>([]);
 
@@ -184,28 +190,44 @@ export default function DashboardPage() {
     return (
         <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white">
 
-            {/* SIDEBAR - HISTORY */}
-            <aside className="w-[300px] border-r border-[#333] flex flex-col shrink-0">
-                <div className="h-14 flex items-center px-4 border-b border-[#333]">
-                    <span className="font-mono text-xs text-emerald-500 uppercase tracking-widest">History Log</span>
-                </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                    {history.map((item) => (
-                        <div key={item.id} className="group flex items-center justify-between p-2 rounded-sm hover:bg-[#222] cursor-pointer transition-colors">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                                <IconFile />
-                                <div className="flex flex-col min-w-0">
-                                    <span className="text-sm font-medium truncate text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
-                                    <span className="text-[10px] text-gray-600 font-mono">{item.date}</span>
+            {/* SIDEBAR - SPLIT LAYOUT (50/50) */}
+            <aside className="w-[300px] border-r border-[#333] flex flex-col shrink-0 h-full">
+
+                {/* TOP HALF: HISTORY */}
+                <div className="h-1/2 flex flex-col border-b border-[#333]">
+                    <div className="h-14 flex items-center px-4 border-b border-[#333] shrink-0 bg-[#111]">
+                        <span className="font-mono text-xs text-emerald-500 uppercase tracking-widest">History Log</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {history.map((item) => (
+                            <div key={item.id} className="group flex items-center justify-between p-2 rounded-sm hover:bg-[#222] cursor-pointer transition-colors">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <IconFile />
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-sm font-medium truncate text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
+                                        <span className="text-[10px] text-gray-600 font-mono">{item.date}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-                <RegulatoryFeed />
-                <div className="p-4 border-t border-[#333]">
-                    <div className="text-[10px] text-gray-600 font-mono text-center uppercase tracking-widest">
-                        Lexa v2.1 - {selectedPersona.name}
+
+                {/* BOTTOM HALF: REGULATORY MONITOR */}
+                <div className="h-1/2 flex flex-col bg-[#0c0c0c]">
+                    {/* RegulatoryFeed contains its own header, we just need the container to scroll correctly */}
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                        <RegulatoryFeed />
+                        {/* Note: RegulatoryFeed component might need adjustment to handle full height or scroll internally if not passed via props. 
+                            Currently it is just a div. We wrap it in scrollable area or modify component to scroll. 
+                            Looking at RegulatoryFeed code, it just maps items. 
+                            We should probably wrap it here in overflow-y-auto. 
+                        */}
+                    </div>
+                    <div className="p-4 border-t border-[#333] shrink-0 bg-[#111]">
+                        <div className="text-[10px] text-gray-600 font-mono text-center uppercase tracking-widest">
+                            Lexa v2.2 - {selectedPersona.name}
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -345,98 +367,125 @@ export default function DashboardPage() {
                         </div>
                     </section>
 
-                    {/* RIGHT PANE - OUTPUT */}
+                    {/* RIGHT PANE - OUTPUT & CHAT */}
                     <section className="flex-[1.5] bg-[#0c0c0c] flex flex-col min-w-[500px]">
+
+                        {/* HEADER WITH TABS */}
                         <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#111]">
-                            <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">Output / Editor</span>
-                            {result?.analisiPercentuale && (
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setActiveTab('editor')}
+                                    className={`font-mono text-xs uppercase tracking-widest pb-3 -mb-3.5 border-b-2 transition-colors ${activeTab === 'editor' ? 'text-emerald-500 border-emerald-500' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+                                >
+                                    Document Editor
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('chat')}
+                                    className={`font-mono text-xs uppercase tracking-widest pb-3 -mb-3.5 border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'chat' ? 'text-emerald-500 border-emerald-500' : 'text-gray-500 border-transparent hover:text-gray-300'}`}
+                                >
+                                    Lexa Chat
+                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1 rounded">BETA</span>
+                                </button>
+                            </div>
+
+                            {result?.analisiPercentuale && activeTab === 'editor' && (
                                 <span className={`font-mono text-xs px-2 py-0.5 ${result.analisiPercentuale.stato === 'OK' ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
                                     AI SCORE: {result.analisiPercentuale.valore}% [{result.analisiPercentuale.stato}]
                                 </span>
                             )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center relative">
-                            {!result && !isLoading && (
-                                <div className="text-center opacity-30">
-                                    <div className="w-16 h-16 border rounded-full border-gray-600 flex items-center justify-center mx-auto mb-4">
-                                        <span className="text-2xl font-mono">?</span>
-                                    </div>
-                                    <p className="font-mono text-sm uppercase tracking-widest">Waiting for input</p>
-                                </div>
-                            )}
+                        <div className="flex-1 overflow-hidden relative">
 
-                            {isLoading && (
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                                    <p className="font-mono text-xs text-emerald-500 animate-pulse uppercase tracking-widest">Analyzing Documents via Gemini Flash...</p>
-                                </div>
-                            )}
-
-                            {result && !isLoading && (
-                                <div className="w-full h-full flex flex-col animate-fade-in">
-
-                                    {/* METADATA GRID */}
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 w-full border-b border-[#333] pb-8">
-                                        <div>
-                                            <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Cliente</span>
-                                            <span className="text-sm font-mono text-white">{result.dati?.nomeCliente || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Codice Fiscale</span>
-                                            <span className="text-sm font-mono text-white">{result.dati?.codiceFiscale || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Importo</span>
-                                            <span className="text-sm font-mono text-emerald-400">{result.dati?.importoRimborso || '0.00'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Data Nascita</span>
-                                            <span className="text-sm font-mono text-white">{result.dati?.dataNascita || 'N/A'}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* EDITOR */}
-                                    <div className="flex-1 bg-white text-black rounded-sm overflow-hidden flex flex-col relative">
-                                        {isEditing ? (
-                                            <ReactQuill
-                                                theme="snow"
-                                                value={letterContent}
-                                                onChange={setLetterContent}
-                                                className="h-full"
-                                                modules={{
-                                                    toolbar: [
-                                                        [{ 'header': [1, 2, false] }],
-                                                        ['bold', 'italic', 'underline'],
-                                                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                                        ['clean']
-                                                    ],
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="p-8 whitespace-pre-wrap font-serif text-sm leading-relaxed overflow-y-auto h-full">
-                                                {letterContent}
+                            {/* EDITOR TAB */}
+                            {activeTab === 'editor' && (
+                                <div className="h-full flex flex-col overflow-y-auto p-8 items-center justify-center">
+                                    {!result && !isLoading && !isLoading && (
+                                        <div className="text-center opacity-30">
+                                            <div className="w-16 h-16 border rounded-full border-gray-600 flex items-center justify-center mx-auto mb-4">
+                                                <span className="text-2xl font-mono">?</span>
                                             </div>
-                                        )}
+                                            <p className="font-mono text-sm uppercase tracking-widest">Waiting for input</p>
+                                        </div>
+                                    )}
 
-                                        {/* Floating Toggle Edit */}
-                                        <button
-                                            onClick={() => setIsEditing(!isEditing)}
-                                            className="absolute bottom-4 right-4 bg-black text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors z-10"
-                                            title="Toggle Edit"
-                                        >
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                        </button>
-                                    </div>
+                                    {isLoading && (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="font-mono text-xs text-emerald-500 animate-pulse uppercase tracking-widest">Analyzing Documents via Gemini Flash...</p>
+                                        </div>
+                                    )}
 
-                                    {/* ACTIONS */}
-                                    <div className="mt-4 flex gap-3 justify-end">
-                                        <DownloadPDFButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.pdf`} />
-                                        <DownloadWordButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.docx`} />
-                                    </div>
+                                    {result && !isLoading && (
+                                        <div className="w-full h-full flex flex-col animate-fade-in">
+                                            {/* METADATA GRID */}
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 w-full border-b border-[#333] pb-8 shrink-0">
+                                                <div>
+                                                    <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Cliente</span>
+                                                    <span className="text-sm font-mono text-white">{result.dati?.nomeCliente || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Codice Fiscale</span>
+                                                    <span className="text-sm font-mono text-white">{result.dati?.codiceFiscale || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Importo</span>
+                                                    <span className="text-sm font-mono text-emerald-400">{result.dati?.importoRimborso || '0.00'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] uppercase text-gray-500 font-mono block mb-1">Data Nascita</span>
+                                                    <span className="text-sm font-mono text-white">{result.dati?.dataNascita || 'N/A'}</span>
+                                                </div>
+                                            </div>
 
+                                            {/* EDITOR */}
+                                            <div className="flex-1 bg-white text-black rounded-sm overflow-hidden flex flex-col relative h-full">
+                                                {isEditing ? (
+                                                    <ReactQuill
+                                                        theme="snow"
+                                                        value={letterContent}
+                                                        onChange={setLetterContent}
+                                                        className="h-full"
+                                                        modules={{
+                                                            toolbar: [
+                                                                [{ 'header': [1, 2, false] }],
+                                                                ['bold', 'italic', 'underline'],
+                                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                                                ['clean']
+                                                            ],
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="p-8 whitespace-pre-wrap font-serif text-sm leading-relaxed overflow-y-auto h-full">
+                                                        {letterContent}
+                                                    </div>
+                                                )}
+
+                                                {/* Floating Toggle Edit */}
+                                                <button
+                                                    onClick={() => setIsEditing(!isEditing)}
+                                                    className="absolute bottom-4 right-4 bg-black text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors z-10"
+                                                    title="Toggle Edit"
+                                                >
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                                </button>
+                                            </div>
+
+                                            {/* ACTIONS */}
+                                            <div className="mt-4 flex gap-3 justify-end shrink-0">
+                                                <DownloadPDFButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.pdf`} />
+                                                <DownloadWordButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.docx`} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
+                            {/* CHAT TAB */}
+                            {activeTab === 'chat' && (
+                                <ChatInterface context={letterContent || "Nessun documento processato ancora."} />
+                            )}
+
                         </div>
                     </section>
                 </div>

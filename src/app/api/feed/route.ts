@@ -6,17 +6,32 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const parser = new Parser();
-        // Feed: Google News query for "Normativa Legge Giurisprudenza Italia"
-        const feedUrl = 'https://news.google.com/rss/search?q=normativa+legge+giurisprudenza+italia&hl=it&gl=IT&ceid=IT:it';
 
-        const feed = await parser.parseURL(feedUrl);
+        // Multiple feeds to gather diverse sources
+        const feedUrls = [
+            'https://news.google.com/rss/search?q=normativa+legge+giurisprudenza+italia&hl=it&gl=IT&ceid=IT:it', // General Law
+            'https://news.google.com/rss/search?q=cassazione+sentenza+penale+civile&hl=it&gl=IT&ceid=IT:it',     // Case Law
+            'https://news.google.com/rss/search?q=agenzia+entrate+fisco+tasse&hl=it&gl=IT&ceid=IT:it'            // Tax/Economy
+        ];
 
-        const news = feed.items.slice(0, 10).map(item => ({
+        const feedPromises = feedUrls.map(url => parser.parseURL(url).catch(e => ({ items: [] })));
+        const feeds = await Promise.all(feedPromises);
+
+        // Flatten and deduplicate by link
+        const allNews = feeds.flatMap(f => f.items || []);
+        const uniqueNews = Array.from(new Map(allNews.map(item => [item.link, item])).values());
+
+        // Sort by date (newest first) and slice
+        const sortedNews = uniqueNews.sort((a, b) => {
+            return new Date(b.pubDate || '').getTime() - new Date(a.pubDate || '').getTime();
+        });
+
+        const news = sortedNews.slice(0, 25).map(item => ({
             id: item.guid || item.link || Math.random().toString(),
             title: item.title,
             link: item.link,
             date: item.pubDate,
-            source: item.source || 'Google News',
+            source: item.source || 'Google News', // Google RSS puts source in a specific field usually, or title
             content: item.contentSnippet || item.content || ''
         }));
 

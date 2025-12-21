@@ -31,12 +31,14 @@ export default function RegulatoryFeed() {
     }, []);
 
     return (
-        <div className="border-t border-[#333] p-4">
-            <h3 className="text-[10px] text-emerald-500 uppercase tracking-widest mb-3 font-mono">
-                Regulatory Monitor
-            </h3>
+        <div className="flex flex-col h-full bg-[#0c0c0c]">
+            <div className="p-4 border-b border-[#333] shrink-0 bg-[#0c0c0c] z-10">
+                <h3 className="text-[10px] text-emerald-500 uppercase tracking-widest font-mono">
+                    Regulatory Monitor
+                </h3>
+            </div>
 
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 pt-2 space-y-3">
                 {loading ? (
                     <div className="text-[10px] text-gray-500 font-mono animate-pulse">Scanning external protocols...</div>
                 ) : (
@@ -54,8 +56,8 @@ export default function RegulatoryFeed() {
                 )}
             </div>
 
-            <div className="mt-3 pt-2 text-center border-t border-[#222]">
-                <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="p-2 border-t border-[#222] shrink-0 bg-[#0c0c0c]">
+                <div className="flex items-center justify-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                     <span className="text-[9px] text-gray-500 uppercase tracking-widest">Live Feed Active</span>
                 </div>
