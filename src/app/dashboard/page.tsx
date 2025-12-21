@@ -159,7 +159,7 @@ export default function DashboardPage() {
                 const clientName = nomeCliente && nomeCliente !== 'XXXXX' ? nomeCliente : null;
 
                 // Use Client Name if available, otherwise filename, otherwise "Analisi"
-                let smartName = clientName ? `Analisi ${clientName}` : baseName;
+                const smartName = clientName ? `Analisi ${clientName}` : baseName;
 
                 // Add sequential number if needed (based on local history length + 1)
                 const count = history.length + 1;
