@@ -57,7 +57,7 @@
     "nanoid": "^5.1.5",
     "next": "15.2.6",
     "pdf-lib": "^1.17.1",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "1.1.1",
     "pdf-text-extract": "^1.5.0",
     "pdfjs-dist": "^3.11.174",
     "puter": "^1.0.0",
