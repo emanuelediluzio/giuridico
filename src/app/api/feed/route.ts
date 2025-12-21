@@ -14,7 +14,7 @@ export async function GET() {
             'https://news.google.com/rss/search?q=agenzia+entrate+fisco+tasse&hl=it&gl=IT&ceid=IT:it'            // Tax/Economy
         ];
 
-        const feedPromises = feedUrls.map(url => parser.parseURL(url).catch(e => ({ items: [] })));
+        const feedPromises = feedUrls.map(url => parser.parseURL(url).catch(() => ({ items: [] })));
         const feeds = await Promise.all(feedPromises);
 
         // Flatten and deduplicate by link
@@ -36,8 +36,9 @@ export async function GET() {
         }));
 
         return NextResponse.json({ success: true, news });
-    } catch (error) {
-        console.error('Feed Error:', error);
+    } catch {
+        console.error('Feed Error: Failed to fetch feed');
         return NextResponse.json({ success: false, error: 'Failed to fetch feed' }, { status: 500 });
     }
 }
+

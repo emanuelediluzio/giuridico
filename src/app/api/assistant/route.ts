@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Force Node.js runtime to support 'https' module used by puter
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
+    // Dynamic import to avoid build-time bundling issues with 'https'
+    const puter = (await import('puter')).default;
     try {
         const { messages, context } = await req.json();
 
@@ -25,27 +28,16 @@ export async function POST(req: Request) {
         // Prepend system message
         const fullHistory = [systemMessage, ...messages];
 
-        // Call Puter API (using the global puter instance or fetch)
-        // Since we are in Edge/Node, we might need a specific fetch wrapper if puter package isn't fully edge-compatible or if we want to use the same logic as other routes.
-        // Assuming 'puter' is globally available or we use fetch. 
-        // For consistency with other routes, we'll use the basic fetch to Puter or similar if available, 
-        // BUT looking at other routes, they import 'puter'.
 
-        // Let's rely on the same pattern as api/chat but with this specific prompt construction.
-        // We will do a dynamic import if needed, or just use the global if setup.
-        // Checking api/chat/route.ts, it uses `puter.ai.chat`.
-
-        const puter = (globalThis as any).puter || require('puter');
 
         const response = await puter.ai.chat(fullHistory, {
-            model: 'gemini-2.5-flash',
-            stream: false
+            model: 'gemini-2.5-flash'
         });
 
         return NextResponse.json({ message: response });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Chat Helper Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
     }
 }

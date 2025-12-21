@@ -8,6 +8,12 @@ import { PERSONAS, PersonaConfig } from '@/types/lexa';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { saveUserHistory, getUserHistory, HistoryItem } from '@/lib/firestore';
+import { WORKFLOWS, WorkflowConfig } from '@/types/workflows';
+import {
+    Calculator,
+    FileText,
+    ShieldCheck
+} from 'lucide-react';
 
 // Import dinamico per ReactQuill e Button 
 // NOTA: I path sono aggiornati per essere relativi a src/app/dashboard (quindi ../components)
@@ -61,9 +67,11 @@ interface ResultData {
 export default function DashboardPage() {
     const router = useRouter();
     // State
-    const [contract, setContract] = useState<File | null>(null);
-    const [statement, setStatement] = useState<File | null>(null);
-    const [template, setTemplate] = useState<File | null>(null);
+    // Workflow State
+    const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowConfig>(WORKFLOWS[0]);
+    const [inputFiles, setInputFiles] = useState<Record<string, File | null>>({});
+
+    // Other State
     const [result, setResult] = useState<ResultData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -98,86 +106,141 @@ export default function DashboardPage() {
         return () => unsubscribe();
     }, [router]);
 
-    const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (e: ChangeEvent<HTMLInputElement>) => {
+    const handleWorkflowChange = (workflow: WorkflowConfig) => {
+        setSelectedWorkflow(workflow);
+        setInputFiles({}); // Reset files on workflow change
+        setError(null);
+        setResult(null);
+        setLetterContent('');
+        setIsEditing(false);
+    };
+
+    const handleFileChange = (inputId: string) => (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.type !== 'application/pdf') {
                 setError('SOLO PDF ALLOWED');
                 return;
             }
-            setter(file);
+            setInputFiles(prev => ({ ...prev, [inputId]: file }));
             setError(null);
         }
     };
 
-    const removeFile = (setter: React.Dispatch<React.SetStateAction<File | null>>) => {
-        setter(null);
+    const removeFile = (inputId: string) => {
+        setInputFiles(prev => {
+            const newFiles = { ...prev };
+            delete newFiles[inputId];
+            return newFiles;
+        });
     };
 
     const handleSubmit = async () => {
-        if (!contract || !statement || !template) {
-            setError("UPLOAD ALL REQUIRED DOCUMENTS");
+        // Validation: Check if all required inputs are present
+        const missingInputs = selectedWorkflow.inputs.filter(input => input.required && !inputFiles[input.id]);
+        if (missingInputs.length > 0) {
+            setError(`MISSING FILES: ${missingInputs.map(i => i.label).join(', ')}`);
             return;
         }
+
         setIsLoading(true);
         setError(null);
+
         try {
-            // Estrazione dati con Mistral OCR e analisi percentuale
-            const datiContratto = await estraiDatiMistral(contract);
-            const datiConteggio = await estraiDatiMistral(statement);
+            if (selectedWorkflow.id === 'CESSIONE_QUINTO') {
+                const contract = inputFiles['contract'];
+                const statement = inputFiles['statement'];
+                const template = inputFiles['template'];
 
-            // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
-            const nomeCliente = datiContratto.datiEstratti.nomeCliente || datiConteggio.datiEstratti.nomeCliente || '';
-            const codiceFiscale = datiContratto.datiEstratti.codiceFiscale || datiConteggio.datiEstratti.codiceFiscale || '';
-            const dataNascita = datiContratto.datiEstratti.dataNascita || datiConteggio.datiEstratti.dataNascita || '';
-            const luogoNascita = datiContratto.datiEstratti.luogoNascita || datiConteggio.datiEstratti.luogoNascita || '';
-            const importoRimborso = datiConteggio.datiEstratti.importo || datiContratto.datiEstratti.importo || '';
+                if (!contract || !statement || !template) throw new Error("File Missing");
 
-            // Analisi percentuale (usa il valore più alto tra i due documenti)
-            const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore
-                ? datiContratto.analisiPercentuale
-                : datiConteggio.analisiPercentuale;
+                // Estrazione dati con Mistral OCR e analisi percentuale
+                const datiContratto = await estraiDatiMistral(contract);
+                const datiConteggio = await estraiDatiMistral(statement);
 
-            // Generazione lettera compilata
-            const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
+                // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
+                const nomeCliente = datiContratto.datiEstratti.nomeCliente || datiConteggio.datiEstratti.nomeCliente || '';
+                const codiceFiscale = datiContratto.datiEstratti.codiceFiscale || datiConteggio.datiEstratti.codiceFiscale || '';
+                const dataNascita = datiContratto.datiEstratti.dataNascita || datiConteggio.datiEstratti.dataNascita || '';
+                const luogoNascita = datiContratto.datiEstratti.luogoNascita || datiConteggio.datiEstratti.luogoNascita || '';
+                const importoRimborso = datiConteggio.datiEstratti.importo || datiContratto.datiEstratti.importo || '';
 
-            setLetterContent(lettera);
-            setResult({
-                lettera,
-                dati: {
-                    nomeCliente,
-                    codiceFiscale,
-                    dataNascita,
-                    luogoNascita,
-                    importoRimborso: importoRimborso || '0,00 €',
-                    rateResidue: 0,
-                    durataTotale: 0,
-                    costiTotali: 0
-                },
-                analisiPercentuale
-            });
-            setIsEditing(true);
+                // Analisi percentuale
+                const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore
+                    ? datiContratto.analisiPercentuale
+                    : datiConteggio.analisiPercentuale;
 
-            // Save to Firebase
-            if (user) {
-                // Smart Naming Strategy: "Analisi [NomeFile] [N]" or "Analisi [Cliente] [N]"
-                const baseName = contract ? contract.name.replace('.pdf', '') : 'Analisi';
-                const clientName = nomeCliente && nomeCliente !== 'XXXXX' ? nomeCliente : null;
+                // Generazione lettera
+                const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
 
-                // Use Client Name if available, otherwise filename, otherwise "Analisi"
-                const smartName = clientName ? `Analisi ${clientName}` : baseName;
-
-                // Add sequential number if needed (based on local history length + 1)
-                const count = history.length + 1;
-                const docName = `${smartName} #${count}`;
-
-                await saveUserHistory(user.uid, docName, {
-                    analysis: analisiPercentuale,
-                    letter: lettera.substring(0, 100) + "..."
+                setLetterContent(lettera);
+                setResult({
+                    lettera,
+                    dati: {
+                        nomeCliente,
+                        codiceFiscale,
+                        dataNascita,
+                        luogoNascita,
+                        importoRimborso: importoRimborso || '0,00 €',
+                        rateResidue: 0,
+                        durataTotale: 0,
+                        costiTotali: 0
+                    },
+                    analisiPercentuale
                 });
-                // Refresh local history
-                const updatedHistory = await getUserHistory(user.uid);
-                setHistory(updatedHistory);
+                setIsEditing(true);
+
+                // Persistence Logic
+                if (user) {
+                    const baseName = contract ? contract.name.replace('.pdf', '') : 'Analisi';
+                    const clientName = nomeCliente && nomeCliente !== 'XXXXX' ? nomeCliente : null;
+                    const smartName = clientName ? `Analisi ${clientName}` : baseName;
+                    const count = history.length + 1;
+                    const docName = `${smartName} #${count}`;
+
+                    await saveUserHistory(user.uid, docName, {
+                        analysis: analisiPercentuale,
+                        letter: lettera.substring(0, 100) + "..."
+                    });
+                    const updatedHistory = await getUserHistory(user.uid);
+                    setHistory(updatedHistory);
+                }
+
+            } else {
+                // Placeholder for other workflows
+                // For now, we simulate a successful "Generic Analysis" result
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const file = Object.values(inputFiles)[0]; // Take first file
+
+                const dummyContent = `Generato report per workflow: ${selectedWorkflow.name}\n\nDocumento analizzato: ${file?.name}\n\nAnalisi preliminare:\n- Rispetto normative: In verifica\n- Clausole vessatorie: Nessuna rilevata (Simulazione)\n\nQuesta funzionalità è in fase di sviluppo.`;
+
+                setLetterContent(dummyContent);
+                setResult({
+                    lettera: dummyContent,
+                    dati: {
+                        nomeCliente: 'Demo User',
+                        codiceFiscale: 'DEMO12345',
+                        dataNascita: '',
+                        luogoNascita: '',
+                        importoRimborso: 'N/A',
+                        rateResidue: 0,
+                        durataTotale: 0,
+                        costiTotali: 0
+                    },
+                    analisiPercentuale: { valore: 0, stato: 'INFO' }
+                });
+                setIsEditing(true);
+
+                if (user) {
+                    const docName = `${selectedWorkflow.name} ${file?.name} #${history.length + 1}`;
+                    await saveUserHistory(user.uid, docName, {
+                        analysis: { valore: 0, stato: 'INFO' },
+                        letter: dummyContent.substring(0, 100) + "..."
+                    });
+                    const updatedHistory = await getUserHistory(user.uid);
+                    setHistory(updatedHistory);
+                }
             }
 
         } catch (err) {
@@ -186,6 +249,8 @@ export default function DashboardPage() {
             setIsLoading(false);
         }
     };
+
+
 
     return (
         <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white">
@@ -241,10 +306,12 @@ export default function DashboardPage() {
                         <span className="text-emerald-500 font-bold tracking-widest">LEXA</span>
                         <span className="text-gray-600">/</span>
                         <span className="text-gray-400">workspace</span>
-                        {contract && (
+                        <span className="text-gray-600">/</span>
+                        <span className="text-emerald-500 uppercase">{selectedWorkflow.name}</span>
+                        {Object.values(inputFiles)[0] && (
                             <>
                                 <span className="text-gray-600">/</span>
-                                <span className="text-white">{contract.name}</span>
+                                <span className="text-white truncate max-w-[150px]">{Object.values(inputFiles)[0]?.name}</span>
                             </>
                         )}
                     </div>
@@ -280,71 +347,72 @@ export default function DashboardPage() {
                         <div className="p-6 flex flex-col h-full overflow-y-auto">
 
                             <div className="mb-8">
-                                <span className="mono-label">Source Documents</span>
+                                <span className="mono-label mb-4 block">Select Job Type</span>
+                                <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+                                    {WORKFLOWS.map((wf) => {
+                                        const isActive = selectedWorkflow.id === wf.id;
+                                        // Dynamic Icon Rendering based on string ID would be ideal, but for now hardcode mapping or use library if dynamic import
+                                        // Simple switch for icon
+                                        let Icon = FileText;
+                                        if (wf.icon === 'Calculator') Icon = Calculator;
+                                        if (wf.icon === 'ShieldCheck') Icon = ShieldCheck;
 
-                                <div className="grid gap-4">
-                                    {/* Contract Input */}
-                                    <div className="relative group">
-                                        {!contract ? (
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <IconPlus />
-                                                    <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Contract</p>
-                                                </div>
-                                                <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setContract)} />
-                                            </label>
-                                        ) : (
-                                            <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
-                                                <div className="flex items-center gap-3">
-                                                    <IconFile />
-                                                    <span className="text-sm font-mono text-gray-300">{contract.name}</span>
-                                                </div>
-                                                <button onClick={() => removeFile(setContract)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
-                                            </div>
-                                        )}
-                                    </div>
+                                        return (
+                                            <button
+                                                key={wf.id}
+                                                onClick={() => handleWorkflowChange(wf)}
+                                                className={`
+                                                    flex flex-col items-start p-3 rounded border min-w-[140px] transition-all
+                                                    ${isActive
+                                                        ? 'bg-emerald-900/20 border-emerald-500 text-emerald-400'
+                                                        : 'bg-[#1a1a1a] border-[#333] text-gray-500 hover:border-gray-500 hover:text-gray-300'}
+                                                `}
+                                            >
+                                                <Icon size={16} className="mb-2" />
+                                                <span className="text-[10px] font-mono uppercase font-bold tracking-widest">{wf.name.split(' ')[0]}</span>
+                                                <span className="text-[9px] truncate w-full opacity-60">{wf.name.split(' ').slice(1).join(' ')}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
 
-                                    {/* Statement Input */}
-                                    <div className="relative group">
-                                        {!statement ? (
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <IconPlus />
-                                                    <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Statement</p>
-                                                </div>
-                                                <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setStatement)} />
-                                            </label>
-                                        ) : (
-                                            <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
-                                                <div className="flex items-center gap-3">
-                                                    <IconFile />
-                                                    <span className="text-sm font-mono text-gray-300">{statement.name}</span>
-                                                </div>
-                                                <button onClick={() => removeFile(setStatement)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
+                                <span className="mono-label">Required Documents</span>
+                                <div className="grid gap-4 animate-fade-in">
+                                    {selectedWorkflow.inputs.map((inputDef) => {
+                                        const file = inputFiles[inputDef.id];
+                                        return (
+                                            <div key={inputDef.id} className="relative group">
+                                                {!file ? (
+                                                    <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
+                                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                            <IconPlus />
+                                                            <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest text-center px-4">
+                                                                UPLOAD {inputDef.label}
+                                                                {inputDef.required && <span className="text-rose-500 ml-1">*</span>}
+                                                            </p>
+                                                        </div>
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept={inputDef.accept}
+                                                            onChange={handleFileChange(inputDef.id)}
+                                                        />
+                                                    </label>
+                                                ) : (
+                                                    <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <IconFile />
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-xs uppercase text-gray-500 font-mono mb-0.5">{inputDef.label}</span>
+                                                                <span className="text-sm font-mono text-gray-300 truncate">{file.name}</span>
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => removeFile(inputDef.id)} className="text-gray-600 hover:text-rose-500 shrink-0"><IconTrash /></button>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-
-                                    {/* Template Input */}
-                                    <div className="relative group">
-                                        {!template ? (
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#333] bg-[#1a1a1a] hover:bg-[#222] hover:border-emerald-500/50 cursor-pointer transition-all">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <IconPlus />
-                                                    <p className="mt-2 text-xs text-gray-500 font-mono uppercase tracking-widest">Upload Template</p>
-                                                </div>
-                                                <input type="file" className="hidden" accept="application/pdf" onChange={handleFileChange(setTemplate)} />
-                                            </label>
-                                        ) : (
-                                            <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border border-[#333] border-l-2 border-l-emerald-500">
-                                                <div className="flex items-center gap-3">
-                                                    <IconFile />
-                                                    <span className="text-sm font-mono text-gray-300">{template.name}</span>
-                                                </div>
-                                                <button onClick={() => removeFile(setTemplate)} className="text-gray-600 hover:text-rose-500"><IconTrash /></button>
-                                            </div>
-                                        )}
-                                    </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

@@ -75,9 +75,11 @@ export default function ChatInterface({ context }: ChatInterfaceProps) {
                                 : 'bg-[#222] border border-[#333] text-gray-200'}
                         `}>
                             {m.role === 'assistant' ? (
-                                <ReactMarkdown className="prose prose-invert prose-sm max-w-none">
-                                    {m.content}
-                                </ReactMarkdown>
+                                <div className="prose prose-invert prose-sm max-w-none">
+                                    <ReactMarkdown>
+                                        {m.content}
+                                    </ReactMarkdown>
+                                </div>
                             ) : (
                                 m.content
                             )}
