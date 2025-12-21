@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
+import puter from 'puter';
 
 // Force Node.js runtime to support 'https' module used by puter
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-    // Dynamic import to avoid build-time bundling issues with 'https'
-    const puter = (await import('puter')).default;
     try {
         const { messages, context } = await req.json();
 
