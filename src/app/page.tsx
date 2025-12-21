@@ -69,7 +69,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="max-w-2xl mx-auto text-gray-400 text-sm md:text-base leading-relaxed mb-10">
-            Automate document processing with Gemini 1.5 Flash. Extract entities, calculate refunds, and generate legal drafts in milliseconds with banking-grade precision.
+            Automate document processing with our powerful AI model. Extract entities, calculate refunds, and generate legal drafts in milliseconds with banking-grade precision.
           </p>
 
           <Link href="/login" className="btn-primary text-base px-8 py-4 inline-flex items-center gap-3 group">
