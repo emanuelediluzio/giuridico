@@ -33,6 +33,7 @@ const DownloadWordButton: React.FC<DownloadWordButtonProps> = ({
       const buffer = await Packer.toBuffer(doc);
 
       // Crea un blob e un URL per il download
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blob = new Blob([buffer as any], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       });
