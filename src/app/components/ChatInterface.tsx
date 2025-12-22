@@ -59,14 +59,6 @@ export default function ChatInterface({ context, initialMessages = [], onMessage
         setIsLoading(true);
 
         try {
-            // Import Puter dynamically
-            const puter = (await import('@heyputer/puter.js')).default;
-
-            const history = messages.map(m => ({
-                role: m.role,
-                content: m.content
-            }));
-
             // Add system context if provided
             const systemMsg = {
                 role: 'system',

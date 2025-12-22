@@ -46,7 +46,11 @@ interface PuterInstance {
 }
 
 export async function analysisWithPuterClient(text: string, puterInstance: PuterInstance): Promise<{ valore: number | null; stato: string }> {
-    if (!puterInstance) throw new Error("Puter instance not initialized");
+    // Check global puter availability if instance not provided or invalid
+    // @ts-ignore
+    const finalPuter = puterInstance || window.puter;
+
+    if (!finalPuter) throw new Error("Puter instance not initialized");
 
     const prompt = `Analizza questo testo estratto da un documento legale (Cessione del Quinto).
     Trova la prima percentuale di cessione/rata (es. "20%", "un quinto", "1/5").
@@ -60,7 +64,8 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
     Testo:
     ${text.substring(0, 5000)}... (troncato)`;
 
-    const response = await puterInstance.ai.chat([{ role: 'user', content: prompt }], { model: 'gemini-2.5-flash' });
+    // Uses gemini-2.5-flash as requested by user based on LOCR usage
+    const response = await finalPuter.ai.chat([{ role: 'user', content: prompt }], { model: 'gemini-2.5-flash' });
 
     // Parse response
     let content = "";

@@ -128,18 +128,34 @@ export default function DashboardPage() {
     const [isPuterAuthenticated, setIsPuterAuthenticated] = useState<boolean>(true); // Default to true to avoid flash, check on mount
     const [puterInstance, setPuterInstance] = useState<PuterInstance | null>(null);
 
+    // Puter Auth Check
     React.useEffect(() => {
-        const checkPuterAuth = async () => {
-            try {
-                const puter = (await import('@heyputer/puter.js')).default;
-                setPuterInstance(puter as unknown as PuterInstance);
-                const signedIn = puter.auth.isSignedIn();
-                setIsPuterAuthenticated(signedIn);
-            } catch (err) {
-                console.error("Puter Auth Check Failed", err);
+        const checkPuter = async () => {
+            // @ts-ignore
+            if (window.puter && window.puter.auth) {
+                // @ts-ignore
+                const isSignedIn = window.puter.auth.isSignedIn();
+                setIsPuterAuthenticated(isSignedIn);
+
+                // Set instance for passing to children
+                // @ts-ignore
+                setPuterInstance(window.puter);
+
+                if (!isSignedIn) {
+                    try {
+                        // @ts-ignore
+                        // Attempt silent sign in or just ready state?
+                        // window.puter.auth.signIn(); // Don't force sign in on load
+                    } catch (e) {
+                        console.log("Not signed in");
+                    }
+                }
+            } else {
+                // Retry if script taking time
+                setTimeout(checkPuter, 500);
             }
         };
-        checkPuterAuth();
+        checkPuter();
     }, []);
 
     const handleConnectPuter = async () => {
