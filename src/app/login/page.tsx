@@ -2,12 +2,23 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, onAuthStateChanged } from 'firebase/auth';
 
 export default function LoginPage() {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Redirect to dashboard if user is already logged in (or returns from Google redirect)
+    React.useEffect(() => {
+        if (!auth) return;
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                router.push('/dashboard');
+            }
+        });
+        return () => unsubscribe();
+    }, [router]);
 
     const handleGoogleLogin = async () => {
         setIsLoading(true);
@@ -21,9 +32,8 @@ export default function LoginPage() {
         }
 
         try {
-            await signInWithPopup(auth, provider);
-            // Successful login
-            router.push('/dashboard');
+            await signInWithRedirect(auth, provider);
+            // Result is handled by onAuthStateChanged after redirect
         } catch (err: unknown) {
             console.error("Login Error:", err);
             if (err instanceof Error) {
