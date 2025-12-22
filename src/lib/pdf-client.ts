@@ -28,7 +28,7 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
 
         // Extract text items and join them
         const pageText = textContent.items
-            .map((item: TextItem | any) => (item as TextItem).str || "") // Fallback for mixed items
+            .map((item: unknown) => (item as TextItem).str || "")
             .join(' ');
 
         fullText += pageText + '\n\n';

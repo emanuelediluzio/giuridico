@@ -10,13 +10,14 @@ interface ChatInterfaceProps {
     onMessagesUpdate?: (messages: Message[]) => void;
 }
 
+const DEFAULT_MESSAGE: Message = { role: 'assistant', content: 'Ciao! Sono Lexa Chat. Come posso aiutarti con questo documento?' };
+
 export default function ChatInterface({ context, initialMessages = [], onMessagesUpdate }: ChatInterfaceProps) {
-    const defaultMessage: Message = { role: 'assistant', content: 'Ciao! Sono Lexa Chat. Come posso aiutarti con questo documento?' };
 
     // Initialize with props or default. 
     // IMPORTANT: If initialMessages changes (e.g. switching history), we must update state.
     const [messages, setMessages] = useState<Message[]>(
-        initialMessages.length > 0 ? initialMessages : [defaultMessage]
+        initialMessages.length > 0 ? initialMessages : [DEFAULT_MESSAGE]
     );
 
     // Sync state when prop changes (loading history)
@@ -26,7 +27,7 @@ export default function ChatInterface({ context, initialMessages = [], onMessage
         } else {
             // If expressly empty (reset), revert to default? Or keep empty? 
             // Usually switching to a new doc might pass empty array.
-            setMessages([defaultMessage]);
+            setMessages([DEFAULT_MESSAGE]);
         }
     }, [initialMessages]);
 

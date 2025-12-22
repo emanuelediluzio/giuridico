@@ -24,7 +24,7 @@ const ReactQuill = dynamic(() => import('react-quill-new'), {
 const DownloadPDFButton = dynamic(() => import('../components/DownloadPDFButton'), { ssr: false });
 const DownloadWordButton = dynamic(() => import('../components/DownloadWordButton'), { ssr: false });
 
-import { estraiDatiMistral } from '../lib/nanonets';
+
 
 // --- ICONS (Lucas Icons style - minimal SVG) ---
 const IconPlus = () => (
@@ -59,9 +59,10 @@ interface ResultData {
         costiTotali: number;
     };
     analisiPercentuale?: {
-        valore: number;
+        valore: number | null;
         stato: string;
     };
+    [key: string]: unknown; // Index signature for Firestore compatibility
 }
 
 export default function DashboardPage() {
@@ -113,15 +114,13 @@ export default function DashboardPage() {
     // Puter Type Definition
     interface PuterInstance {
         auth: {
-            signIn: () => Promise<void>;
+            signIn: () => Promise<unknown>;
             isSignedIn: () => boolean;
-            signOut: () => Promise<void>;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            user: any;
+            signOut: () => void;
         };
         ai: {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            chat: (messages: any[], options?: any) => Promise<any>;
+            chat: (messages: string | any[], options?: any) => Promise<any>;
         };
     }
 
@@ -133,7 +132,7 @@ export default function DashboardPage() {
         const checkPuterAuth = async () => {
             try {
                 const puter = (await import('@heyputer/puter.js')).default;
-                setPuterInstance(puter);
+                setPuterInstance(puter as unknown as PuterInstance);
                 const signedIn = puter.auth.isSignedIn();
                 setIsPuterAuthenticated(signedIn);
             } catch (err) {
@@ -232,7 +231,7 @@ export default function DashboardPage() {
 
         try {
             // Import client utilities dynamically
-            const { extractTextFromPDFClient, analysisWithPuterClient } = await import('../lib/pdf-client');
+            const { extractTextFromPDFClient, analysisWithPuterClient } = await import('@/lib/pdf-client');
             const { parseNanonetsMarkdown } = await import('../lib/nanonets');
 
             let newResult: ResultData | null = null;
