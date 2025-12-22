@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puter from 'puter';
 
-export const runtime = 'nodejs';
+
 
 
 // Force Node.js runtime for puter compatibility
