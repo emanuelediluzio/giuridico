@@ -458,7 +458,7 @@ export default function DashboardPage() {
 
                             {result?.analisiPercentuale && activeTab === 'editor' && (
                                 <span className={`font-mono text-xs px-2 py-0.5 ${result.analisiPercentuale.stato === 'OK' ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
-                                    AI SCORE: {result.analisiPercentuale.valore}% [{result.analisiPercentuale.stato}]
+                                    AI SCORE: {result.analisiPercentuale.valore !== null ? `${result.analisiPercentuale.valore}%` : 'N/A'} [{result.analisiPercentuale.stato}]
                                 </span>
                             )}
                         </div>
