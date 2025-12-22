@@ -17,13 +17,17 @@ export async function POST(req: NextRequest) {
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${file.type};base64,${base64}`;
 
-    const prompt = `Analizza questa immagine. Estrai l'intero testo visibile. Poi trova la prima percentuale nel testo (formato "42%" o "73 percento").
-    Restituisci ESCLUSIVAMENTE un oggetto JSON con il seguente formato, senza markdown o altro testo:
+    const prompt = `You are a precise OCR and Data Extraction engine. 
+    1. Extract ALL visible text from the image (Italian).
+    2. Find the first assignment percentage (e.g. "20%", "un quinto", "1/5"). If it's "un quinto", the value is 20.
+    
+    Return ONLY a valid JSON object. Do NOT use Markdown code blocks. Do NOT output any other text.
+    Format:
     {
-      "ocrText": "tutto il testo estratto dall'immagine",
+      "ocrText": "FULL_EXTRACTED_TEXT",
       "result": {
-        "valore": <numero intero trovato o null>,
-        "stato": <"OK" se valore >= ${threshold}, altrimenti "NO">
+        "valore": <integer_percentage_found_or_null>,
+        "stato": <"OK" if valore >= ${threshold} else "NO">
       }
     }`;
 
@@ -37,7 +41,9 @@ export async function POST(req: NextRequest) {
       }
     ];
 
+    console.log("[OCR-GEMINI] Sending request to Puter...");
     const response = await puter.ai.chat(messages, { model: 'gemini-2.5-flash' });
+    console.log("[OCR-GEMINI] Response received (type):", typeof response);
 
     let content = "";
     if (typeof response === 'string') {
@@ -52,15 +58,24 @@ export async function POST(req: NextRequest) {
       content = JSON.stringify(response);
     }
 
+    console.log("[OCR-GEMINI] Content extracted:", content.substring(0, 100) + "...");
+
     // Try to parse JSON from the response
-    // The model might wrap it in ```json ```
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
+    // Clean up potential markdown code blocks
+    let jsonString = content.replace(/```json\n?|\n?```/g, "").trim();
+
+    // Fallback: look for the first '{' and last '}'
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
+
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      jsonString = jsonString.substring(firstBrace, lastBrace + 1);
       try {
-        const jsonPart = JSON.parse(jsonMatch[0]);
+        const jsonPart = JSON.parse(jsonString);
         return NextResponse.json(jsonPart);
       } catch (e) {
         console.error("Failed to parse JSON from response", e);
+        console.error("Raw content was:", content);
       }
     }
 
