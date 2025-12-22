@@ -2,10 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
-interface Message {
-    role: 'user' | 'assistant';
-    content: string;
-}
+import { Message } from '@/lib/firestore';
 
 interface ChatInterfaceProps {
     context: string; // The text of the document/letter currently being edited
