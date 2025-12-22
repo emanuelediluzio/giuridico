@@ -34,30 +34,43 @@ export default function ChatInterface({ context }: ChatInterfaceProps) {
         setIsLoading(true);
 
         try {
-            // Include context only if needed, usually we send it on every request or maintain session.
-            // For simplicity, we send the updated history + context each time so stateless API works.
-            const response = await fetch('/api/assistant', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [...messages, userMsg], // Send history
-                    context: context
-                })
+            // Import Puter dynamically to ensure client-side execution
+            const puter = (await import('@heyputer/puter.js')).default;
+
+            const history = messages.map(m => ({
+                role: m.role,
+                content: m.content
+            }));
+
+            // Add system context if provided
+            const systemMsg = {
+                role: 'system',
+                content: `You are Lexa Chat, an advanced AI legal assistant.
+                CONTEXT: "${context || "No document loaded."}"
+                Answer professionally in Italian.`
+            };
+
+            const fullHistory = [systemMsg, ...history, userMsg];
+
+            const response = await puter.ai.chat(fullHistory, {
+                model: 'gemini-2.5-flash'
             });
 
-            const data = await response.json();
-
-            if (data.message) {
-                // Ensure proper string format (sometimes puter returns object)
-                const text = typeof data.message === 'string' ? data.message : data.message.content || JSON.stringify(data.message);
-                setMessages(prev => [...prev, { role: 'assistant', content: text }]);
+            let text = "";
+            if (typeof response === 'string') {
+                text = response;
+            } else if (typeof response === 'object' && response !== null && 'message' in response) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                text = (response as any).message?.content || JSON.stringify(response);
             } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: 'Ops, errore di connessione.' }]);
+                text = JSON.stringify(response);
             }
 
+            setMessages(prev => [...prev, { role: 'assistant', content: text }]);
+
         } catch (error) {
-            console.error(error);
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Errore nel contattare Lexa.' }]);
+            console.error("Chat Error:", error);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Ops, errore di connessione (Client-side).' }]);
         } finally {
             setIsLoading(false);
         }
