@@ -3,6 +3,10 @@ import puter from 'puter';
 
 export const maxDuration = 60;
 
+
+// Force Node.js runtime for puter compatibility
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const { contractImg, statementImg, templateImg } = await req.json();

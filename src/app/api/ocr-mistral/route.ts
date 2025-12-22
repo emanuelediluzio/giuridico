@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import puter from 'puter';
 
+// Force Node.js runtime for puter compatibility
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Ricevi il file dal form-data

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puter from 'puter';
 
+// Force Node.js runtime for puter compatibility
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json();

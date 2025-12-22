@@ -3,6 +3,10 @@ import puter from 'puter';
 
 export const runtime = 'nodejs';
 
+
+// Force Node.js runtime for puter compatibility
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
