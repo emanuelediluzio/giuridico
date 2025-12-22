@@ -172,10 +172,19 @@ export default function DashboardPage() {
             return;
         }
 
+        if (!isPuterAuthenticated || !puterInstance) {
+            setError("AI CONNECTION REQUIRED. Please connect first.");
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
 
         try {
+            // Import client utilities dynamically
+            const { extractTextFromPDFClient, analysisWithPuterClient } = await import('../lib/pdf-client');
+            const { parseNanonetsMarkdown } = await import('../lib/nanonets');
+
             if (selectedWorkflow.id === 'CESSIONE_QUINTO') {
                 const contract = inputFiles['contract'];
                 const statement = inputFiles['statement'];
@@ -183,24 +192,36 @@ export default function DashboardPage() {
 
                 if (!contract || !statement || !template) throw new Error("File Missing");
 
-                // Estrazione dati con Mistral OCR e analisi percentuale
-                const datiContratto = await estraiDatiMistral(contract);
-                const datiConteggio = await estraiDatiMistral(statement);
+                // CLIENT SIDE EXTRACTION
+                const [contractText, statementText] = await Promise.all([
+                    extractTextFromPDFClient(contract),
+                    extractTextFromPDFClient(statement)
+                ]);
 
-                // Unione dati: priorità al contratto per anagrafica, al conteggio per importo
-                const nomeCliente = datiContratto.datiEstratti.nomeCliente || datiConteggio.datiEstratti.nomeCliente || '';
-                const codiceFiscale = datiContratto.datiEstratti.codiceFiscale || datiConteggio.datiEstratti.codiceFiscale || '';
-                const dataNascita = datiContratto.datiEstratti.dataNascita || datiConteggio.datiEstratti.dataNascita || '';
-                const luogoNascita = datiContratto.datiEstratti.luogoNascita || datiConteggio.datiEstratti.luogoNascita || '';
-                const importoRimborso = datiConteggio.datiEstratti.importo || datiContratto.datiEstratti.importo || '';
+                // CLIENT SIDE ANALYSIS (Puter.js)
+                const [contractAnalysis, statementAnalysis] = await Promise.all([
+                    analysisWithPuterClient(contractText, puterInstance),
+                    analysisWithPuterClient(statementText, puterInstance)
+                ]);
+
+                // CLIENT SIDE PARSING (Regex)
+                const contractData = parseNanonetsMarkdown(contractText);
+                const statementData = parseNanonetsMarkdown(statementText);
+
+                // Unione dati
+                const nomeCliente = contractData.nomeCliente || statementData.nomeCliente || '';
+                const codiceFiscale = contractData.codiceFiscale || statementData.codiceFiscale || '';
+                const dataNascita = contractData.dataNascita || statementData.dataNascita || '';
+                const luogoNascita = contractData.luogoNascita || statementData.luogoNascita || '';
+                const importoRimborso = statementData.importo || contractData.importo || '';
 
                 // Analisi percentuale
-                const analisiPercentuale = datiContratto.analisiPercentuale.valore > datiConteggio.analisiPercentuale.valore
-                    ? datiContratto.analisiPercentuale
-                    : datiConteggio.analisiPercentuale;
+                const analisiPercentuale = (contractAnalysis.valore || 0) > (statementAnalysis.valore || 0)
+                    ? contractAnalysis
+                    : statementAnalysis;
 
                 // Generazione lettera
-                const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
+                const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
 
                 setLetterContent(lettera);
                 setResult({
@@ -236,14 +257,12 @@ export default function DashboardPage() {
                 }
 
             } else {
-                // Placeholder for other workflows
-                // For now, we simulate a successful "Generic Analysis" result
+                // ... (Other workflows simulation logic remains similar or can be updated) ...
                 await new Promise(resolve => setTimeout(resolve, 2000));
+                // ... (keeping existing dummy logic for now)
 
-                const file = Object.values(inputFiles)[0]; // Take first file
-
+                const file = Object.values(inputFiles)[0];
                 const dummyContent = `Generato report per workflow: ${selectedWorkflow.name}\n\nDocumento analizzato: ${file?.name}\n\nAnalisi preliminare:\n- Rispetto normative: In verifica\n- Clausole vessatorie: Nessuna rilevata (Simulazione)\n\nQuesta funzionalità è in fase di sviluppo.`;
-
                 setLetterContent(dummyContent);
                 setResult({
                     lettera: dummyContent,
@@ -260,7 +279,6 @@ export default function DashboardPage() {
                     analisiPercentuale: { valore: 0, stato: 'INFO' }
                 });
                 setIsEditing(true);
-
                 if (user) {
                     const docName = `${selectedWorkflow.name} ${file?.name} #${history.length + 1}`;
                     await saveUserHistory(user.uid, docName, {
@@ -273,6 +291,7 @@ export default function DashboardPage() {
             }
 
         } catch (err) {
+            console.error("Extraction Error:", err);
             setError(err instanceof Error ? err.message : "UNKNOWN ERROR OCCURRED");
         } finally {
             setIsLoading(false);
