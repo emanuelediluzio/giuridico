@@ -110,9 +110,24 @@ export default function DashboardPage() {
         return () => unsubscribe();
     }, [router]);
 
+    // Puter Type Definition
+    interface PuterInstance {
+        auth: {
+            signIn: () => Promise<void>;
+            isSignedIn: () => boolean;
+            signOut: () => Promise<void>;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            user: any;
+        };
+        ai: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            chat: (messages: any[], options?: any) => Promise<any>;
+        };
+    }
+
     // Puter Auth State
     const [isPuterAuthenticated, setIsPuterAuthenticated] = useState<boolean>(true); // Default to true to avoid flash, check on mount
-    const [puterInstance, setPuterInstance] = useState<any>(null);
+    const [puterInstance, setPuterInstance] = useState<PuterInstance | null>(null);
 
     React.useEffect(() => {
         const checkPuterAuth = async () => {

@@ -7,6 +7,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 const PDFJS_VERSION = '3.11.174'; // Check your package.json for exact version, using latest stable for now or generic matching
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
 
+// Minimal interface for PDF.js item
+interface TextItem {
+    str: string;
+}
+
 export async function extractTextFromPDFClient(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
 
@@ -23,7 +28,7 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
 
         // Extract text items and join them
         const pageText = textContent.items
-            .map((item: any) => item.str)
+            .map((item: TextItem | any) => (item as TextItem).str || "") // Fallback for mixed items
             .join(' ');
 
         fullText += pageText + '\n\n';
@@ -32,7 +37,15 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
     return fullText;
 }
 
-export async function analysisWithPuterClient(text: string, puterInstance: any): Promise<{ valore: number | null; stato: string }> {
+// Minimal interface for Puter
+interface PuterInstance {
+    ai: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        chat: (prompt: string | any[], options?: any) => Promise<any>;
+    };
+}
+
+export async function analysisWithPuterClient(text: string, puterInstance: PuterInstance): Promise<{ valore: number | null; stato: string }> {
     if (!puterInstance) throw new Error("Puter instance not initialized");
 
     const prompt = `Analizza questo testo estratto da un documento legale (Cessione del Quinto).
