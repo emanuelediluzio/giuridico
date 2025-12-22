@@ -106,6 +106,35 @@ export default function DashboardPage() {
         return () => unsubscribe();
     }, [router]);
 
+    // Puter Auth State
+    const [isPuterAuthenticated, setIsPuterAuthenticated] = useState<boolean>(true); // Default to true to avoid flash, check on mount
+    const [puterInstance, setPuterInstance] = useState<any>(null);
+
+    React.useEffect(() => {
+        const checkPuterAuth = async () => {
+            try {
+                const puter = (await import('@heyputer/puter.js')).default;
+                setPuterInstance(puter);
+                const signedIn = puter.auth.isSignedIn();
+                setIsPuterAuthenticated(signedIn);
+            } catch (err) {
+                console.error("Puter Auth Check Failed", err);
+            }
+        };
+        checkPuterAuth();
+    }, []);
+
+    const handleConnectPuter = async () => {
+        if (!puterInstance) return;
+        try {
+            await puterInstance.auth.signIn();
+            setIsPuterAuthenticated(true);
+        } catch (err) {
+            console.error("Puter Sign In Failed", err);
+            setError("AI CONNECTION FAILED. POPUP BLOCKED?");
+        }
+    };
+
     const handleWorkflowChange = (workflow: WorkflowConfig) => {
         setSelectedWorkflow(workflow);
         setInputFiles({}); // Reset files on workflow change
@@ -253,7 +282,42 @@ export default function DashboardPage() {
 
 
     return (
-        <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white">
+        <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white relative">
+
+            {/* AI CONNECTION OVERLAY */}
+            {!isPuterAuthenticated && (
+                <div className="absolute inset-0 z-50 bg-[#0c0c0c]/95 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-[#111] border border-[#333] p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+                        {/* Decorative Corners */}
+                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-emerald-500"></div>
+                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-emerald-500"></div>
+                        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-emerald-500"></div>
+                        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-emerald-500"></div>
+
+                        <div className="mb-6">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 mb-4 animate-pulse">
+                                <ShieldCheck size={24} />
+                            </div>
+                            <h2 className="text-xl font-bold text-white tracking-widest mb-2">AI CORE REQUIRED</h2>
+                            <p className="text-gray-400 text-xs font-mono">
+                                Lexa requires an active connection to the Neural Engine (Puter.js) to function.
+                                Please authorize the connection to proceed.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={handleConnectPuter}
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold uppercase tracking-widest py-3 text-xs transition-colors flex items-center justify-center gap-2"
+                        >
+                            CONNECT AI SERVICES
+                        </button>
+
+                        <div className="mt-4 text-[10px] text-gray-600 font-mono uppercase">
+                            Secure Handshake Protocol v1.0
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* SIDEBAR - SPLIT LAYOUT (50/50) */}
             <aside className="w-[300px] border-r border-[#333] flex flex-col shrink-0 h-full">
