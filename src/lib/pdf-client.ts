@@ -60,7 +60,7 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
     Testo:
     ${text.substring(0, 5000)}... (troncato)`;
 
-    const response = await puterInstance.ai.chat(prompt, { model: 'gemini-1.5-flash' });
+    const response = await puterInstance.ai.chat([{ role: 'user', content: prompt }], { model: 'gemini-2.5-flash' });
 
     // Parse response
     let content = "";

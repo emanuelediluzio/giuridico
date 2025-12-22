@@ -78,7 +78,7 @@ export default function ChatInterface({ context, initialMessages = [], onMessage
             const fullHistory = [systemMsg, ...history, userMsg];
 
             const response = await puter.ai.chat(fullHistory, {
-                model: 'gemini-1.5-flash'
+                model: 'gemini-2.5-flash'
             });
 
             let text = "";
