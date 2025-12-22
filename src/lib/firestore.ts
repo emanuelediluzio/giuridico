@@ -1,27 +1,47 @@
 import { db } from "./firebase";
-import { collection, addDoc, query, getDocs, orderBy, Timestamp } from "firebase/firestore";
+import { collection, addDoc, query, getDocs, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore";
+
+export interface Message {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+}
 
 export interface HistoryItem {
     id?: string;
     name: string;
     date: string;
     timestamp: Timestamp;
-    resultData?: Record<string, unknown>; // To store the full analysis result if needed
+    resultData?: Record<string, unknown>; // To store the full analysis result
+    chatMessages?: Message[];
 }
 
-export const saveUserHistory = async (userId: string, itemName: string, resultData?: Record<string, unknown>) => {
-    if (!db) return;
+export const saveUserHistory = async (userId: string, itemName: string, resultData?: Record<string, unknown>, chatMessages?: Message[]): Promise<string | null> => {
+    if (!db) return null;
     try {
         const historyRef = collection(db, "users", userId, "history");
-        await addDoc(historyRef, {
+        const docRef = await addDoc(historyRef, {
             name: itemName,
             date: new Date().toISOString().split('T')[0],
             timestamp: Timestamp.now(),
-            resultData: resultData || {}
+            resultData: resultData || {},
+            chatMessages: chatMessages || []
         });
-        console.log("History saved to Firestore");
+        console.log("History saved to Firestore with ID:", docRef.id);
+        return docRef.id;
     } catch (error) {
         console.error("Error saving history:", error);
+        return null;
+    }
+};
+
+export const updateUserHistory = async (userId: string, docId: string, data: Partial<HistoryItem>) => {
+    if (!db) return;
+    try {
+        const docRef = doc(db, "users", userId, "history", docId);
+        await updateDoc(docRef, data);
+        console.log("History updated:", docId);
+    } catch (error) {
+        console.error("Error updating history:", error);
     }
 };
 

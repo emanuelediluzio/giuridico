@@ -7,7 +7,7 @@ import RegulatoryFeed from '../components/RegulatoryFeed';
 import { PERSONAS, PersonaConfig } from '@/types/lexa';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { saveUserHistory, getUserHistory, HistoryItem } from '@/lib/firestore';
+import { saveUserHistory, getUserHistory, updateUserHistory, HistoryItem } from '@/lib/firestore';
 import { WORKFLOWS, WorkflowConfig } from '@/types/workflows';
 import {
     Calculator,
@@ -88,6 +88,10 @@ export default function DashboardPage() {
 
     // History state
     const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
+    const [chatMessages, setChatMessages] = useState<any[]>([]);
+
+
 
     // Auth & History Effect
     React.useEffect(() => {
@@ -135,6 +139,7 @@ export default function DashboardPage() {
         }
     };
 
+
     const handleWorkflowChange = (workflow: WorkflowConfig) => {
         setSelectedWorkflow(workflow);
         setInputFiles({}); // Reset files on workflow change
@@ -142,6 +147,36 @@ export default function DashboardPage() {
         setResult(null);
         setLetterContent('');
         setIsEditing(false);
+        setCurrentHistoryId(null);
+        setChatMessages([]);
+    };
+
+    const loadHistoryItem = (item: HistoryItem) => {
+        setCurrentHistoryId(item.id || null);
+        // Restore Data if available
+        if (item.resultData) {
+            // Reconstruct ResultData structure from generic record if needed
+            // Assuming direct mapping:
+            setResult(item.resultData as ResultData);
+            setLetterContent(item.resultData.lettera as string || '');
+            setIsEditing(false); // Mode view
+
+            // Restore Workflow context (optional, or infer from data?) 
+            // For now, we stay on current workflow or switch? 
+            // Ideally we should store workflow ID in history too. 
+            // For simplicity, we just load the data into the current view.
+        }
+        // Restore Chat
+        setChatMessages(item.chatMessages || []);
+        setActiveTab('editor'); // Default back to editor
+    };
+
+    const handleChatUpdate = async (newMessages: any[]) => {
+        setChatMessages(newMessages);
+        if (user && currentHistoryId) {
+            // Save to Firestore (Fire and Forget)
+            updateUserHistory(user.uid, currentHistoryId, { chatMessages: newMessages });
+        }
     };
 
     const handleFileChange = (inputId: string) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -185,6 +220,9 @@ export default function DashboardPage() {
             const { extractTextFromPDFClient, analysisWithPuterClient } = await import('../lib/pdf-client');
             const { parseNanonetsMarkdown } = await import('../lib/nanonets');
 
+            let newResult: ResultData | null = null;
+            let generatedLetter = "";
+
             if (selectedWorkflow.id === 'CESSIONE_QUINTO') {
                 const contract = inputFiles['contract'];
                 const statement = inputFiles['statement'];
@@ -221,11 +259,10 @@ export default function DashboardPage() {
                     : statementAnalysis;
 
                 // Generazione lettera
-                const lettera = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
+                generatedLetter = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
 
-                setLetterContent(lettera);
-                setResult({
-                    lettera,
+                newResult = {
+                    lettera: generatedLetter,
                     dati: {
                         nomeCliente,
                         codiceFiscale,
@@ -237,38 +274,18 @@ export default function DashboardPage() {
                         costiTotali: 0
                     },
                     analisiPercentuale
-                });
-                setIsEditing(true);
-
-                // Persistence Logic
-                if (user) {
-                    const baseName = contract ? contract.name.replace('.pdf', '') : 'Analisi';
-                    const clientName = nomeCliente && nomeCliente !== 'XXXXX' ? nomeCliente : null;
-                    const smartName = clientName ? `Analisi ${clientName}` : baseName;
-                    const count = history.length + 1;
-                    const docName = `${smartName} #${count}`;
-
-                    await saveUserHistory(user.uid, docName, {
-                        analysis: analisiPercentuale,
-                        letter: lettera.substring(0, 100) + "..."
-                    });
-                    const updatedHistory = await getUserHistory(user.uid);
-                    setHistory(updatedHistory);
-                }
+                };
 
             } else {
-                // ... (Other workflows simulation logic remains similar or can be updated) ...
+                // Simulate other workflows
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                // ... (keeping existing dummy logic for now)
-
                 const file = Object.values(inputFiles)[0];
-                const dummyContent = `Generato report per workflow: ${selectedWorkflow.name}\n\nDocumento analizzato: ${file?.name}\n\nAnalisi preliminare:\n- Rispetto normative: In verifica\n- Clausole vessatorie: Nessuna rilevata (Simulazione)\n\nQuesta funzionalità è in fase di sviluppo.`;
-                setLetterContent(dummyContent);
-                setResult({
-                    lettera: dummyContent,
+                generatedLetter = `Generato report per workflow: ${selectedWorkflow.name}\n\nDocumento: ${file?.name}\n\n... (Simulated content)`;
+                newResult = {
+                    lettera: generatedLetter,
                     dati: {
                         nomeCliente: 'Demo User',
-                        codiceFiscale: 'DEMO12345',
+                        codiceFiscale: 'DEMO',
                         dataNascita: '',
                         luogoNascita: '',
                         importoRimborso: 'N/A',
@@ -277,18 +294,32 @@ export default function DashboardPage() {
                         costiTotali: 0
                     },
                     analisiPercentuale: { valore: 0, stato: 'INFO' }
-                });
-                setIsEditing(true);
-                if (user) {
-                    const docName = `${selectedWorkflow.name} ${file?.name} #${history.length + 1}`;
-                    await saveUserHistory(user.uid, docName, {
-                        analysis: { valore: 0, stato: 'INFO' },
-                        letter: dummyContent.substring(0, 100) + "..."
-                    });
-                    const updatedHistory = await getUserHistory(user.uid);
-                    setHistory(updatedHistory);
-                }
+                };
             }
+
+            setLetterContent(generatedLetter);
+            setResult(newResult);
+            setIsEditing(true);
+            setChatMessages([]); // Reset chat for new run
+            setCurrentHistoryId(null); // Reset ID until saved
+
+            // Persistence
+            if (user && newResult) {
+                const file1 = Object.values(inputFiles)[0];
+                const baseName = file1 ? file1.name.replace('.pdf', '') : 'Analisi';
+                const clientName = newResult.dati?.nomeCliente && newResult.dati?.nomeCliente !== 'XXXXX' ? newResult.dati?.nomeCliente : null;
+                const smartName = clientName ? `Analisi ${clientName}` : baseName;
+                const count = history.length + 1;
+                const docName = `${smartName} #${count}`;
+
+                const docId = await saveUserHistory(user.uid, docName, newResult, []); // Empty chat initially
+                if (docId) {
+                    setCurrentHistoryId(docId);
+                }
+                const updatedHistory = await getUserHistory(user.uid);
+                setHistory(updatedHistory);
+            }
+
 
         } catch (err) {
             console.error("Extraction Error:", err);
@@ -348,11 +379,15 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
                         {history.map((item) => (
-                            <div key={item.id} className="group flex items-center justify-between p-2 rounded-sm hover:bg-[#222] cursor-pointer transition-colors">
+                            <div
+                                key={item.id}
+                                onClick={() => loadHistoryItem(item)}
+                                className={`group flex items-center justify-between p-2 rounded-sm cursor-pointer transition-colors ${currentHistoryId === item.id ? 'bg-emerald-900/20 border border-emerald-500/30' : 'hover:bg-[#222] border border-transparent'}`}
+                            >
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <IconFile />
                                     <div className="flex flex-col min-w-0">
-                                        <span className="text-sm font-medium truncate text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
+                                        <span className={`text-sm font-medium truncate transition-colors ${currentHistoryId === item.id ? 'text-emerald-400' : 'text-gray-300 group-hover:text-white'}`}>{item.name}</span>
                                         <span className="text-[10px] text-gray-600 font-mono">{item.date}</span>
                                     </div>
                                 </div>
@@ -634,7 +669,11 @@ export default function DashboardPage() {
 
                             {/* CHAT TAB */}
                             {activeTab === 'chat' && (
-                                <ChatInterface context={letterContent || "Nessun documento processato ancora."} />
+                                <ChatInterface
+                                    context={letterContent || "Nessun documento processato ancora."}
+                                    initialMessages={chatMessages}
+                                    onMessagesUpdate={handleChatUpdate}
+                                />
                             )}
 
                         </div>

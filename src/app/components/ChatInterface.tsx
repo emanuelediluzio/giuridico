@@ -9,15 +9,40 @@ interface Message {
 
 interface ChatInterfaceProps {
     context: string; // The text of the document/letter currently being edited
+    initialMessages?: Message[];
+    onMessagesUpdate?: (messages: Message[]) => void;
 }
 
-export default function ChatInterface({ context }: ChatInterfaceProps) {
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Ciao! Sono Lexa Chat. Come posso aiutarti con questo documento?' }
-    ]);
+export default function ChatInterface({ context, initialMessages = [], onMessagesUpdate }: ChatInterfaceProps) {
+    const defaultMessage: Message = { role: 'assistant', content: 'Ciao! Sono Lexa Chat. Come posso aiutarti con questo documento?' };
+
+    // Initialize with props or default. 
+    // IMPORTANT: If initialMessages changes (e.g. switching history), we must update state.
+    const [messages, setMessages] = useState<Message[]>(
+        initialMessages.length > 0 ? initialMessages : [defaultMessage]
+    );
+
+    // Sync state when prop changes (loading history)
+    useEffect(() => {
+        if (initialMessages.length > 0) {
+            setMessages(initialMessages);
+        } else {
+            // If expressly empty (reset), revert to default? Or keep empty? 
+            // Usually switching to a new doc might pass empty array.
+            setMessages([defaultMessage]);
+        }
+    }, [initialMessages]);
+
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Notify parent on change
+    useEffect(() => {
+        if (onMessagesUpdate) {
+            onMessagesUpdate(messages);
+        }
+    }, [messages, onMessagesUpdate]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -29,12 +54,14 @@ export default function ChatInterface({ context }: ChatInterfaceProps) {
         if (!input.trim()) return;
 
         const userMsg: Message = { role: 'user', content: input };
+
+        // Optimistic update
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
 
         try {
-            // Import Puter dynamically to ensure client-side execution
+            // Import Puter dynamically
             const puter = (await import('@heyputer/puter.js')).default;
 
             const history = messages.map(m => ({
