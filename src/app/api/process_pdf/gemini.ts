@@ -1,6 +1,6 @@
-import puter from 'puter';
+import puter from '@heyputer/puter.js';
 
-export async function processWithMistralChat(systemPrompt: string, userPrompt: string): Promise<{ lettera: string; calcoli: string | null }> {
+export async function processWithGeminiChat(systemPrompt: string, userPrompt: string): Promise<{ lettera: string; calcoli: string | null }> {
   try {
     // Timeout of 25 seconds
     const timeoutPromise = new Promise((_, reject) => {

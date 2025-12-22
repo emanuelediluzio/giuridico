@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractTextFromPDF } from '../process_pdf';
-import { processWithMistralChat } from '../process_pdf/mistral';
+import { processWithGeminiChat } from '../process_pdf/gemini';
 import { calcolaRimborso, generaLettera } from '../../../lib/parsing';
 
 export const maxDuration = 30; // Ridotto il timeout
 
 export async function POST(req: NextRequest) {
   console.log("[API CQS] Ricevuta richiesta POST");
-  
+
   try {
     const formData = await req.formData();
     console.log("[API CQS] FormData ricevuto");
@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
     // Calcolo rimborso con dati estratti
     console.log("[API CQS] Calcolo rimborso...");
     const datiRimborso = calcolaRimborso(contractText, statementText);
-    
+
     // Formattazione importo
-    const importoFormattato = datiRimborso.rimborso > 0 
+    const importoFormattato = datiRimborso.rimborso > 0
       ? `${datiRimborso.rimborso.toFixed(2).replace('.', ',')} €`
       : '0,00 €';
 
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
 
     // Se la lettera generata contiene ancora molti placeholder, usa Mistral come fallback
     const placeholderCount = (letteraGenerata.match(/XXXXX|XXXXXX|XXX|____/g) || []).length;
-    
+
     if (placeholderCount > 5) {
       console.log("[API CQS] Troppi placeholder, uso Mistral come fallback...");
-      
+
       const systemPrompt = "Sei un assistente legale. Genera una lettera di diffida basata sui documenti forniti, sostituendo tutti i placeholder con i dati reali.";
       const userPrompt = `Genera una lettera di diffida basata su:
 
@@ -83,12 +83,12 @@ DATI ESTRATTI:
 
 Sostituisci tutti i placeholder (XXXXX, XXXXXX, XXX, ____) con i dati reali forniti. Genera solo la lettera, senza commenti aggiuntivi.`;
 
-      const result = await processWithMistralChat(systemPrompt, userPrompt);
+      const result = await processWithGeminiChat(systemPrompt, userPrompt);
       return NextResponse.json(result);
     }
 
     console.log("[API CQS] Lettera generata con successo");
-    return NextResponse.json({ 
+    return NextResponse.json({
       lettera: letteraGenerata,
       dati: {
         nomeCliente: datiRimborso.nomeCliente,
@@ -102,7 +102,7 @@ Sostituisci tutti i placeholder (XXXXX, XXXXXX, XXX, ____) con i dati reali forn
 
   } catch (error) {
     console.error("[API CQS] Errore:", error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: error instanceof Error ? error.message : 'Errore sconosciuto',
       lettera: "Si è verificato un errore durante la generazione della lettera. Riprova più tardi."
     }, { status: 500 });

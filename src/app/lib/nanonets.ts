@@ -8,8 +8,8 @@ export async function estraiTestoNanonetsOCR(file: File, _hfToken: string): Prom
   formData.append('file', file);
   formData.append('threshold', '50'); // Soglia di default per l'analisi percentuale
 
-  // Usa la route API locale OCR Mistral
-  const response = await fetch('/api/ocr-mistral', {
+  // Usa la route API locale OCR Gemini
+  const response = await fetch('/api/ocr-gemini', {
     method: 'POST',
     body: formData
   });
@@ -92,7 +92,7 @@ export async function estraiDatiMistral(file: File): Promise<{
   formData.append('file', file);
   formData.append('threshold', '50');
 
-  const response = await fetch('/api/ocr-mistral', {
+  const response = await fetch('/api/ocr-gemini', {
     method: 'POST',
     body: formData
   });

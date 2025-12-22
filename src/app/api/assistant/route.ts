@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import puter from 'puter';
+import puter from '@heyputer/puter.js';
 
 // Force Node.js runtime to support 'https' module used by puter
 export const runtime = 'nodejs';
