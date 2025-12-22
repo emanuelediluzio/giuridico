@@ -7,7 +7,7 @@ import RegulatoryFeed from '../components/RegulatoryFeed';
 import { PERSONAS, PersonaConfig } from '@/types/lexa';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { saveUserHistory, getUserHistory, updateUserHistory, HistoryItem } from '@/lib/firestore';
+import { saveUserHistory, getUserHistory, updateUserHistory, HistoryItem, Message } from '@/lib/firestore';
 import { WORKFLOWS, WorkflowConfig } from '@/types/workflows';
 import {
     Calculator,
@@ -89,7 +89,7 @@ export default function DashboardPage() {
     // History state
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
-    const [chatMessages, setChatMessages] = useState<any[]>([]);
+    const [chatMessages, setChatMessages] = useState<Message[]>([]);
 
 
 
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         setActiveTab('editor'); // Default back to editor
     };
 
-    const handleChatUpdate = async (newMessages: any[]) => {
+    const handleChatUpdate = async (newMessages: Message[]) => {
         setChatMessages(newMessages);
         if (user && currentHistoryId) {
             // Save to Firestore (Fire and Forget)
