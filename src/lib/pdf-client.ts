@@ -88,6 +88,13 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
 
     // Uses gemini-2.5-flash with simple string prompt to match successful script usage
     console.log(`[DEBUG] Sending text to AI (Length: ${text.length}). Snippet: ${text.substring(0, 100)}...`);
+
+    // Guard Clause: If text is empty or very short, don't waste AI call
+    if (!text || text.trim().length < 20) {
+        console.warn("[DEBUG] Text is empty or too short. Skipping AI analysis.");
+        return { valore: null, stato: 'NO' };
+    }
+
     const response = await finalPuter.ai.chat(prompt, { model: 'gemini-2.5-flash' });
 
     // Parse response
@@ -99,10 +106,15 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
     console.log("[DEBUG] Raw AI Response:", content);
 
     try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        // More robust JSON regex: match { ... } potentially across multiple lines
+        const jsonMatch = content.match(/\{[\s\S]*?\}/);
         if (jsonMatch) {
             console.log("[DEBUG] JSON Match Found:", jsonMatch[0]);
-            return JSON.parse(jsonMatch[0]);
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch (e2) {
+                console.error("[DEBUG] JSON Parse Failed (inner):", e2);
+            }
         } else {
             console.warn("[DEBUG] No JSON found in response");
         }
