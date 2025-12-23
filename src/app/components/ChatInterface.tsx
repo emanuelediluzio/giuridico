@@ -67,9 +67,15 @@ export default function ChatInterface({ context, initialMessages = [], onMessage
                 Answer professionally in Italian.`
             };
 
-            const fullHistory = [systemMsg, ...history, userMsg];
+            // Use messages state and current user message to build history
+            // Use string prompt for Puter v2 script compatibility
+            const conversationHistory = [
+                `System: ${systemMsg.content}`,
+                ...messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`),
+                `User: ${userMsg.content}`
+            ].join('\n\n');
 
-            const response = await puter.ai.chat(fullHistory, {
+            const response = await window.puter.ai.chat(conversationHistory, {
                 model: 'gemini-2.5-flash'
             });
 
