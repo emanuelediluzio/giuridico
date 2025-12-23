@@ -64,8 +64,8 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
     Testo:
     ${text.substring(0, 5000)}... (troncato)`;
 
-    // Uses gemini-2.5-flash as requested by user based on LOCR usage
-    const response = await finalPuter.ai.chat([{ role: 'user', content: prompt }], { model: 'gemini-2.5-flash' });
+    // Uses gemini-2.5-flash with simple string prompt to match successful script usage
+    const response = await finalPuter.ai.chat(prompt, { model: 'gemini-2.5-flash' });
 
     // Parse response
     let content = "";
