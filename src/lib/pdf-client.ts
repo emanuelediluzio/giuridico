@@ -4,8 +4,7 @@
 // Use a specific version matching the installed package to avoid version mismatch errors
 // In a real app, ensure this matches package.json version.
 // Using unpkg cdn for the worker.
-const PDFJS_VERSION = '3.11.174'; // Check your package.json for exact version, using latest stable for now or generic matching
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+
 
 // Minimal interface for PDF.js item
 interface TextItem {
