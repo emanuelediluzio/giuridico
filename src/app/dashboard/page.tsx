@@ -1,103 +1,5 @@
-// Settings State
-const [showSettings, setShowSettings] = useState(false);
-const [lawyerName, setLawyerName] = useState("Avv. Gabriele Scappaticci");
-
-// Load Settings from LocalStorage
-React.useEffect(() => {
-    const savedName = localStorage.getItem('lexa_lawyer_name');
-    if (savedName) setLawyerName(savedName);
-}, []);
-
-const saveSettings = () => {
-    localStorage.setItem('lexa_lawyer_name', lawyerName);
-    setShowSettings(false);
-};
-
-// ... (rest of imports and useEffects)
-
-// Update generateLetter to use dynamic name
-const handleSubmit = async () => {
-    // ... (validation logic) ...
-    try {
-        // ... existing extraction ...
-        // ...
-        // UPDATED LETTER GENERATION
-        generatedLetter = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\n${lawyerName}`;
-        // ...
-    }
-        // ...
-    };
-
-return (
-    <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white relative">
-
-        {/* SETTINGS MODAL */}
-        {showSettings && (
-            <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-[#111] border border-[#333] p-6 max-w-sm w-full shadow-2xl">
-                    <h3 className="text-lg font-mono font-bold text-white mb-4 uppercase tracking-widest">Settings</h3>
-
-                    <div className="mb-6">
-                        <label className="block text-xs text-gray-500 font-mono mb-2 uppercase">Nome Avvocato / Studio</label>
-                        <input
-                            type="text"
-                            value={lawyerName}
-                            onChange={(e) => setLawyerName(e.target.value)}
-                            className="w-full bg-[#1a1a1a] border border-[#333] p-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
-                            placeholder="Es. Avv. Mario Rossi"
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setShowSettings(false)}
-                            className="px-4 py-2 text-xs font-mono text-gray-500 hover:text-white uppercase tracking-widest"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={saveSettings}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-black text-xs font-bold font-mono uppercase tracking-widest"
-                        >
-                            Save Changes
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* ... Sidebar ... */}
-
-        {/* MAIN CONTENT Area */}
-        <main className="flex-1 flex flex-col min-w-0">
-
-            {/* HEADER */}
-            <header className="h-14 border-b border-[#333] flex items-center justify-between px-6 bg-[#111]">
-                {/* ... Left part ... */}
-                <div className="flex items-center gap-2 font-mono text-sm">
-                    {/* ... */}
-                </div>
-
-                <div className="flex items-center gap-4">
-                    {/* SETTINGS BUTTON */}
-                    <button
-                        onClick={() => setShowSettings(true)}
-                        className="text-gray-500 hover:text-white transition-colors"
-                        title="Settings"
-                    >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
-
-                    <select ... >
-                    {/* ... */}
-                </select>
-
-                <button ... >Disconnect</button>
-    </div>
-                </header >
-
-    {/* ... Rest of code ... */ }
-
+"use client";
+import React, { useState, ChangeEvent } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import 'react-quill-new/dist/quill.snow.css';
@@ -178,6 +80,21 @@ export default function DashboardPage() {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [selectedPersona, setSelectedPersona] = useState<PersonaConfig>(PERSONAS[0]);
     const [user, setUser] = useState<User | null>(null);
+
+    // Settings State
+    const [showSettings, setShowSettings] = useState(false);
+    const [lawyerName, setLawyerName] = useState("Avv. Gabriele Scappaticci");
+
+    // Load Settings from LocalStorage
+    React.useEffect(() => {
+        const savedName = localStorage.getItem('lexa_lawyer_name');
+        if (savedName) setLawyerName(savedName);
+    }, []);
+
+    const saveSettings = () => {
+        localStorage.setItem('lexa_lawyer_name', lawyerName);
+        setShowSettings(false);
+    };
 
     // State for Tabs
     const [activeTab, setActiveTab] = useState<'editor' | 'chat'>('editor');
@@ -389,7 +306,7 @@ export default function DashboardPage() {
                     : statementAnalysis;
 
                 // Generazione lettera
-                generatedLetter = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\nAvv. Gabriele Scappaticci`;
+                generatedLetter = `Oggetto: Richiesta di rimborso ai sensi dell'Art. 125 sexies T.U.B.\n\nGentile Direzione,\n\nIl sottoscritto/a ${nomeCliente || 'XXXXX'}, codice fiscale ${codiceFiscale || 'XXXXX'}, nato/a a ${luogoNascita || 'XXXXX'} il ${dataNascita || 'XXXXX'},\nrichiede il rimborso delle somme pagate in eccesso in relazione al contratto di cessione del quinto.\n\nDall'analisi dei documenti risulta che sono state pagate rate per un importo superiore a quello dovuto.\n\nSi richiede pertanto il rimborso immediato delle somme pagate in eccesso, pari a ${importoRimborso || '0,00 €'}, unitamente agli interessi di legge.\n\nIn attesa di un vostro riscontro, si porgono distinti saluti.\n${lawyerName}`;
 
                 newResult = {
                     lettera: generatedLetter,
@@ -433,6 +350,12 @@ export default function DashboardPage() {
             setChatMessages([]); // Reset chat for new run
             setCurrentHistoryId(null); // Reset ID until saved
 
+            // Validation Warning
+            const isGenericData = newResult.dati?.nomeCliente === 'XXXXX' || newResult.dati?.importoRimborso === '0,00 €';
+            if (isGenericData) {
+                setError("ATTENZIONE: Dati non trovati. Verifica di aver caricato il Contratto e il Conteggio corretti.");
+            }
+
             // UNBLOCK UI IMMEDIATELY
             setIsLoading(false);
 
@@ -463,11 +386,9 @@ export default function DashboardPage() {
                 })();
             }
 
-
         } catch (err) {
             console.error("Extraction Error:", err);
             setError(err instanceof Error ? err.message : "UNKNOWN ERROR OCCURRED");
-        } finally {
             setIsLoading(false);
         }
     };
@@ -476,6 +397,41 @@ export default function DashboardPage() {
 
     return (
         <div className="flex h-screen w-full bg-[#111] overflow-hidden text-white font-sans selection:bg-emerald-500 selection:text-white relative">
+
+            {/* SETTINGS MODAL */}
+            {showSettings && (
+                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-[#111] border border-[#333] p-6 max-w-sm w-full shadow-2xl">
+                        <h3 className="text-lg font-mono font-bold text-white mb-4 uppercase tracking-widest">Settings</h3>
+
+                        <div className="mb-6">
+                            <label className="block text-xs text-gray-500 font-mono mb-2 uppercase">Nome Avvocato / Studio</label>
+                            <input
+                                type="text"
+                                value={lawyerName}
+                                onChange={(e) => setLawyerName(e.target.value)}
+                                className="w-full bg-[#1a1a1a] border border-[#333] p-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                                placeholder="Es. Avv. Mario Rossi"
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowSettings(false)}
+                                className="px-4 py-2 text-xs font-mono text-gray-500 hover:text-white uppercase tracking-widest"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={saveSettings}
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-black text-xs font-bold font-mono uppercase tracking-widest"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* AI CONNECTION OVERLAY */}
             {!isPuterAuthenticated && (
@@ -578,6 +534,15 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        {/* SETTINGS BUTTON */}
+                        <button
+                            onClick={() => setShowSettings(true)}
+                            className="text-gray-500 hover:text-white transition-colors"
+                            title="Settings"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+
                         <select
                             value={selectedPersona.id}
                             onChange={(e) => {
@@ -716,7 +681,6 @@ export default function DashboardPage() {
                                     <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1 rounded">BETA</span>
                                 </button>
                             </div>
-
                             {/* AI SCORE Removed */}
                         </div>
 
