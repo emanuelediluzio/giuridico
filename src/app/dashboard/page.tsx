@@ -96,6 +96,32 @@ export default function DashboardPage() {
 
     // Auth & History Effect
     React.useEffect(() => {
+        const isGuest = localStorage.getItem('lexa_guest_mode') === 'true';
+
+        if (isGuest) {
+            // Mock user for Guest Mode
+            setUser({
+                uid: 'guest_user',
+                email: 'guest@lexa.ai',
+                displayName: 'Guest User',
+                emailVerified: true,
+                isAnonymous: true,
+                metadata: {},
+                providerData: [],
+                refreshToken: '',
+                tenantId: null,
+                delete: async () => { },
+                getIdToken: async () => '',
+                getIdTokenResult: async () => ({} as any),
+                reload: async () => { },
+                toJSON: () => ({}),
+                phoneNumber: null,
+                photoURL: null,
+                providerId: 'guest'
+            });
+            return;
+        }
+
         if (!auth) return;
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (currentUser) {

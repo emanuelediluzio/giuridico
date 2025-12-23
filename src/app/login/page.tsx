@@ -105,6 +105,16 @@ export default function LoginPage() {
                             )}
                         </button>
 
+                        <button
+                            onClick={() => {
+                                localStorage.setItem('lexa_guest_mode', 'true');
+                                router.push('/dashboard');
+                            }}
+                            className="w-full bg-transparent border border-[#333] hover:border-emerald-500 text-gray-400 hover:text-emerald-500 font-mono uppercase tracking-widest py-3 text-[10px] transition-colors mt-3"
+                        >
+                            [ ENTER AS GUEST / DEV MODE ]
+                        </button>
+
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-[#222] flex justify-between items-center text-[10px] text-gray-600 uppercase tracking-wider">
