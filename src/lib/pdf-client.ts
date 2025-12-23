@@ -87,6 +87,7 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
     ${text.substring(0, 5000)}... (troncato)`;
 
     // Uses gemini-2.5-flash with simple string prompt to match successful script usage
+    console.log(`[DEBUG] Sending text to AI (Length: ${text.length}). Snippet: ${text.substring(0, 100)}...`);
     const response = await finalPuter.ai.chat(prompt, { model: 'gemini-2.5-flash' });
 
     // Parse response
@@ -95,9 +96,16 @@ export async function analysisWithPuterClient(text: string, puterInstance: Puter
     else if (response?.message?.content) content = response.message.content;
     else content = JSON.stringify(response);
 
+    console.log("[DEBUG] Raw AI Response:", content);
+
     try {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) return JSON.parse(jsonMatch[0]);
+        if (jsonMatch) {
+            console.log("[DEBUG] JSON Match Found:", jsonMatch[0]);
+            return JSON.parse(jsonMatch[0]);
+        } else {
+            console.warn("[DEBUG] No JSON found in response");
+        }
     } catch (e) {
         console.error("Failed to parse Puter analysis", e);
     }
