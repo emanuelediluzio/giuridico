@@ -5,8 +5,9 @@
 :root {
   --background: #111111;
   --foreground: #ffffff;
-  
-  --primary: #10B981; /* Emerald 500 */
+
+  --primary: #10B981;
+  /* Emerald 500 */
   --primary-foreground: #ffffff;
 
   --secondary: #333333;
@@ -14,8 +15,9 @@
 
   --border: #333333;
   --input: #1a1a1a;
-  
-  --destructive: #F43F5E; /* Rose 500 */
+
+  --destructive: #F43F5E;
+  /* Rose 500 */
   --destructive-foreground: #ffffff;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -60,7 +62,7 @@ body {
   .btn-primary {
     @apply bg-[#111] text-emerald-500 border border-[#333] px-6 py-2 rounded-none uppercase tracking-widest text-sm font-mono hover:bg-emerald-500 hover:text-white transition-colors duration-200;
   }
-  
+
   .btn-destructive {
     @apply bg-[#111] text-rose-500 border border-[#333] px-6 py-2 rounded-none uppercase tracking-widest text-sm font-mono hover:bg-rose-500 hover:text-white transition-colors duration-200;
   }
@@ -76,8 +78,46 @@ body {
   .card-technical {
     @apply bg-[#111] border border-[#333] p-4;
   }
-  
+
   .mono-label {
     @apply font-mono text-xs uppercase tracking-widest text-gray-500 mb-2 block;
   }
+}
+
+/* REACT QUILL DARK MODE OVERRIDES */
+.ql-toolbar.ql-snow {
+  border-color: #333 !important;
+  background-color: #111;
+  color: #e5e7eb;
+}
+
+.ql-container.ql-snow {
+  border-color: #333 !important;
+  background-color: #111;
+  color: #e5e7eb;
+  /* gray-200 */
+}
+
+/* Icons fill */
+.ql-snow .ql-stroke {
+  stroke: #9ca3af !important;
+  /* gray-400 */
+}
+
+.ql-snow .ql-fill {
+  fill: #9ca3af !important;
+}
+
+.ql-snow .ql-picker {
+  color: #9ca3af !important;
+}
+
+/* Pagination / Active states */
+.ql-snow .ql-picker-options {
+  background-color: #111 !important;
+  border-color: #333 !important;
+}
+
+.ql-editor {
+  min-height: 200px;
 }

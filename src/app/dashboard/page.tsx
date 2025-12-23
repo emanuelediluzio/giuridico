@@ -763,8 +763,8 @@ export default function DashboardPage() {
                                                 </div>
                                             </div>
 
-                                            {/* EDITOR */}
-                                            <div className="flex-1 bg-white text-black rounded-sm overflow-hidden flex flex-col relative h-full">
+                                            {/* EDITOR - DARK MODE */}
+                                            <div className="flex-1 bg-[#111] text-gray-300 border border-[#333] rounded-sm overflow-hidden flex flex-col relative h-full selection:bg-emerald-500/30 selection:text-white">
                                                 {isEditing ? (
                                                     <ReactQuill
                                                         theme="snow"
