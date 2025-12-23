@@ -17,7 +17,8 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
         const arrayBuffer = await file.arrayBuffer();
 
         // Use global pdfjsLib from script tag
-        const lib = window.pdfjsLib;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lib = (window as any).pdfjsLib;
         if (!lib) throw new Error("PDF.js library not loaded in window.pdfjsLib");
 
         // Force correct worker URL from CDN if not set
