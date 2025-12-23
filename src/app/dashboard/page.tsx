@@ -257,16 +257,23 @@ export default function DashboardPage() {
                 if (!contract || !statement || !template) throw new Error("File Missing");
 
                 // CLIENT SIDE EXTRACTION
+                console.log("[DEBUG] Starting PDF Extraction...");
                 const [contractText, statementText] = await Promise.all([
                     extractTextFromPDFClient(contract),
                     extractTextFromPDFClient(statement)
                 ]);
+                console.log("[DEBUG] PDF Extraction Complete.", {
+                    contractLen: contractText.length,
+                    statementLen: statementText.length
+                });
 
                 // CLIENT SIDE ANALYSIS (Puter.js)
+                console.log("[DEBUG] Starting Puter AI Analysis...");
                 const [contractAnalysis, statementAnalysis] = await Promise.all([
                     analysisWithPuterClient(contractText, puterInstance),
                     analysisWithPuterClient(statementText, puterInstance)
                 ]);
+                console.log("[DEBUG] Puter Analysis Complete.", { contractAnalysis, statementAnalysis });
 
                 // CLIENT SIDE PARSING (Regex)
                 const contractData = parseNanonetsMarkdown(contractText);

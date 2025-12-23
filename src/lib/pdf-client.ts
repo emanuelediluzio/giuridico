@@ -13,28 +13,44 @@ interface TextItem {
 }
 
 export async function extractTextFromPDFClient(file: File): Promise<string> {
-    const arrayBuffer = await file.arrayBuffer();
+    console.log(`[DEBUG] Extracting text from ${file.name}...`);
+    try {
+        const arrayBuffer = await file.arrayBuffer();
 
-    // Load the document
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
+        // Ensure worker is set (redundant check)
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            console.warn("[DEBUG] WorkerSrc was empty, setting default...");
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+        }
 
-    let fullText = '';
+        // Load the document
+        console.log("[DEBUG] pdfjsLib.getDocument called");
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        console.log(`[DEBUG] PDF Loaded. Pages: ${pdf.numPages}`);
 
-    // Iterate over all pages
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
+        let fullText = '';
 
-        // Extract text items and join them
-        const pageText = textContent.items
-            .map((item: unknown) => (item as TextItem).str || "")
-            .join(' ');
+        // Iterate over all pages
+        for (let i = 1; i <= pdf.numPages; i++) {
+            console.log(`[DEBUG] Processing page ${i}...`);
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
 
-        fullText += pageText + '\n\n';
+            // Extract text items and join them
+            const pageText = textContent.items
+                .map((item: unknown) => (item as TextItem).str || "")
+                .join(' ');
+
+            fullText += pageText + '\n\n';
+        }
+
+        console.log("[DEBUG] Extraction finished.");
+        return fullText;
+    } catch (e) {
+        console.error("[DEBUG] Extraction Failed:", e);
+        throw e;
     }
-
-    return fullText;
 }
 
 // Minimal interface for Puter
