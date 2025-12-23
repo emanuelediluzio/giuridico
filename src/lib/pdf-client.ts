@@ -23,7 +23,7 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
 
         // Force correct worker URL from CDN if not set
         if (!lib.GlobalWorkerOptions.workerSrc) {
-            console.log("[DEBUG] Setting workerSrc...");
+            console.log("[DEBUG] Setting workerSrc to 3.11.174...");
             lib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
         }
 
