@@ -131,14 +131,11 @@ export default function DashboardPage() {
     // Puter Auth Check
     React.useEffect(() => {
         const checkPuter = async () => {
-            // @ts-expect-error - Puter is added via script
             if (window.puter && window.puter.auth) {
-                // @ts-expect-error - Puter is added via script
                 const isSignedIn = window.puter.auth.isSignedIn();
                 setIsPuterAuthenticated(isSignedIn);
 
                 // Set instance for passing to children
-                // @ts-expect-error - Puter is added via script
                 setPuterInstance(window.puter);
 
                 if (!isSignedIn) {
