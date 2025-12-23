@@ -77,6 +77,7 @@ export default function ChatInterface({ context, initialMessages = [], onMessage
                 `User: ${userMsg.content}`
             ].join('\n\n');
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const finalPuter = puterInstance || (window as any).puter;
             if (!finalPuter) throw new Error("AI Service not connected");
 
