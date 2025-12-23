@@ -335,32 +335,34 @@ export default function DashboardPage() {
             setChatMessages([]); // Reset chat for new run
             setCurrentHistoryId(null); // Reset ID until saved
 
-            // Persistence
+            // UNBLOCK UI IMMEDIATELY
+            setIsLoading(false);
+
+            // Background Persistence (Fire-and-forget style for UI response)
             if (user && newResult) {
-                console.log("[DEBUG] Saving to Firestore...");
-                try {
-                    const file1 = Object.values(inputFiles)[0];
-                    const baseName = file1 ? file1.name.replace('.pdf', '') : 'Analisi';
-                    const clientName = newResult.dati?.nomeCliente && newResult.dati?.nomeCliente !== 'XXXXX' ? newResult.dati?.nomeCliente : null;
-                    const smartName = clientName ? `Analisi ${clientName}` : baseName;
-                    const count = history.length + 1;
-                    const docName = `${smartName} #${count}`;
+                console.log("[DEBUG] Starting Background Save...");
+                (async () => {
+                    try {
+                        const file1 = Object.values(inputFiles)[0];
+                        const baseName = file1 ? file1.name.replace('.pdf', '') : 'Analisi';
+                        const clientName = newResult?.dati?.nomeCliente && newResult.dati?.nomeCliente !== 'XXXXX' ? newResult.dati?.nomeCliente : null;
+                        const smartName = clientName ? `Analisi ${clientName}` : baseName;
+                        const count = history.length + 1;
+                        const docName = `${smartName} #${count}`;
 
-                    const docId = await saveUserHistory(user.uid, docName, newResult, []); // Empty chat initially
-                    console.log("[DEBUG] Firestore Saved. DocID:", docId);
+                        const docId = await saveUserHistory(user.uid, docName, newResult!, []);
+                        console.log("[DEBUG] Background Save Complete. DocID:", docId);
 
-                    if (docId) {
-                        setCurrentHistoryId(docId);
+                        if (docId) {
+                            setCurrentHistoryId(docId);
+                            // Refresh list quietly
+                            const updatedHistory = await getUserHistory(user.uid);
+                            setHistory(updatedHistory);
+                        }
+                    } catch (bgError) {
+                        console.error("[DEBUG] Background Save Failed:", bgError);
                     }
-                    const updatedHistory = await getUserHistory(user.uid);
-                    setHistory(updatedHistory);
-                    console.log("[DEBUG] History refreshed.");
-                } catch (saveError) {
-                    console.error("[DEBUG] Save to History FAILED:", saveError);
-                    // Don't block UI if save fails
-                }
-            } else {
-                console.log("[DEBUG] Skipping Persistence (No user or result).");
+                })();
             }
 
 
