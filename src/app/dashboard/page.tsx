@@ -776,6 +776,7 @@ export default function DashboardPage() {
                                     context={letterContent || "Nessun documento processato ancora."}
                                     initialMessages={chatMessages}
                                     onMessagesUpdate={handleChatUpdate}
+                                    puterInstance={puterInstance}
                                 />
                             )}
 
