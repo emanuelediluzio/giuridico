@@ -257,11 +257,10 @@ export default function DashboardPage() {
                 if (!contract || !statement || !template) throw new Error("File Missing");
 
                 // CLIENT SIDE EXTRACTION
-                console.log("[DEBUG] Starting PDF Extraction...");
-                const [contractText, statementText] = await Promise.all([
-                    extractTextFromPDFClient(contract),
-                    extractTextFromPDFClient(statement)
-                ]);
+                console.log("[DEBUG] Starting PDF Extraction (Sequential)...");
+                // Sequential extraction to avoid main thread freeze if worker fails
+                const contractText = await extractTextFromPDFClient(contract);
+                const statementText = await extractTextFromPDFClient(statement);
                 console.log("[DEBUG] PDF Extraction Complete.", {
                     contractLen: contractText.length,
                     statementLen: statementText.length

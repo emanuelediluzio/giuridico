@@ -1,5 +1,5 @@
 
-import * as pdfjsLib from 'pdfjs-dist';
+
 
 // Use a specific version matching the installed package to avoid version mismatch errors
 // In a real app, ensure this matches package.json version.
