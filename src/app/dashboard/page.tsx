@@ -136,13 +136,13 @@ export default function DashboardPage() {
                 setIsPuterAuthenticated(isSignedIn);
 
                 // Set instance for passing to children
-                setPuterInstance(window.puter);
+                setPuterInstance(window.puter as unknown as PuterInstance);
 
                 if (!isSignedIn) {
                     try {
-                        // @ts-ignore
                         // Attempt silent sign in or just ready state?
                         // window.puter.auth.signIn(); // Don't force sign in on load
+                    } catch {
                         console.log("Not signed in");
                     }
                 }
