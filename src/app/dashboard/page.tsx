@@ -337,19 +337,30 @@ export default function DashboardPage() {
 
             // Persistence
             if (user && newResult) {
-                const file1 = Object.values(inputFiles)[0];
-                const baseName = file1 ? file1.name.replace('.pdf', '') : 'Analisi';
-                const clientName = newResult.dati?.nomeCliente && newResult.dati?.nomeCliente !== 'XXXXX' ? newResult.dati?.nomeCliente : null;
-                const smartName = clientName ? `Analisi ${clientName}` : baseName;
-                const count = history.length + 1;
-                const docName = `${smartName} #${count}`;
+                console.log("[DEBUG] Saving to Firestore...");
+                try {
+                    const file1 = Object.values(inputFiles)[0];
+                    const baseName = file1 ? file1.name.replace('.pdf', '') : 'Analisi';
+                    const clientName = newResult.dati?.nomeCliente && newResult.dati?.nomeCliente !== 'XXXXX' ? newResult.dati?.nomeCliente : null;
+                    const smartName = clientName ? `Analisi ${clientName}` : baseName;
+                    const count = history.length + 1;
+                    const docName = `${smartName} #${count}`;
 
-                const docId = await saveUserHistory(user.uid, docName, newResult, []); // Empty chat initially
-                if (docId) {
-                    setCurrentHistoryId(docId);
+                    const docId = await saveUserHistory(user.uid, docName, newResult, []); // Empty chat initially
+                    console.log("[DEBUG] Firestore Saved. DocID:", docId);
+
+                    if (docId) {
+                        setCurrentHistoryId(docId);
+                    }
+                    const updatedHistory = await getUserHistory(user.uid);
+                    setHistory(updatedHistory);
+                    console.log("[DEBUG] History refreshed.");
+                } catch (saveError) {
+                    console.error("[DEBUG] Save to History FAILED:", saveError);
+                    // Don't block UI if save fails
                 }
-                const updatedHistory = await getUserHistory(user.uid);
-                setHistory(updatedHistory);
+            } else {
+                console.log("[DEBUG] Skipping Persistence (No user or result).");
             }
 
 
