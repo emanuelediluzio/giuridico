@@ -16,15 +16,19 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
     try {
         const arrayBuffer = await file.arrayBuffer();
 
-        // Ensure worker is set (redundant check)
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-            console.warn("[DEBUG] WorkerSrc was empty, setting default...");
-            pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+        // Use global pdfjsLib from script tag
+        const lib = window.pdfjsLib;
+        if (!lib) throw new Error("PDF.js library not loaded in window.pdfjsLib");
+
+        // Force correct worker URL from CDN if not set
+        if (!lib.GlobalWorkerOptions.workerSrc) {
+            console.log("[DEBUG] Setting workerSrc...");
+            lib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
         }
 
         // Load the document
         console.log("[DEBUG] pdfjsLib.getDocument called");
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = lib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         console.log(`[DEBUG] PDF Loaded. Pages: ${pdf.numPages}`);
 
@@ -32,7 +36,7 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
 
         // Iterate over all pages
         for (let i = 1; i <= pdf.numPages; i++) {
-            console.log(`[DEBUG] Processing page ${i}...`);
+            // console.log(`[DEBUG] Processing page ${i}...`);
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
 
@@ -42,6 +46,9 @@ export async function extractTextFromPDFClient(file: File): Promise<string> {
                 .join(' ');
 
             fullText += pageText + '\n\n';
+
+            // Allow UI breath
+            if (i % 5 === 0) await new Promise(r => setTimeout(r, 10));
         }
 
         console.log("[DEBUG] Extraction finished.");
