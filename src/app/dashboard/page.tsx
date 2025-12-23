@@ -131,14 +131,14 @@ export default function DashboardPage() {
     // Puter Auth Check
     React.useEffect(() => {
         const checkPuter = async () => {
-            // @ts-ignore
+            // @ts-expect-error - Puter is added via script
             if (window.puter && window.puter.auth) {
-                // @ts-ignore
+                // @ts-expect-error - Puter is added via script
                 const isSignedIn = window.puter.auth.isSignedIn();
                 setIsPuterAuthenticated(isSignedIn);
 
                 // Set instance for passing to children
-                // @ts-ignore
+                // @ts-expect-error - Puter is added via script
                 setPuterInstance(window.puter);
 
                 if (!isSignedIn) {
@@ -146,7 +146,6 @@ export default function DashboardPage() {
                         // @ts-ignore
                         // Attempt silent sign in or just ready state?
                         // window.puter.auth.signIn(); // Don't force sign in on load
-                    } catch (e) {
                         console.log("Not signed in");
                     }
                 }

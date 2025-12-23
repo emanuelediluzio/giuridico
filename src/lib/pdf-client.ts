@@ -47,7 +47,7 @@ interface PuterInstance {
 
 export async function analysisWithPuterClient(text: string, puterInstance: PuterInstance): Promise<{ valore: number | null; stato: string }> {
     // Check global puter availability if instance not provided or invalid
-    // @ts-ignore
+    // @ts-expect-error - Puter might be globally available via script
     const finalPuter = puterInstance || window.puter;
 
     if (!finalPuter) throw new Error("Puter instance not initialized");

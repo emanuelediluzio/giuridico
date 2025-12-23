@@ -1,5 +1,6 @@
 import './globals.css';
 import React from 'react';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'Lexa - Assistente Legale AI',
@@ -21,9 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="it" className="scroll-smooth">
       <head>
-        <script src="https://js.puter.com/v2/"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" defer></script>
+        <Script src="https://js.puter.com/v2/" strategy="beforeInteractive" />
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" strategy="lazyOnload" />
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" strategy="lazyOnload" />
       </head>
       <body className="min-h-screen bg-[var(--color-bg-primary)]">
         {/* Background elements */}
