@@ -81,9 +81,7 @@ export default function ChatInterface({ context, initialMessages = [], onMessage
             const finalPuter = puterInstance || (window as any).puter;
             if (!finalPuter) throw new Error("AI Service not connected");
 
-            const response = await finalPuter.ai.chat(conversationHistory, {
-                model: 'gemini-2.5-flash'
-            });
+            const response = await finalPuter.ai.chat(conversationHistory);
 
             let text = "";
             if (typeof response === 'string') {
