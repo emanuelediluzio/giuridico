@@ -24,6 +24,9 @@ const ReactQuill = dynamic(() => import('react-quill-new'), {
 const DownloadPDFButton = dynamic(() => import('../components/DownloadPDFButton'), { ssr: false });
 const DownloadWordButton = dynamic(() => import('../components/DownloadWordButton'), { ssr: false });
 
+// Import Chat (Dynamic to avoid SSR issues if any)
+const ChatInterface = dynamic(() => import('../components/ChatInterface'), { ssr: false });
+
 
 
 // --- ICONS (Lucas Icons style - minimal SVG) ---
@@ -99,8 +102,7 @@ export default function DashboardPage() {
     // State for Tabs
     const [activeTab, setActiveTab] = useState<'editor' | 'chat'>('editor');
 
-    // Import Chat (Dynamic to avoid SSR issues if any)
-    const ChatInterface = dynamic(() => import('../components/ChatInterface'), { ssr: false });
+
 
     // History state
     const [history, setHistory] = useState<HistoryItem[]>([]);
