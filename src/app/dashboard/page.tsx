@@ -106,6 +106,7 @@ export default function DashboardPage() {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
     const [chatMessages, setChatMessages] = useState<Message[]>([]);
+    const [isChatProcessing, setIsChatProcessing] = useState(false);
 
 
 
@@ -212,12 +213,79 @@ export default function DashboardPage() {
         setActiveTab('editor'); // Default back to editor
     };
 
-    const handleChatUpdate = async (newMessages: Message[]) => {
-        setChatMessages(newMessages);
-        if (user && currentHistoryId) {
-            // Save to Firestore (Fire and Forget)
-            updateUserHistory(user.uid, currentHistoryId, { chatMessages: newMessages });
+
+
+    const handleSendMessage = async (message: string) => {
+        if (!message.trim()) return;
+
+        const newMessage: Message = {
+            id: Math.random().toString(36).substring(2, 9),
+            role: 'user',
+            content: message,
+            timestamp: Date.now()
+        };
+
+        const updatedMessages = [...chatMessages, newMessage];
+        setChatMessages(updatedMessages);
+        setIsChatProcessing(true);
+
+        try {
+            if (!puterInstance) throw new Error("AI Service Unavailable");
+
+            const context = `
+You are Lexa, an expert legal assistant.
+The user is viewing a document. The current content is:
+\`\`\`html
+${letterContent || ""}
+\`\`\`
+
+User Question: ${message}
+
+Instructions:
+- Be professional, concise, and helpful.
+- If the user asks to rewrite or fix the document, provide the CORRECTED content in a code block.
+- Wrap content code in \`\`\`html ... \`\`\` or \`\`\`text ... \`\`\`.
+- Answer in Italian.
+`.trim();
+
+            const aiResponse = await puterInstance.ai.chat(context, { model: 'gemini-2.5-flash' });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const textObj = typeof aiResponse === 'object' && (aiResponse as any).message ? (aiResponse as any).message.content : String(aiResponse);
+
+            const botMessage: Message = {
+                id: Math.random().toString(36).substring(2, 9),
+                role: 'assistant',
+                content: textObj,
+                timestamp: Date.now()
+            };
+
+            const finalMessages = [...updatedMessages, botMessage];
+            setChatMessages(finalMessages);
+
+            // Persist if in a saved session
+            if (user && currentHistoryId) {
+                updateUserHistory(user.uid, currentHistoryId, { chatMessages: finalMessages });
+            }
+
+        } catch (error) {
+            console.error("Chat error:", error);
+            const errorMessage: Message = {
+                id: Math.random().toString(36).substring(2, 9),
+                role: 'assistant',
+                content: "Mi dispiace, ho riscontrato un errore nel processare la richiesta.",
+                timestamp: Date.now()
+            };
+            setChatMessages([...updatedMessages, errorMessage]);
+        } finally {
+            setIsChatProcessing(false);
         }
+    };
+
+    const handleApplyCode = (code: string) => {
+        // Strip fences if present
+        const cleanCode = code.replace(/^```(html|text|latex)?/i, '').replace(/```$/i, '').trim();
+        setLetterContent(cleanCode);
+        setActiveTab('editor'); // Switch to editor to show change
     };
 
     const handleFileChange = (inputId: string) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -773,10 +841,10 @@ export default function DashboardPage() {
                             {/* CHAT TAB */}
                             {activeTab === 'chat' && (
                                 <ChatInterface
-                                    context={letterContent || "Nessun documento processato ancora."}
-                                    initialMessages={chatMessages}
-                                    onMessagesUpdate={handleChatUpdate}
-                                    puterInstance={puterInstance}
+                                    messages={chatMessages}
+                                    onSendMessage={handleSendMessage}
+                                    onApplyCode={handleApplyCode}
+                                    isProcessing={isChatProcessing}
                                 />
                             )}
 

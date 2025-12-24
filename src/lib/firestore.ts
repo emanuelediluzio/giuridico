@@ -2,8 +2,10 @@ import { db } from "./firebase";
 import { collection, addDoc, query, getDocs, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore";
 
 export interface Message {
+    id?: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
+    timestamp?: number;
 }
 
 export interface HistoryItem {
