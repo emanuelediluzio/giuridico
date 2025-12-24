@@ -1,4 +1,4 @@
-export type WorkflowType = 'CESSIONE_QUINTO' | 'CONTRACT_ANALYSIS' | 'GDPR_CHECK';
+export type WorkflowType = 'CESSIONE_QUINTO' | 'CONTRACT_ANALYSIS' | 'GDPR_CHECK' | 'REDLINE_ADVISOR' | 'DEADLINE_EXTRACTOR';
 
 export interface WorkflowInput {
     id: string;
@@ -25,6 +25,24 @@ export const WORKFLOWS: WorkflowConfig[] = [
             { id: 'contract', label: 'Contratto', accept: 'application/pdf', required: true },
             { id: 'statement', label: 'Conteggio Estintivo', accept: 'application/pdf', required: true },
             { id: 'template', label: 'Template Diffida', accept: 'application/pdf', required: true }
+        ]
+    },
+    {
+        id: 'REDLINE_ADVISOR',
+        name: 'Redline Advisor',
+        description: 'AI Risk analysis and clause suggestions.',
+        icon: 'PenTool', // Will need to import or map
+        inputs: [
+            { id: 'contract', label: 'Contratto (PDF)', accept: 'application/pdf', required: true }
+        ]
+    },
+    {
+        id: 'DEADLINE_EXTRACTOR',
+        name: 'Deadline Extractor',
+        description: 'Extract dates and generate Calendar events.',
+        icon: 'Calendar', // Will need to import or map
+        inputs: [
+            { id: 'document', label: 'Atto / Notifica (PDF)', accept: 'application/pdf', required: true }
         ]
     },
     {

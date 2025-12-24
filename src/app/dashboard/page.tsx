@@ -12,7 +12,9 @@ import { WORKFLOWS, WorkflowConfig } from '@/types/workflows';
 import {
     Calculator,
     FileText,
-    ShieldCheck
+    ShieldCheck,
+    PenTool,
+    Calendar
 } from 'lucide-react';
 
 // Import dinamico per ReactQuill e Button 
@@ -80,6 +82,7 @@ export default function DashboardPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [letterContent, setLetterContent] = useState<string>('');
+    const [icsContent, setIcsContent] = useState<string | null>(null); // New state for ICS file
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [selectedPersona, setSelectedPersona] = useState<PersonaConfig>(PERSONAS[0]);
     const [user, setUser] = useState<User | null>(null);
@@ -189,7 +192,9 @@ export default function DashboardPage() {
         setInputFiles({}); // Reset files on workflow change
         setError(null);
         setResult(null);
+        setResult(null);
         setLetterContent('');
+        setIcsContent(null);
         setIsEditing(false);
         setCurrentHistoryId(null);
         setChatMessages([]);
@@ -392,6 +397,110 @@ Instructions:
                     },
                     analisiPercentuale
                 };
+
+
+
+            } else if (selectedWorkflow.id === 'REDLINE_ADVISOR') {
+                const contract = inputFiles['contract'];
+                if (!contract) throw new Error("File Missing");
+
+                // Extraction
+                const contractText = await extractTextFromPDFClient(contract);
+
+                // Analysis
+                const prompt = `
+Analizza il seguente contratto per identificare clausole rischiose o sbilanciate.
+Contratto:
+${contractText.substring(0, 20000)}
+
+Per favore identifica 3-5 clausole critiche. Per ogni clausola:
+1. Cita la clausola originale (o un estratto).
+2. Spiega il rischio.
+3. Suggerisci una riformulazione più favorevole o sicura.
+
+Formatta l'output in Markdown chiaro e leggibile (usa titolie elenchi puntati).
+                 `.trim();
+
+                const aiResponse = await puterInstance.ai.chat(prompt, { model: 'gemini-2.5-flash' });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                generatedLetter = typeof aiResponse === 'object' && (aiResponse as any).message ? (aiResponse as any).message.content : String(aiResponse);
+
+                newResult = {
+                    lettera: generatedLetter,
+                    dati: {
+                        nomeCliente: 'Analisi Rischi',
+                        codiceFiscale: 'N/A',
+                        dataNascita: '',
+                        luogoNascita: '',
+                        importoRimborso: 'N/A',
+                        rateResidue: 0,
+                        durataTotale: 0,
+                        costiTotali: 0
+                    }
+                };
+
+            } else if (selectedWorkflow.id === 'DEADLINE_EXTRACTOR') {
+                const doc = inputFiles['document'];
+                if (!doc) throw new Error("File Missing");
+
+                const docText = await extractTextFromPDFClient(doc);
+
+                const prompt = `
+Estrai tutte le scadenze legali, date di udienza o termini perentori dal seguente testo.
+Testo:
+${docText.substring(0, 20000)}
+
+Restituisci un JSON puro (senza markdown) con questo formato:
+[
+  { "date": "YYYY-MM-DD", "summary": "Titolo Breve", "description": "Descrizione dettagliata" }
+]
+Se non trovi date, restituisci [].
+                 `.trim();
+
+                const aiResponse = await puterInstance.ai.chat(prompt, { model: 'gemini-2.5-flash' });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                let textObj = typeof aiResponse === 'object' && (aiResponse as any).message ? (aiResponse as any).message.content : String(aiResponse);
+
+                // Clean markdown fencing if present
+                textObj = textObj.replace(/^```json/i, '').replace(/```$/i, '').trim();
+
+                try {
+                    const events = JSON.parse(textObj);
+
+                    // Generate Report
+                    generatedLetter = "# Scadenzario Estratto\n\n";
+                    // Generate ICS content
+                    let icsBody = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Lexa AI//Legal Calendar//EN\n";
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    events.forEach((evt: any) => {
+                        generatedLetter += `* **${evt.date}**: ${evt.summary}\n  * ${evt.description}\n\n`;
+                        const dateStr = evt.date.replace(/-/g, '');
+                        icsBody += `BEGIN:VEVENT\nSUMMARY:${evt.summary}\nDTSTART;VALUE=DATE:${dateStr}\nDESCRIPTION:${evt.description}\nEND:VEVENT\n`;
+                    });
+                    icsBody += "END:VCALENDAR";
+
+                    setIcsContent(icsBody);
+
+                    newResult = {
+                        lettera: generatedLetter,
+                        dati: {
+                            nomeCliente: 'Scadenzario',
+                            codiceFiscale: 'N/A',
+                            dataNascita: '',
+                            luogoNascita: '',
+                            importoRimborso: `${events.length} Eventi`,
+                            rateResidue: 0,
+                            durataTotale: 0,
+                            costiTotali: 0
+                        }
+                    };
+
+                } catch (e) {
+                    console.error("JSON Parse Error", e);
+                    generatedLetter = "Errore nel parsing delle date. Ecco l'output grezzo:\n" + textObj;
+                    newResult = { lettera: generatedLetter, dati: { nomeCliente: 'Error', codiceFiscale: '', dataNascita: '', luogoNascita: '', importoRimborso: 'N/A', rateResidue: 0, durataTotale: 0, costiTotali: 0 } };
+                }
 
             } else {
                 // Simulate other workflows
@@ -652,6 +761,8 @@ Instructions:
                                         let Icon = FileText;
                                         if (wf.icon === 'Calculator') Icon = Calculator;
                                         if (wf.icon === 'ShieldCheck') Icon = ShieldCheck;
+                                        if (wf.icon === 'PenTool') Icon = PenTool;
+                                        if (wf.icon === 'Calendar') Icon = Calendar;
 
                                         return (
                                             <button
@@ -834,6 +945,25 @@ Instructions:
                                             <div className="mt-4 flex gap-3 justify-end shrink-0">
                                                 <DownloadPDFButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.pdf`} />
                                                 <DownloadWordButton content={letterContent} fileName={`diffida_${result.dati?.codiceFiscale || 'output'}.docx`} />
+
+                                                {icsContent && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const blob = new Blob([icsContent], { type: 'text/calendar' });
+                                                            const url = URL.createObjectURL(blob);
+                                                            const a = document.createElement('a');
+                                                            a.href = url;
+                                                            a.download = 'scadenzario.ics';
+                                                            document.body.appendChild(a);
+                                                            a.click();
+                                                            document.body.removeChild(a);
+                                                        }}
+                                                        className="flex items-center gap-2 px-3 py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded text-xs font-mono uppercase text-emerald-500 transition-colors"
+                                                    >
+                                                        <Calendar size={14} />
+                                                        Download .ICS
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     )}
